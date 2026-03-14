@@ -7,29 +7,24 @@ import { CONTACT } from "@/lib/constants";
 export default function WhatsAppCTA() {
   return (
     <motion.div
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2"
-      initial={{ opacity: 0, scale: 0.8 }}
+      className="fixed bottom-5 right-5 z-50 flex items-center gap-2 sm:bottom-6 sm:right-6"
+      initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 1, duration: 0.4 }}
+      transition={{ delay: 1, duration: 0.3 }}
     >
-      <motion.span
-        className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 shadow-md"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1.2 }}
-      >
+      <span className="rounded-full bg-[var(--bg-card)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-[var(--shadow)]">
         Need help?
-      </motion.span>
+      </span>
       <motion.a
         href={CONTACT.whatsapp}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-accent)] text-white shadow-lg transition-shadow hover:shadow-xl"
-        whileHover={{ scale: 1.1 }}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[var(--shadow)]"
+        whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
-        aria-label="Contact us on WhatsApp"
+        aria-label="Chat on WhatsApp"
       >
-        <MessageCircle className="h-7 w-7" />
+        <MessageCircle className="h-6 w-6" strokeWidth={2} />
       </motion.a>
     </motion.div>
   );

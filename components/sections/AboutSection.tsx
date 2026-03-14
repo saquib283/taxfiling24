@@ -2,32 +2,29 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { Phone } from "lucide-react";
+import { Phone, Calendar } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 import { ABOUT_FEATURES } from "@/lib/constants";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
-
 import { CheckCircle, Award, IndianRupee, UserCheck } from "lucide-react";
 
 const ICONS = [CheckCircle, Award, IndianRupee, UserCheck];
 
 export default function AboutSection() {
   return (
-    <section id="about" className="bg-white py-16 lg:py-24">
-      <div className="container mx-auto px-4 lg:px-8">
+    <section id="about" className="border-t border-[var(--border)] bg-[var(--bg-card)] py-16 lg:py-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <AnimatedSection className="mb-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-[var(--color-primary-light)]">
+          <h2 className="mb-3 text-2xl font-bold text-[var(--fg)] sm:text-3xl lg:text-4xl">
             About Taxfiling24
           </h2>
-          <p className="mx-auto max-w-2xl text-[var(--color-text-secondary)]">
-            Taxfiling24 makes tax and compliance simple. We handle filings,
-            registrations, and GST work so you can focus on your business with
-            quick support and clear guidance.
+          <p className="mx-auto max-w-xl text-[var(--fg-muted)]">
+            Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.
           </p>
         </AnimatedSection>
 
-        <div className="mb-16 grid items-center gap-12 lg:grid-cols-2">
+        <div className="mb-16 grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <motion.div
             initial="hidden"
             whileInView="show"
@@ -35,7 +32,7 @@ export default function AboutSection() {
             variants={fadeUp}
             className="relative"
           >
-            <div className="overflow-hidden rounded-2xl shadow-xl">
+            <div className="overflow-hidden rounded-[var(--radius-lg)] shadow-[var(--shadow)]">
               <div className="aspect-[4/3]">
                 <Image
                   src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80"
@@ -46,13 +43,13 @@ export default function AboutSection() {
                 />
               </div>
             </div>
-            <div className="absolute bottom-4 left-4 rounded-lg bg-[var(--color-primary)] px-4 py-3 text-white shadow-lg">
+            <div className="absolute bottom-5 left-5 rounded-xl bg-[var(--primary)] px-4 py-3 text-white shadow-[var(--shadow)]">
               <p className="text-2xl font-bold">2,000+</p>
-              <p className="text-sm">Happy Clients</p>
+              <p className="text-sm text-white/90">Happy Clients</p>
             </div>
-            <div className="absolute right-4 top-4 rounded-full bg-[var(--color-accent-teal)] px-4 py-3 text-center text-white shadow-lg">
+            <div className="absolute right-5 top-5 rounded-xl bg-[var(--accent)] px-4 py-3 text-white shadow-[var(--shadow)]">
               <p className="text-xl font-bold">15+</p>
-              <p className="text-xs">Years of Experience</p>
+              <p className="text-xs text-white/90">Years of Experience</p>
             </div>
           </motion.div>
 
@@ -62,62 +59,53 @@ export default function AboutSection() {
             viewport={{ once: true }}
             variants={fadeUp}
           >
-            <h3 className="mb-6 text-3xl font-bold text-[var(--color-primary-light)] lg:text-4xl">
+            <h3 className="mb-5 text-2xl font-bold text-[var(--fg)] sm:text-3xl">
               Your Trusted Partner for Business Success
             </h3>
-            <p className="mb-4 text-[var(--color-text-secondary)]">
-              With over <strong>15 years</strong> of excellence in business
-              consultancy. We are a team of highly qualified{" "}
-              <strong>Chartered Accountants (CA)</strong>,{" "}
-              <strong>Company Secretaries (CS)</strong>, and{" "}
-              <strong>Legal Experts</strong> dedicated to simplifying complex
-              compliance requirements and helping businesses focus on what
-              matters most - growth.
+            <p className="mb-4 text-[var(--fg-muted)] leading-relaxed">
+              With over <strong className="text-[var(--fg)]">15 years</strong> of excellence in business consultancy. We are a team of highly qualified <strong className="text-[var(--fg)]">Chartered Accountants (CA)</strong>, <strong className="text-[var(--fg)]">Company Secretaries (CS)</strong>, and <strong className="text-[var(--fg)]">Legal Experts</strong> dedicated to simplifying complex compliance requirements.
             </p>
-            <p className="mb-8 text-[var(--color-text-secondary)]">
-              From startups and MSMEs to NGOs and large corporates, we've
-              successfully served over <strong>2000+ clients</strong> across
-              India, delivering timely, accurate, and cost-effective solutions.
+            <p className="mb-8 text-[var(--fg-muted)] leading-relaxed">
+              From startups and MSMEs to NGOs and large corporates, we&apos;ve served over <strong className="text-[var(--primary)]">2000+ clients</strong> across India, delivering timely, accurate, and cost-effective solutions.
             </p>
-            <motion.a
-              href={`tel:${CONTACT.phoneRaw}`}
-              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-3 font-medium text-white"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Phone className="h-5 w-5" />
-              Talk To Expert
-            </motion.a>
-            <span className="ml-4 inline-block text-sm text-[var(--color-text-secondary)]">
-              or
-            </span>
-            <motion.a
-              href="#contact"
-              className="ml-2 inline-block rounded-lg border-2 border-[var(--color-accent-teal)] px-6 py-3 font-medium text-[var(--color-accent-teal)]"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Schedule Appointment
-            </motion.a>
+            <div className="flex flex-wrap gap-3">
+              <motion.a
+                href={`tel:${CONTACT.phoneRaw}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Phone className="h-4 w-4" />
+                Talk To Expert
+              </motion.a>
+              <motion.a
+                href="#contact"
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-5 py-3 font-medium text-[var(--fg)] transition-colors hover:border-[var(--primary)] hover:bg-[var(--accent-soft)]"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Calendar className="h-4 w-4" />
+                Schedule Appointment
+              </motion.a>
+            </div>
           </motion.div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {ABOUT_FEATURES.map((feature, index) => {
             const Icon = ICONS[index];
             return (
               <AnimatedSection key={feature.title}>
                 <motion.div
-                  className="rounded-xl bg-white p-6 shadow-md"
-                  whileHover={{ scale: 1.02, boxShadow: "0 10px 40px rgba(0,0,0,0.08)" }}
+                  className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg)] p-6 transition-colors hover:border-[var(--accent-soft)] hover:shadow-[var(--shadow-sm)]"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.99 }}
                 >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-primary-light)]/10">
-                    <Icon className="h-6 w-6 text-[var(--color-primary-light)]" />
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--primary)]">
+                    <Icon className="h-5 w-5" strokeWidth={2} />
                   </div>
-                  <h4 className="mb-2 font-bold text-[var(--color-primary-light)]">
-                    {feature.title}
-                  </h4>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
+                  <h4 className="mb-1.5 font-semibold text-[var(--fg)]">{feature.title}</h4>
+                  <p className="text-sm text-[var(--fg-muted)] leading-relaxed">
                     {feature.description}
                   </p>
                 </motion.div>

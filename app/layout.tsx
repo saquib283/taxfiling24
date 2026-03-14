@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Sora } from "next/font/google";
 import "./globals.css";
 import PreHeaderBar from "@/components/layout/PreHeaderBar";
 import Navbar from "@/components/layout/Navbar";
 import WhatsAppCTA from "@/components/layout/WhatsAppCTA";
 
-const poppins = Poppins({
+const sora = Sora({
   weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
-  variable: "--font-poppins",
+  variable: "--font-sora",
 });
 
 export const metadata: Metadata = {
@@ -33,11 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={poppins.variable}>
-      <body className={`${poppins.variable} ${poppins.className} antialiased`}>
+    <html lang="en" className={sora.variable}>
+      <body className={`${sora.variable} ${sora.className} antialiased`}>
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded focus:bg-[var(--color-primary)] focus:px-4 focus:py-2 focus:text-white focus:outline-none focus:ring-2 focus:ring-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[var(--primary)] focus:px-4 focus:py-2 focus:text-white focus:outline-none focus:ring-2 focus:ring-white"
         >
           Skip to main content
         </a>

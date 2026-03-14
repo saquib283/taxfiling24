@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { CONTACT, FORM_SERVICES } from "@/lib/constants";
 
@@ -16,148 +17,114 @@ export default function ContactSection() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   return (
-    <section id="contact" className="bg-[var(--color-background-light)] py-16 lg:py-24">
-      <div className="container mx-auto px-4 lg:px-8">
-        <div className="mb-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold uppercase text-[var(--color-primary-light)]">
+    <section id="contact" className="border-t border-[var(--border)] bg-[var(--bg-card)] py-16 lg:py-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12 text-center"
+        >
+          <h2 className="mb-3 text-2xl font-bold uppercase tracking-wide text-[var(--fg)] sm:text-3xl">
             Contact Us
           </h2>
-          <p className="mx-auto max-w-2xl text-[var(--color-text-secondary)]">
-            Fill out the form below and our expert team will get back to you
-            within 24 hours with the best solution for your business
+          <p className="mx-auto max-w-xl text-[var(--fg-muted)]">
+            Fill out the form and our team will get back to you within 24 hours
           </p>
-        </div>
+        </motion.div>
 
-        <div className="overflow-hidden rounded-2xl shadow-xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] shadow-[var(--shadow)]"
+        >
           <div className="grid lg:grid-cols-5">
-            {/* Left - Get in Touch */}
-            <div className="rounded-t-2xl bg-gradient-to-b from-[var(--color-primary)] to-[#1a2e5c] p-8 text-white lg:rounded-l-2xl lg:rounded-tr-none">
-              <span className="mb-4 inline-block rounded-lg bg-[var(--color-accent-teal)] px-4 py-1.5 text-sm font-medium">
+            <div className="rounded-t-[var(--radius-lg)] bg-[var(--primary)] p-8 text-white lg:rounded-l-[var(--radius-lg)] lg:rounded-tr-none sm:p-10">
+              <span className="mb-5 inline-block rounded-lg bg-white/15 px-4 py-1.5 text-sm font-medium">
                 Get Started Today
               </span>
-              <h3 className="mb-4 text-3xl font-bold">Get in Touch</h3>
-              <p className="mb-8 text-white/90">
-                Schedule your free consultation today and discover how
-                professional financial guidance can transform your business.
+              <h3 className="mb-4 text-2xl font-bold">Get in Touch</h3>
+              <p className="mb-8 text-white/90 text-sm leading-relaxed">
+                Schedule your free consultation and discover how we can help your business.
               </p>
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-teal)]/20">
-                    <Phone className="h-5 w-5" />
+              <div className="space-y-5">
+                {[
+                  { icon: Phone, label: "Phone", value: CONTACT.phone, href: `tel:${CONTACT.phoneRaw}` },
+                  { icon: Mail, label: "Email", value: CONTACT.email, href: `mailto:${CONTACT.email}` },
+                  { icon: MapPin, label: "Head Office", value: CONTACT.address, href: null },
+                ].map((item) => (
+                  <div key={item.label} className="flex gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15">
+                      <item.icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-white/70">{item.label}</p>
+                      {item.href ? (
+                        <a href={item.href} className="text-white/95 hover:underline">
+                          {item.value}
+                        </a>
+                      ) : (
+                        <p className="text-white/95 text-sm">{item.value}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold">Phone</p>
-                    <a href={`tel:${CONTACT.phoneRaw}`} className="text-white/90 hover:underline">
-                      {CONTACT.phone}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-teal)]/20">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold">Email</p>
-                    <a href={`mailto:${CONTACT.email}`} className="text-white/90 hover:underline">
-                      {CONTACT.email}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-teal)]/20">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold">Head Office</p>
-                    <p className="text-white/90">{CONTACT.address}</p>
-                  </div>
-                </div>
+                ))}
               </div>
               <a
                 href={CONTACT.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-white"
+                className="mt-8 inline-block rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-95"
               >
                 WhatsApp
               </a>
             </div>
 
-            {/* Right - Form */}
-            <div className="col-span-3 rounded-b-2xl bg-white p-8 lg:rounded-r-2xl lg:rounded-bl-none">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="col-span-3 rounded-b-[var(--radius-lg)] bg-[var(--bg)] p-8 lg:rounded-r-[var(--radius-lg)] lg:rounded-bl-none sm:p-10">
+              <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+                {[
+                  { name: "fullName", label: "Full Name", type: "text", required: true },
+                  { name: "phone", label: "Phone Number", type: "tel", required: true },
+                  { name: "email", label: "Email Address", type: "email", required: false },
+                ].map((field) => (
+                  <div key={field.name}>
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--fg)]">
+                      {field.label} {field.required && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type={field.type}
+                      name={field.name}
+                      value={formData[field.name as keyof typeof formData]}
+                      onChange={handleChange}
+                      required={field.required}
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--fg)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    />
+                  </div>
+                ))}
                 <div>
-                  <label className="mb-1 block font-medium text-gray-700">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[var(--color-primary-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)]/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-medium text-gray-700">
-                    Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[var(--color-primary-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)]/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-medium text-gray-700">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[var(--color-primary-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)]/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-medium text-gray-700">
-                    Select Required Service <span className="text-red-500">*</span>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--fg)]">
+                    Select Service <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="service"
                     value={formData.service}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[var(--color-primary-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)]/20"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--fg)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
                   >
                     <option value="">Choose service</option>
                     {FORM_SERVICES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
+                      <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block font-medium text-gray-700">
-                    Message
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--fg)]">Message</label>
                   <div className="relative">
                     <textarea
                       name="message"
@@ -165,23 +132,23 @@ export default function ContactSection() {
                       onChange={handleChange}
                       maxLength={180}
                       rows={4}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 pr-16 focus:border-[var(--color-primary-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)]/20"
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 pr-14 text-[var(--fg)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
                     />
-                    <span className="absolute bottom-3 right-3 text-xs text-gray-500">
+                    <span className="absolute bottom-2.5 right-3 text-xs text-[var(--fg-soft)]">
                       {formData.message.length}/180
                     </span>
                   </div>
                 </div>
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-[var(--color-primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--color-primary-dark)]"
+                  className="w-full rounded-xl bg-[var(--primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
                 >
                   Submit
                 </button>
               </form>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -12,27 +12,25 @@ const STATS = [
 
 export default function StatsSection() {
   return (
-    <section className="bg-[var(--color-background-light)] py-16 lg:py-20">
-      <div className="container mx-auto px-4 lg:px-8">
+    <section className="border-y border-[var(--border)] bg-[var(--bg-card)] py-14 lg:py-18">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid grid-cols-2 gap-4 md:grid-cols-4"
+          className="grid grid-cols-2 gap-6 md:grid-cols-4"
         >
           {STATS.map((stat) => (
             <motion.div
               key={stat.label}
               variants={fadeUp}
-              className="rounded-xl bg-white p-6 text-center shadow-sm"
+              className="text-center"
             >
-              <p className="mb-1 text-3xl font-bold text-[var(--color-primary-light)] lg:text-4xl">
+              <p className="text-3xl font-bold text-[var(--primary)] sm:text-4xl">
                 {stat.value}
               </p>
-              <p className="text-sm text-[var(--color-text-secondary)]">
-                {stat.label}
-              </p>
+              <p className="mt-1 text-sm text-[var(--fg-muted)]">{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>

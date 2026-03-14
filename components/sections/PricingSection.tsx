@@ -7,63 +7,56 @@ import { PRICING_PLANS } from "@/lib/constants";
 
 export default function PricingSection() {
   return (
-    <section className="bg-[var(--color-background-light)] py-16 lg:py-24">
-      <div className="container mx-auto px-4 lg:px-8">
+    <section className="py-16 lg:py-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <AnimatedSection className="mb-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-[var(--color-primary-light)]">
+          <h2 className="mb-3 text-2xl font-bold text-[var(--fg)] sm:text-3xl lg:text-4xl">
             Pricing Plans
           </h2>
-          <p className="mx-auto max-w-2xl text-[var(--color-text-secondary)]">
-            Choose the right plan for your business needs
+          <p className="mx-auto max-w-xl text-[var(--fg-muted)]">
+            Choose the right plan for your business
           </p>
         </AnimatedSection>
-
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {PRICING_PLANS.map((plan) => (
             <AnimatedSection key={plan.name}>
               <motion.div
-                className={`relative rounded-2xl p-8 ${
+                className={`relative flex flex-col rounded-[var(--radius-lg)] border p-6 sm:p-8 ${
                   plan.highlighted
-                    ? "border-2 border-[var(--color-accent-teal)] bg-white shadow-xl"
-                    : "bg-white shadow-md"
+                    ? "border-[var(--primary)] bg-[var(--bg-card)] shadow-[var(--shadow)]"
+                    : "border-[var(--border)] bg-[var(--bg-card)]"
                 }`}
-                whileHover={{ scale: 1.02, y: -4 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.99 }}
               >
                 {plan.highlighted && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--color-accent-teal)] px-4 py-1 text-sm font-medium text-white">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--primary)] px-4 py-1 text-xs font-medium text-white">
                     Recommended
                   </span>
                 )}
-                <h3 className="mb-2 text-xl font-bold text-[var(--color-primary-light)]">
-                  {plan.name}
-                </h3>
-                <p className="mb-4 text-3xl font-bold text-[var(--color-accent-teal)]">
-                  {plan.price}
-                </p>
-                <p className="mb-6 text-sm text-[var(--color-text-secondary)]">
-                  {plan.description}
-                </p>
+                <h3 className="mb-1 text-lg font-semibold text-[var(--fg)]">{plan.name}</h3>
+                <p className="mb-1 text-3xl font-bold text-[var(--primary)]">{plan.price}</p>
+                <p className="mb-6 text-sm text-[var(--fg-muted)]">{plan.description}</p>
                 <ul className="mb-8 space-y-3">
                   {plan.features.map((feature) => (
                     <li
                       key={feature}
-                      className="flex items-center gap-2 text-[var(--color-text-secondary)]"
+                      className="flex items-center gap-2.5 text-sm text-[var(--fg-muted)]"
                     >
-                      <Check className="h-5 w-5 shrink-0 text-[var(--color-accent-teal)]" />
+                      <Check className="h-4 w-4 shrink-0 text-[var(--success)]" strokeWidth={2.5} />
                       {feature}
                     </li>
                   ))}
                 </ul>
                 <motion.a
                   href="#contact"
-                  className={`block w-full rounded-lg py-3 text-center font-medium transition-colors ${
+                  className={`mt-auto block w-full rounded-xl py-3 text-center font-medium transition-colors ${
                     plan.highlighted
-                      ? "bg-[var(--color-accent-teal)] text-white hover:opacity-90"
-                      : "border-2 border-[var(--color-primary-light)] text-[var(--color-primary-light)] hover:bg-[var(--color-primary-light)] hover:text-white"
+                      ? "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]"
+                      : "border border-[var(--border)] text-[var(--fg)] hover:border-[var(--primary)] hover:bg-[var(--accent-soft)]"
                   }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                 >
                   Get Started
                 </motion.a>

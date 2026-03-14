@@ -19,25 +19,18 @@ export default function FAQItem({
   index,
 }: FAQItemProps) {
   return (
-    <div
-      className="overflow-hidden rounded-lg bg-[var(--color-background-light)] shadow-sm"
-      style={{ animationDelay: `${index * 0.1}s` }}
-    >
+    <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)]">
       <button
         onClick={onToggle}
-        className="flex w-full items-center justify-between p-5 text-left transition-colors hover:bg-gray-100/50"
+        className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-[var(--bg-muted)]/50 sm:p-6"
         aria-expanded={isOpen}
         aria-controls={`faq-answer-${index}`}
         id={`faq-question-${index}`}
       >
-        <span className="pr-4 font-bold text-[var(--color-primary-light)]">
-          {question}
+        <span className="pr-4 font-medium text-[var(--fg)]">{question}</span>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--fg-muted)]">
+          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>
-        {isOpen ? (
-          <ChevronUp className="h-5 w-5 shrink-0 text-[var(--color-primary-light)]" />
-        ) : (
-          <ChevronDown className="h-5 w-5 shrink-0 text-[var(--color-primary-light)]" />
-        )}
       </button>
       <AnimatePresence>
         {isOpen && (
@@ -46,12 +39,12 @@ export default function FAQItem({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.25 }}
             className="overflow-hidden"
             role="region"
             aria-labelledby={`faq-question-${index}`}
           >
-            <p className="border-t border-gray-200 p-5 pt-4 text-[var(--color-text-secondary)]">
+            <p className="border-t border-[var(--border)] p-5 pt-4 text-[var(--fg-muted)] leading-relaxed sm:p-6 sm:pt-5">
               {answer}
             </p>
           </motion.div>
