@@ -99,7 +99,7 @@ export default function Footer() {
             © 2025 TaxFiling24. All rights reserved.
           </p>
           <p className="text-center text-xs text-[var(--fg-soft)] sm:text-right">
-            Powered by Marketing Key
+            Developed by <a href="https://mdrehansaquib.in" target="_blank" rel="noopener noreferrer" className="text-[var(--primary)]">Md Rehan Saquib</a>
           </p>
         </div>
       </div>
