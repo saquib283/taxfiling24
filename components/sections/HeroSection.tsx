@@ -21,7 +21,7 @@ export default function HeroSection() {
             variants={fadeUp}
             className="flex flex-col"
           >
-            <span className="mb-5 inline-flex w-fit rounded-full border border-[var(--accent-soft)] bg-[var(--accent-soft)] px-4 py-1.5 text-sm font-medium text-[var(--primary)]">
+            <span className="mb-6 inline-flex w-fit rounded-full border border-[var(--accent-light)]/30 bg-[var(--accent-soft)]/50 px-5 py-2 text-sm font-semibold tracking-wide text-[var(--primary)] shadow-sm backdrop-blur-md uppercase">
               Complete Business Solutions
             </span>
             <h1 className="mb-5 text-3xl font-bold leading-tight text-[var(--fg)] sm:text-4xl lg:text-5xl">
@@ -30,10 +30,11 @@ export default function HeroSection() {
             <p className="mb-8 max-w-lg text-[var(--fg-muted)] leading-relaxed sm:text-lg">
               Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India.
             </p>
-            <div className="mb-8 flex flex-wrap gap-3">
+            <div className="mb-8 flex flex-wrap gap-4">
               <motion.a
                 href={`tel:${CONTACT.phoneRaw}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
+                className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 font-bold text-white shadow-[var(--shadow-md)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
+                style={{ backgroundImage: "var(--gradient-primary)" }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -42,12 +43,12 @@ export default function HeroSection() {
               </motion.a>
               <motion.a
                 href="#services"
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-3 font-medium text-[var(--fg)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--border)] bg-[var(--bg-card)] px-6 py-3.5 font-bold text-[var(--fg)] shadow-sm transition-all hover:-translate-y-1 hover:border-[var(--accent-light)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
                 Explore Services
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </motion.a>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--fg-muted)]">
@@ -78,23 +79,23 @@ export default function HeroSection() {
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
               </div>
-              <div className="absolute bottom-5 left-5 rounded-xl bg-[var(--primary)] px-4 py-3 text-white shadow-[var(--shadow)]">
-                <p className="text-2xl font-bold">2,000+</p>
-                <p className="text-sm text-white/90">Happy Clients</p>
+              <div className="absolute bottom-5 left-5 rounded-2xl border border-white/20 px-6 py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md" style={{ backgroundImage: "var(--gradient-primary)" }}>
+                <p className="text-3xl font-extrabold tracking-tight">2,000+</p>
+                <p className="text-sm font-medium text-white/90">Happy Clients</p>
               </div>
-              <div className="absolute right-5 top-5 rounded-xl bg-[var(--accent)] px-4 py-3 text-white shadow-[var(--shadow)]">
-                <p className="text-xl font-bold">15+</p>
-                <p className="text-xs text-white/90">Years of Experience</p>
+              <div className="absolute right-5 top-5 rounded-2xl border border-white/20 px-6 py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md" style={{ background: "linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%)" }}>
+                <p className="text-2xl font-extrabold tracking-tight">15+</p>
+                <p className="text-xs font-medium text-white/90">Years of Experience</p>
               </div>
             </div>
-            <div className="absolute -bottom-4 left-4 right-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow)] sm:right-auto sm:w-64">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-soft)]">
-                  <Check className="h-5 w-5 text-[var(--primary)]" strokeWidth={2.5} />
+            <div className="absolute -bottom-6 left-4 right-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 shadow-[var(--shadow-xl)] backdrop-blur-xl transition-transform hover:-translate-y-1 sm:left-auto sm:right-6 sm:w-72">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-sm" style={{ backgroundImage: "var(--gradient-primary)" }}>
+                  <Check className="h-6 w-6" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <p className="font-semibold text-[var(--fg)]">Certified Experts</p>
-                  <p className="text-sm text-[var(--fg-muted)]">CA, CS & Legal Professionals</p>
+                  <p className="font-bold text-[var(--fg)]">Certified Experts</p>
+                  <p className="text-sm font-medium text-[var(--fg-soft)]">CA, CS & Legal Pros</p>
                 </div>
               </div>
             </div>

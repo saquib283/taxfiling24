@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { Sora } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import PreHeaderBar from "@/components/layout/PreHeaderBar";
 import Navbar from "@/components/layout/Navbar";
 import WhatsAppCTA from "@/components/layout/WhatsAppCTA";
 
-const sora = Sora({
-  weight: ["300", "400", "500", "600", "700"],
+const outfit = Outfit({
   subsets: ["latin"],
-  variable: "--font-sora",
+  variable: "--font-outfit",
 });
 
 export const metadata: Metadata = {
@@ -33,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={sora.variable}>
-      <body className={`${sora.variable} ${sora.className} antialiased`}>
+    <html lang="en" className={outfit.variable}>
+      <body className={`${outfit.variable} ${outfit.className} antialiased selection:bg-[var(--accent)] selection:text-white`}>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[var(--primary)] focus:px-4 focus:py-2 focus:text-white focus:outline-none focus:ring-2 focus:ring-white"

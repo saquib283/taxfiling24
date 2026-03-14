@@ -1,33 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #fafaff;
-  --bg-card: #ffffff;
-  --bg-muted: #f1f0ff;
-  --fg: #1e1b4b;
-  --fg-muted: #5b5a7a;
-  --fg-soft: #8988a8;
-  --primary: #5b21b6;
-  --primary-hover: #6d28d9;
-  --accent: #7c3aed;
-  --accent-light: #a78bfa;
-  --accent-soft: #ede9fe;
-  --success: #059669;
-  --success-bg: #d1fae5;
-  --star: #f59e0b;
-  --border: #e5e4f0;
-  --shadow-sm: 0 1px 2px rgba(91, 33, 182, 0.04);
-  --shadow: 0 4px 20px rgba(91, 33, 182, 0.08);
-  --shadow-lg: 0 20px 50px -12px rgba(91, 33, 182, 0.15);
+  /* Layout Colors */
+  --bg: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-muted: #F1F5F9;
+  
+  /* Text Colors */
+  --fg: #0F172A;
+  --fg-muted: #475569;
+  --fg-soft: #94A3B8;
+  
+  /* Brand Colors (Modern Indigo to Violet) */
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --accent: #8B5CF6;
+  --accent-light: #A78BFA;
+  --accent-soft: #EDE9FE;
+  
+  /* Semantic Colors */
+  --success: #10B981;
+  --success-bg: #D1FAE5;
+  --star: #F59E0B;
+  --border: #E2E8F0;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(79, 70, 229, 0.5) 0%, rgba(139, 92, 246, 0.5) 100%);
+
+  /* Premium Shadows */
+  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow: 0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 20px 40px -8px rgba(79, 70, 229, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
+  --shadow-glow: 0 0 24px -4px rgba(139, 92, 246, 0.4);
+  
+  /* Radii */
   --radius: 1rem;
   --radius-lg: 1.5rem;
   --radius-xl: 2rem;
+  --radius-full: 9999px;
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--fg);
-  --font-sans: var(--font-sora);
+  --font-sans: var(--font-outfit);
 }
 
 html {
@@ -37,11 +56,14 @@ html {
 body {
   background: var(--bg);
   color: var(--fg);
+  /* Optional: Background mesh or subtle gradient can be placed here */
+  background-image: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+  background-attachment: fixed;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -49,10 +71,11 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--fg-soft);
   border-radius: 999px;
+  border: 2px solid var(--bg-muted);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--fg-soft);
+  background: var(--fg-muted);
 }

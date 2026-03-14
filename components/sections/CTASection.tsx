@@ -6,7 +6,7 @@ import { CONTACT } from "@/lib/constants";
 
 export default function CTASection() {
   return (
-    <section className="relative overflow-hidden bg-[var(--primary)] py-20 lg:py-28">
+    <section className="relative overflow-hidden py-24 lg:py-32" style={{ backgroundImage: "var(--gradient-primary)" }}>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.06%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
       <div className="absolute left-0 right-0 top-0">
         <svg viewBox="0 0 1440 80" className="w-full" preserveAspectRatio="none">
@@ -30,10 +30,10 @@ export default function CTASection() {
           <p className="mb-10 text-white/90">
             Let our experts handle your registration, compliance, and taxation. Get your free consultation today!
           </p>
-          <div className="mb-8 flex flex-wrap justify-center gap-3">
+            <div className="mb-10 flex flex-wrap justify-center gap-4">
             <motion.a
               href="#contact"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-medium text-[var(--primary)] transition-opacity hover:opacity-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--bg-card)] px-7 py-4 font-bold tracking-wide text-[var(--primary)] shadow-[var(--shadow-lg)] transition-all hover:-translate-y-1 hover:scale-105 hover:shadow-xl"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -42,7 +42,7 @@ export default function CTASection() {
             </motion.a>
             <motion.a
               href={`tel:${CONTACT.phoneRaw}`}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/10 px-6 py-3 font-medium text-white backdrop-blur-sm hover:bg-white/20"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 bg-white/10 px-7 py-4 font-bold tracking-wide text-white backdrop-blur-md transition-all hover:-translate-y-1 hover:scale-105 hover:border-white/50 hover:bg-white/20"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >

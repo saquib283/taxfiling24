@@ -43,8 +43,8 @@ export default function TestimonialsSection() {
             <button
               key={i}
               onClick={() => setActiveIndex(Math.min(i, maxIndex))}
-              className={`h-2 w-2 rounded-full transition-colors ${
-                activeIndex === i ? "bg-[var(--primary)]" : "bg-[var(--border)] hover:bg-[var(--fg-soft)]"
+              className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                activeIndex === i ? "w-6 bg-[var(--primary)]" : "bg-[var(--border)] hover:bg-[var(--fg-soft)]"
               }`}
               aria-label={`Testimonial ${i + 1}`}
             />

@@ -27,10 +27,10 @@ export default function StatsSection() {
               variants={fadeUp}
               className="text-center"
             >
-              <p className="text-3xl font-bold text-[var(--primary)] sm:text-4xl">
+              <p className="text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ backgroundImage: "var(--gradient-primary)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 {stat.value}
               </p>
-              <p className="mt-1 text-sm text-[var(--fg-muted)]">{stat.label}</p>
+              <p className="mt-2 text-sm font-semibold uppercase tracking-wider text-[var(--fg-muted)]">{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>

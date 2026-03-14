@@ -15,18 +15,19 @@ export default function Footer() {
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--primary)] p-8 text-white"
+            className="rounded-[var(--radius-xl)] p-10 text-white shadow-[var(--shadow-lg)] sm:p-12"
+            style={{ backgroundImage: "var(--gradient-primary)" }}
           >
-            <div className="mb-4 flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-white/80" />
-              <h3 className="font-semibold">Head Office</h3>
+            <div className="mb-5 flex items-center gap-3">
+              <MapPin className="h-6 w-6 text-white/90" />
+              <h3 className="text-xl font-bold tracking-wide">Head Office</h3>
             </div>
-            <p className="mb-6 text-sm text-white/90">{CONTACT.address}</p>
+            <p className="mb-8 text-white/90 leading-relaxed font-medium">{CONTACT.address}</p>
             <a
               href={CONTACT.whatsapp}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block rounded-lg bg-white px-4 py-2 text-sm font-medium text-[var(--primary)]"
+              className="inline-flex rounded-xl bg-white px-8 py-3.5 font-bold text-[var(--primary)] shadow-sm transition-all hover:-translate-y-1 hover:bg-white/95 hover:shadow-md"
             >
               WhatsApp
             </a>
@@ -37,12 +38,12 @@ export default function Footer() {
       <div className="border-t border-[var(--border)] bg-[var(--bg-card)] py-12">
         <div className="container mx-auto grid gap-10 px-4 md:grid-cols-3 sm:px-6 lg:px-8">
           <div>
-            <Link href="/" className="mb-4 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)] text-white">
-                <FileCheck className="h-5 w-5" strokeWidth={2} />
+            <Link href="/" className="mb-6 flex items-center gap-2.5 transition-opacity hover:opacity-90">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[var(--shadow-sm)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
+                <FileCheck className="h-5 w-5" strokeWidth={2.5} />
               </div>
-              <span className="text-lg font-semibold text-[var(--fg)]">
-                TaxFiling<span className="text-[var(--primary)]">24</span>
+              <span className="text-xl font-bold tracking-tight text-[var(--fg)]">
+                TaxFiling<span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>24</span>
               </span>
             </Link>
             <p className="text-sm text-[var(--fg-muted)] leading-relaxed">

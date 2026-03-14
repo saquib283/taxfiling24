@@ -41,11 +41,11 @@ export default function ContactSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] shadow-[var(--shadow)]"
+          className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-xl)]"
         >
           <div className="grid lg:grid-cols-5">
-            <div className="rounded-t-[var(--radius-lg)] bg-[var(--primary)] p-8 text-white lg:rounded-l-[var(--radius-lg)] lg:rounded-tr-none sm:p-10">
-              <span className="mb-5 inline-block rounded-lg bg-white/15 px-4 py-1.5 text-sm font-medium">
+            <div className="rounded-t-[var(--radius-xl)] p-8 text-white lg:rounded-l-[var(--radius-xl)] lg:rounded-tr-none sm:p-12" style={{ backgroundImage: "var(--gradient-primary)" }}>
+              <span className="mb-6 inline-block rounded-full bg-white/20 px-5 py-2 text-sm font-extrabold uppercase tracking-wider backdrop-blur-md shadow-sm">
                 Get Started Today
               </span>
               <h3 className="mb-4 text-2xl font-bold">Get in Touch</h3>
@@ -141,9 +141,10 @@ export default function ContactSection() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-[var(--primary)] py-3 font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
+                  className="w-full rounded-xl py-3.5 font-bold text-white shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+                  style={{ backgroundImage: "var(--gradient-primary)" }}
                 >
-                  Submit
+                  Submit Form
                 </button>
               </form>
             </div>

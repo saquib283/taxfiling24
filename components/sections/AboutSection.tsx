@@ -68,10 +68,11 @@ export default function AboutSection() {
             <p className="mb-8 text-[var(--fg-muted)] leading-relaxed">
               From startups and MSMEs to NGOs and large corporates, we&apos;ve served over <strong className="text-[var(--primary)]">2000+ clients</strong> across India, delivering timely, accurate, and cost-effective solutions.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-4">
               <motion.a
                 href={`tel:${CONTACT.phoneRaw}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
+                className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 font-bold text-white shadow-[var(--shadow-md)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
+                style={{ backgroundImage: "var(--gradient-primary)" }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -80,7 +81,7 @@ export default function AboutSection() {
               </motion.a>
               <motion.a
                 href="#contact"
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-5 py-3 font-medium text-[var(--fg)] transition-colors hover:border-[var(--primary)] hover:bg-[var(--accent-soft)]"
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--border)] px-6 py-3.5 font-bold text-[var(--fg)] transition-all hover:-translate-y-1 hover:border-[var(--primary)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -97,15 +98,15 @@ export default function AboutSection() {
             return (
               <AnimatedSection key={feature.title}>
                 <motion.div
-                  className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg)] p-6 transition-colors hover:border-[var(--accent-soft)] hover:shadow-[var(--shadow-sm)]"
+                  className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-md)] sm:p-8"
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.99 }}
                 >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--primary)]">
-                    <Icon className="h-5 w-5" strokeWidth={2} />
+                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-sm" style={{ backgroundImage: "var(--gradient-primary)" }}>
+                    <Icon className="h-7 w-7" strokeWidth={2} />
                   </div>
-                  <h4 className="mb-1.5 font-semibold text-[var(--fg)]">{feature.title}</h4>
-                  <p className="text-sm text-[var(--fg-muted)] leading-relaxed">
+                  <h4 className="mb-2 text-lg font-bold text-[var(--fg)]">{feature.title}</h4>
+                  <p className="text-sm font-medium text-[var(--fg-muted)] leading-relaxed">
                     {feature.description}
                   </p>
                 </motion.div>

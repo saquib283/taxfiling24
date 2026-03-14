@@ -19,16 +19,16 @@ export default function FAQItem({
   index,
 }: FAQItemProps) {
   return (
-    <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)]">
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] transition-all hover:border-[var(--accent-light)] hover:shadow-sm">
       <button
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-[var(--bg-muted)]/50 sm:p-6"
+        className="group flex w-full items-center justify-between gap-4 p-5 text-left transition-colors sm:p-6"
         aria-expanded={isOpen}
         aria-controls={`faq-answer-${index}`}
         id={`faq-question-${index}`}
       >
-        <span className="pr-4 font-medium text-[var(--fg)]">{question}</span>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--fg-muted)]">
+        <span className="pr-4 font-semibold text-[var(--fg)] group-hover:text-[var(--primary)] transition-colors">{question}</span>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--primary)] transition-transform group-hover:scale-110">
           {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>
       </button>

@@ -24,10 +24,10 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+      className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "border-[var(--border)] bg-[var(--bg-card)]/95 shadow-[var(--shadow)] backdrop-blur-md"
-          : "border-transparent bg-[var(--bg-card)]"
+          ? "border-b border-[var(--border)] bg-[var(--bg-card)]/80 shadow-[var(--shadow-md)] backdrop-blur-xl"
+          : "border-b border-transparent bg-[var(--bg-card)]"
       }`}
     >
       <nav className="container mx-auto flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -36,11 +36,20 @@ export default function Navbar() {
           className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)] text-white">
-            <FileCheck className="h-5 w-5" strokeWidth={2} />
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[var(--shadow-sm)]"
+            style={{ backgroundImage: "var(--gradient-primary)" }}
+          >
+            <FileCheck className="h-5 w-5" strokeWidth={2.5} />
           </div>
-          <span className="text-lg font-semibold text-[var(--fg)]">
-            TaxFiling<span className="text-[var(--primary)]">24</span>
+          <span className="text-xl font-bold tracking-tight text-[var(--fg)]">
+            TaxFiling
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: "var(--gradient-primary)" }}
+            >
+              24
+            </span>
           </span>
         </Link>
 
@@ -55,7 +64,7 @@ export default function Navbar() {
                 <button
                   onMouseEnter={() => setServicesOpen(true)}
                   onMouseLeave={() => setServicesOpen(false)}
-                  className="flex items-center gap-1 rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--fg)]"
+                  className="flex items-center gap-1 rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
                 >
                   {item.label}
                   <ChevronDown className={`h-4 w-4 transition-transform ${servicesOpen ? "rotate-180" : ""}`} />
@@ -68,12 +77,12 @@ export default function Navbar() {
                       exit={{ opacity: 0, y: -4 }}
                       onMouseEnter={() => setServicesOpen(true)}
                       onMouseLeave={() => setServicesOpen(false)}
-                      className="absolute left-0 top-full mt-1 w-48 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1.5 shadow-[var(--shadow-lg)]"
+                      className="absolute left-0 top-full mt-1 w-48 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-[var(--shadow-lg)]"
                     >
                       <Link
                         href="#services"
                         onClick={() => scrollToSection("services")}
-                        className="block rounded-lg px-3 py-2.5 text-sm text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--fg)]"
+                        className="block rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
                       >
                         All Services
                       </Link>
@@ -85,7 +94,11 @@ export default function Navbar() {
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
-                className="rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--fg)]"
+                className={
+                  item.id === "contact"
+                    ? "ml-3 rounded-xl bg-[var(--fg)] px-6 py-2.5 text-sm font-semibold text-[var(--bg-card)] shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:shadow-[var(--shadow-md)]"
+                    : "rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
+                }
               >
                 {item.label}
               </button>

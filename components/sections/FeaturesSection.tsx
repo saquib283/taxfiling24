@@ -40,17 +40,18 @@ export default function FeaturesSection() {
             return (
               <AnimatedSection key={feature.title}>
                 <motion.div
-                  className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-colors hover:border-[var(--accent-soft)] hover:shadow-[var(--shadow)] sm:p-7"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.99 }}
+                  className="group relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-2 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-lg)] sm:p-8"
+                  whileHover={{ y: -4 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--primary)]">
-                    <Icon className="h-5 w-5" strokeWidth={2} />
+                  <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10" style={{ backgroundImage: "var(--gradient-primary)" }} />
+                  <div className="relative mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--primary)] transition-all duration-300 group-hover:scale-110 group-hover:text-white group-hover:shadow-[var(--shadow-md)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
+                    <Icon className="h-6 w-6" strokeWidth={2} />
                   </div>
-                  <h3 className="mb-2 text-lg font-semibold text-[var(--fg)]">
+                  <h3 className="relative mb-3 text-xl font-bold tracking-tight text-[var(--fg)] transition-colors group-hover:text-[var(--primary)]">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-[var(--fg-muted)] leading-relaxed">
+                  <p className="relative text-[var(--fg-muted)] leading-relaxed">
                     {feature.description}
                   </p>
                 </motion.div>
