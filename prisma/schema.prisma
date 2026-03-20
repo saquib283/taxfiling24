@@ -77,3 +77,14 @@ model Setting {
   description String?          // e.g. 'Gemini AI API Key for Chatbot'
 }
 
+model Review {
+  id         String   @id @default(cuid())
+  name       String
+  role       String?  // Company or Designation
+  content    String   @db.Text
+  rating     Int      @default(5)
+  avatar     String?  // image url or initials controller
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+

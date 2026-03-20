@@ -23,13 +23,8 @@ export default function Navbar() {
   };
 
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "border-b border-[var(--border)] bg-[var(--bg-card)]/80 shadow-[var(--shadow-md)] backdrop-blur-xl"
-          : "border-b border-transparent bg-[var(--bg-card)]"
-      }`}
-    >
+    <header className="sticky top-4 z-50 transition-all duration-300 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className={`rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/75 shadow-[var(--shadow-lg)] backdrop-blur-md transition-all duration-200 ${scrolled ? "py-0" : "py-1"}`}>
       <nav className="container mx-auto flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link
           href="/"
@@ -55,55 +50,22 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-1 md:flex">
           {[
-            { id: "hero", label: "Home" },
-            { id: "services", label: "Services", dropdown: true },
-            { id: "contact", label: "Contact" },
-          ].map((item) =>
-            item.dropdown ? (
-              <div key={item.id} className="relative">
-                <button
-                  onMouseEnter={() => setServicesOpen(true)}
-                  onMouseLeave={() => setServicesOpen(false)}
-                  className="flex items-center gap-1 rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
-                >
-                  {item.label}
-                  <ChevronDown className={`h-4 w-4 transition-transform ${servicesOpen ? "rotate-180" : ""}`} />
-                </button>
-                <AnimatePresence>
-                  {servicesOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      onMouseEnter={() => setServicesOpen(true)}
-                      onMouseLeave={() => setServicesOpen(false)}
-                      className="absolute left-0 top-full mt-1 w-48 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-[var(--shadow-lg)]"
-                    >
-                      <Link
-                        href="#services"
-                        onClick={() => scrollToSection("services")}
-                        className="block rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
-                      >
-                        All Services
-                      </Link>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <button
-                key={item.id}
-                onClick={() => scrollToSection(item.id)}
-                className={
-                  item.id === "contact"
-                    ? "ml-3 rounded-xl bg-[var(--fg)] px-6 py-2.5 text-sm font-semibold text-[var(--bg-card)] shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:shadow-[var(--shadow-md)]"
-                    : "rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
-                }
-              >
-                {item.label}
-              </button>
-            )
-          )}
+            { href: "/", label: "Home" },
+            { href: "/services", label: "Services" },
+            { href: "/#contact", label: "Contact" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                item.href === "/#contact"
+                  ? "ml-3 bg-[var(--fg)] px-6 py-2.5 font-bold text-[var(--bg-card)] shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:shadow-[var(--shadow-md)]"
+                  : "text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         <button
@@ -121,22 +83,28 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="border-t border-[var(--border)] bg-[var(--bg-card)] px-4 py-4 md:hidden"
+            className="border-t border-[var(--border)] bg-transparent px-4 py-4 md:hidden"
           >
             <div className="flex flex-col gap-0.5">
-              {["hero", "services", "contact"].map((id) => (
-                <button
-                  key={id}
-                  onClick={() => scrollToSection(id)}
-                  className="rounded-lg py-2.5 px-3 text-left text-sm font-medium text-[var(--fg)]"
+              {[
+                { href: "/", label: "Home" },
+                { href: "/services", label: "Services" },
+                { href: "/#contact", label: "Contact" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg py-2.5 px-3 text-left text-sm font-medium text-[var(--fg)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] transition-colors"
                 >
-                  {id === "hero" ? "Home" : id === "services" ? "Services" : "Contact"}
-                </button>
+                  {item.label}
+                </Link>
               ))}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </header>
   );
 }

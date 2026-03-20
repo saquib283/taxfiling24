@@ -1,0 +1,34 @@
+[
+  {
+    "id": "1",
+    "name": "Mehboob Afzal",
+    "role": "Afzal Healthcare",
+    "content": "Taxfiling24 made our company registration incredibly smooth. They handled everything from naming to DSC procurement in less than two weeks!",
+    "rating": 5,
+    "isApproved": true
+  },
+  {
+    "id": "2",
+    "name": "Shabnam Reyaz",
+    "role": "Shina Decorative Bags",
+    "content": "We used them for GST compliance. Their proactive reminders saved us from late fees completely. Highly professional and transparent.",
+    "rating": 5,
+    "isApproved": true
+  },
+  {
+    "id": "3",
+    "name": "Mehtab Alam",
+    "role": "Exotic Furnishers",
+    "content": "Their Virtual CFO services provided our SME with high-end financial strategy without the overhead of a full-time executive. Game changer.",
+    "rating": 5,
+    "isApproved": true
+  },
+  {
+    "id": "4",
+    "name": "Amit Kumar",
+    "role": "Kumar Enterprises",
+    "content": "Managing corporate tax and ROC filings used to be stressful. Taxfiling24’s expert team ensured zero penalties and smooth annual reporting.",
+    "rating": 5,
+    "isApproved": true
+  }
+]

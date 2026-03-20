@@ -45,6 +45,11 @@ const COMPLIANCE_DATA = [
 
 export default function ComplianceCalendar() {
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
+  const [selectedDeadline, setSelectedDeadline] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const nextMonth = () => {
     setCurrentMonthIndex((prev) => (prev + 1) % COMPLIANCE_DATA.length);
@@ -124,11 +129,17 @@ export default function ComplianceCalendar() {
                     </div>
 
                     <div className="mt-2 flex shrink-0 items-center gap-3 sm:mt-0">
-                      <button className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--fg-muted)] transition-colors hover:border-[var(--accent-light)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]">
+                      <button 
+                        onClick={() => { setSelectedDeadline(deadline); setIsModalOpen(true); setIsSubmitted(false); }}
+                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--fg-muted)] transition-colors hover:border-[var(--accent-light)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
+                      >
                         <Bell className="h-3.5 w-3.5" />
                         Remind Me
                       </button>
-                      <button className="rounded-full p-2 text-[var(--fg-soft)] hover:bg-[var(--bg-muted)] hover:text-[var(--primary)]">
+                      <button 
+                        onClick={() => { setSelectedDeadline(deadline); setIsInfoModalOpen(true); }}
+                        className="rounded-full p-2 text-[var(--fg-soft)] hover:bg-[var(--bg-muted)] hover:text-[var(--primary)]"
+                      >
                         <Info className="h-4 w-4" />
                       </button>
                     </div>
@@ -141,7 +152,7 @@ export default function ComplianceCalendar() {
             </AnimatePresence>
           </div>
 
-          <div className="mt-12 rounded-2xl bg-[var(--gradient-primary)] p-8 text-white shadow-[var(--shadow-lg)]">
+          <div className="mt-12 rounded-2xl p-8 text-white shadow-[var(--shadow-lg)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
             <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
                 <Bell className="h-8 w-8" />
@@ -160,6 +171,93 @@ export default function ComplianceCalendar() {
             </div>
           </div>
         </div>
+
+        {/* Remind Me Modal */}
+        <AnimatePresence>
+          {isModalOpen && selectedDeadline && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              onClick={() => setIsModalOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="w-full max-w-md bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] p-6 shadow-[var(--shadow-xl)] relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--primary)]">
+                    <Bell className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-[var(--fg)]">Set Reminder</h4>
+                    <p className="text-xs text-[var(--fg-soft)]">{selectedDeadline.title}</p>
+                  </div>
+                </div>
+
+                {!isSubmitted ? (
+                  <form onSubmit={(e) => { e.preventDefault(); setIsSubmitted(true); }} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-[var(--fg)] mb-1">Name</label>
+                      <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" placeholder="John Doe" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-[var(--fg)] mb-1">Email</label>
+                      <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" placeholder="john@example.com" />
+                    </div>
+                    <button type="submit" className="w-full rounded-xl bg-[var(--primary)] py-2.5 font-bold text-white shadow-sm hover:brightness-110">Get Alerted</button>
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="w-full text-sm text-[var(--fg-soft)] hover:underline">Cancel</button>
+                  </form>
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
+                      <Bell className="h-6 w-6" />
+                    </div>
+                    <h5 className="text-lg font-bold text-[var(--fg)]">Reminder Set!</h5>
+                    <p className="text-sm text-[var(--fg-soft)] mt-1">We will alert <strong>{formData.name}</strong> at <code>{formData.email}</code> before the due date!</p>
+                    <button onClick={() => setIsModalOpen(false)} className="mt-4 rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white">Close</button>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Info Modal */}
+          {isInfoModalOpen && selectedDeadline && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              onClick={() => setIsInfoModalOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="w-full max-w-md bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] p-6 shadow-[var(--shadow-xl)] relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-muted)] text-[var(--primary)]">
+                    <Info className="h-5 w-5" />
+                  </div>
+                  <h4 className="text-lg font-bold text-[var(--fg)]">Deadline Details</h4>
+                </div>
+                <div className="space-y-3">
+                  <p className="font-bold text-[var(--primary)] text-sm">{selectedDeadline.category}</p>
+                  <h5 className="font-bold text-xl text-[var(--fg)]">{selectedDeadline.title}</h5>
+                  <p className="text-[var(--fg-muted)] leading-relaxed">{selectedDeadline.desc}</p>
+                </div>
+                <button onClick={() => setIsInfoModalOpen(false)} className="mt-6 w-full rounded-xl bg-[var(--bg-muted)] py-2 text-sm font-bold text-[var(--fg)] hover:bg-[var(--border)]">Close</button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );

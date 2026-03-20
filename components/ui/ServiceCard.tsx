@@ -17,8 +17,8 @@ export default function ServiceCard({ title, href, icon: Icon }: ServiceCardProp
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--primary)] transition-all duration-300 group-hover:scale-110 group-hover:text-white group-hover:shadow-[var(--shadow-md)] group-hover:ring-4 group-hover:ring-[var(--accent-soft)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
-        <Icon className="h-7 w-7" strokeWidth={2} />
+      <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-white transition-all duration-300 group-hover:scale-110 group-hover:shadow-[var(--shadow-md)] group-hover:ring-4 group-hover:ring-[var(--accent-soft)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
+        <Icon className="h-7 w-7 text-white" strokeWidth={2} />
       </div>
       <h3 className="mb-4 flex-1 text-base font-bold tracking-wide text-[var(--fg)] group-hover:text-[var(--primary)] transition-colors">
         {title}

@@ -1,0 +1,9 @@
+﻿app/admin/(dashboard)/articles/[id]/page.tsx(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+app/admin/(dashboard)/articles/page.tsx(1,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+app/admin/(dashboard)/articles/page.tsx(49,30): error TS7006: Parameter 'article' implicitly has an 'any' type.
+app/admin/(dashboard)/page.tsx(1,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+app/admin/(dashboard)/page.tsx(116,41): error TS7006: Parameter 'article' implicitly has an 'any' type.
+app/admin/(dashboard)/page.tsx(151,16): error TS2304: Cannot find name 'Settings'.
+app/api/admin/articles/route.ts(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+app/api/admin/login/route.ts(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+app/api/admin/seed/route.ts(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.

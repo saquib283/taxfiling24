@@ -45,8 +45,8 @@ export default function FeaturesSection() {
                   whileTap={{ scale: 0.98 }}
                 >
                   <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10" style={{ backgroundImage: "var(--gradient-primary)" }} />
-                  <div className="relative mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--primary)] transition-all duration-300 group-hover:scale-110 group-hover:text-white group-hover:shadow-[var(--shadow-md)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
-                    <Icon className="h-6 w-6" strokeWidth={2} />
+                  <div className="relative mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-white transition-all duration-300 group-hover:scale-110 group-hover:shadow-[var(--shadow-md)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
+                    <Icon className="h-6 w-6 text-white" strokeWidth={2} />
                   </div>
                   <h3 className="relative mb-3 text-xl font-bold tracking-tight text-[var(--fg)] transition-colors group-hover:text-[var(--primary)]">
                     {feature.title}

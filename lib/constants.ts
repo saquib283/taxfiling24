@@ -10,37 +10,37 @@ export const SERVICES = [
   {
     title: "BUSINESS SETUP & REGISTRATION SERVICES",
     description: "Company registration, LLP, Partnership, and more",
-    href: "/business-setup-registration-services",
+    href: "/services/business-setup-registration-services",
   },
   {
     title: "LICENCES, IP, CERTIFICATIONS & LEGAL REGISTRATIONS",
     description: "Trademarks, licences, certifications",
-    href: "/licences-ip-certifications-legal-registrations",
+    href: "/services/licences-ip-certifications-legal-registrations",
   },
   {
     title: "TAXATION, GST & COMPLIANCE MANAGEMENT",
     description: "GST filing, tax compliance, and management",
-    href: "/taxation-gst-compliance-management",
+    href: "/services/taxation-gst-compliance-management",
   },
   {
     title: "CORPORATE, ROC & SECRETARIAL FILINGS",
     description: "Annual filings, ROC compliance",
-    href: "/corporate-roc-secretarial-filings",
+    href: "/services/corporate-roc-secretarial-filings",
   },
   {
     title: "ACCOUNTING, FINANCIAL MANAGEMENT & REPORTING",
     description: "Bookkeeping, financial reporting",
-    href: "/accounting-financial-management-reporting",
+    href: "/services/accounting-financial-management-reporting",
   },
   {
     title: "AUDIT, FORENSIC, RISK & CORPORATE INVESTIGATION",
     description: "Audits and investigations",
-    href: "/audit-forensic-risk-corporate-investigation",
+    href: "/services/audit-forensic-risk-corporate-investigation",
   },
   {
     title: "SPECIAL SERVICES, E-COMMERCE, BANKING & DOCUMENTATION",
     description: "E-commerce and banking support",
-    href: "/special-services-e-commerce-banking-documentation",
+    href: "/services/special-services-e-commerce-banking-documentation",
   },
 ];
 
@@ -98,21 +98,27 @@ export const ABOUT_FEATURES = [
 
 export const TESTIMONIALS = [
   {
-    name: "MEHBOOB AFZAL",
+    name: "Mehboob Afzal",
     company: "Afzal Healthcare",
-    text: "This is a sample reviews.",
+    text: "Taxfiling24 made our company registration incredibly smooth. They handled everything from naming to DSC procurement in less than two weeks!",
     rating: 5,
   },
   {
-    name: "SHABNAM REYAZ",
-    company: "Shina Bags",
-    text: "This is a sample reviews.",
+    name: "Shabnam Reyaz",
+    company: "Shina Decorative Bags",
+    text: "We used them for GST compliance. Their proactive reminders saved us from late fees completely. Highly professional and transparent.",
     rating: 5,
   },
   {
-    name: "MEHTAB ALAM",
-    company: "Exotic",
-    text: "This is a sample reviews.",
+    name: "Mehtab Alam",
+    company: "Exotic Furnishers",
+    text: "Their Virtual CFO services provided our SME with high-end financial strategy without the overhead of a full-time executive. Game changer.",
+    rating: 5,
+  },
+  {
+    name: "Amit Kumar",
+    company: "Kumar Enterprises",
+    text: "Managing corporate tax and ROC filings used to be stressful. Taxfiling24’s expert team ensured zero penalties and smooth annual reporting.",
     rating: 5,
   },
 ];

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, X, Send, Loader2 } from "lucide-react";
+import { MessageSquare, MessageCircle, Bot, X, Send, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -10,8 +10,44 @@ interface Message {
   text: string;
 }
 
+const menuVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      staggerChildren: 0.1,
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    y: 15, 
+    transition: { 
+      staggerChildren: 0.05, 
+      staggerDirection: -1 
+    } 
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, scale: 0.8, x: 20 },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    x: 0, 
+    transition: { type: "spring" as const, stiffness: 400, damping: 25 } 
+  },
+  exit: { 
+    opacity: 0, 
+    scale: 0.8, 
+    x: 20, 
+    transition: { duration: 0.15 } 
+  }
+};
+
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: "model", text: "Hello! I am your TaxFiling24 assistant. How can I help you today?" }
   ]);
@@ -67,27 +103,81 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* Floating Button */}
-      <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-24 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      {/* Floating Speed Dial Menu */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+        {/* Expanded Options */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              variants={menuVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="flex flex-col items-end gap-3"
+            >
+              {/* WhatsApp Option */}
+              <motion.div variants={itemVariants} className="flex items-center gap-2">
+                <span className="rounded-full bg-[var(--bg-card)] px-3 py-1 text-xs font-bold text-[var(--fg-muted)] shadow-[var(--shadow-sm)] border border-[var(--border)] backdrop-blur-md">
+                  WhatsApp
+                </span>
+                <motion.a
+                  href={"https://wa.me/+917011246157"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[var(--shadow-md)] overflow-hidden"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Chat on WhatsApp"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="h-5 w-5" viewBox="0 0 16 16">
+                    <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                  </svg>
+                </motion.a>
+              </motion.div>
 
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        aria-label="Toggle Chat"
-      >
-        <AnimatePresence mode="wait">
-          {isOpen ? (
-            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
-              <X className="h-6 w-6" />
-            </motion.div>
-          ) : (
-            <motion.div key="chat" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
-              <MessageSquare className="h-6 w-6" />
+              {/* AI Chat Option */}
+              <motion.div variants={itemVariants} className="flex items-center gap-2">
+                <span className="rounded-full bg-[var(--bg-card)] px-3 py-1 text-xs font-bold text-[var(--fg-muted)] shadow-[var(--shadow-sm)] border border-[var(--border)] backdrop-blur-md">
+                  AI Assistant
+                </span>
+                <motion.button
+                  onClick={() => {
+                    setIsOpen(true);
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-[var(--shadow-md)]"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Open AI Chat"
+                >
+                  <Bot className="h-5 w-5" />
+                </motion.button>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.button>
+
+        {/* Main Trigger Button */}
+        <motion.button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[var(--shadow-lg)] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          aria-label="Contact Menu"
+        >
+          <AnimatePresence mode="wait">
+            {isMenuOpen ? (
+              <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                <X className="h-6 w-6" />
+              </motion.div>
+            ) : (
+              <motion.div key="chat" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
+                <MessageSquare className="h-6 w-6" />
+              </motion.div>
+            )}
+            </AnimatePresence>
+        </motion.button>
+      </div>
 
       {/* Chat Window */}
       <AnimatePresence>
@@ -97,7 +187,7 @@ export default function ChatBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-24 z-50 w-[350px] sm:w-[400px] h-[500px] max-h-[70vh] flex flex-col rounded-2xl border border-blue-100 bg-white shadow-2xl overflow-hidden"
+            className="fixed bottom-24 right-6 z-50 w-[350px] sm:w-[400px] h-[500px] max-h-[70vh] flex flex-col rounded-2xl border border-blue-100 bg-white shadow-2xl overflow-hidden"
 
           >
             {/* Header */}

@@ -15,7 +15,7 @@ import {
   Calendar,
   Users
 } from "lucide-react";
-import AdminLayout from "@/components/admin/AdminLayout";
+// Removed AdminLayout import as it is loaded by layout.tsx
 
 const integrations = [
   {
@@ -138,8 +138,7 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="p-6">
+    <div className="p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Integrations</h1>
           <p className="text-gray-600">Manage third-party integrations and API connections</p>
@@ -289,6 +288,5 @@ export default function IntegrationsPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
   );
 }

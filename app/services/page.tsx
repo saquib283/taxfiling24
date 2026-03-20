@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Search, Filter } from "lucide-react";
+import { ArrowRight, Search, Filter, Percent, Building2, SearchCode, ShieldCheck, Briefcase } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
-import WhatsAppButton from "@/components/ui/WhatsAppButton";
+
 import { SERVICES } from "@/lib/constants";
 
 const servicesWithCategories = SERVICES.map(service => ({
@@ -15,6 +15,14 @@ const servicesWithCategories = SERVICES.map(service => ({
            service.title.toLowerCase().includes('audit') ? 'audit' :
            service.title.toLowerCase().includes('compliance') ? 'compliance' : 'advisory'
 }));
+
+const categoryIcons = {
+  tax: Percent,
+  gst: Building2,
+  audit: SearchCode,
+  compliance: ShieldCheck,
+  advisory: Briefcase
+};
 
 export default function ServicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,26 +97,44 @@ export default function ServicesPage() {
       <section className="py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredServices.map((service, index) => (
+            {filteredServices.map((service, index) => {
+              const IconComponent = categoryIcons[service.category as keyof typeof categoryIcons] || Briefcase;
+              return (
               <AnimatedSection key={service.title} variants={fadeUp}>
                 <motion.a
-                  href={`/services${service.href}`}
-                  className="block rounded-xl border border-blue-100 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg group"
+                  href={service.href}
+                  className="block relative rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-lg)] group overflow-hidden h-full flex flex-col"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-white group-hover:scale-110 transition-transform" style={{ backgroundImage: "linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)" }}>
-                    <service.icon className="h-8 w-8" />
+                  <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-[var(--primary)] opacity-[0.03] rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none"></div>
+                  
+                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-white transition-all duration-300 group-hover:scale-110 group-hover:shadow-[var(--shadow-md)] flex-shrink-0" style={{ backgroundImage: "var(--gradient-primary)" }}>
+                    <IconComponent className="h-6 w-6 text-white" strokeWidth={2} />
                   </div>
-                  <h3 className="mb-3 text-xl font-bold text-gray-900">{service.title}</h3>
-                  <p className="mb-4 text-gray-600">{service.description}</p>
-                  <div className="flex items-center text-blue-600 font-medium">
-                    <span>Learn More</span>
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  
+                  <div className="flex-1 flex flex-col">
+                    <span className="inline-block w-fit px-2.5 py-1 rounded-md text-xs font-bold bg-[var(--accent-soft)] text-[var(--primary)] mb-3 border border-[var(--accent-light)]/20 uppercase tracking-wider">
+                      {service.category}
+                    </span>
+
+                    <h3 className="mb-2 text-lg font-bold text-[var(--fg)] group-hover:text-[var(--primary)] transition-colors leading-tight">
+                      {service.title}
+                    </h3>
+                    
+                    <p className="mb-6 text-[var(--fg-soft)] text-sm leading-relaxed line-clamp-2">
+                      {service.description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center text-[var(--primary)] font-bold text-sm pt-4 border-t border-[var(--border)] mt-auto">
+                    <span>Explore Details</span>
+                    <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
                 </motion.a>
               </AnimatedSection>
-            ))}
+            );
+            })}
           </div>
 
           {filteredServices.length === 0 && (
@@ -139,7 +165,6 @@ export default function ServicesPage() {
                 Get Started
                 <ArrowRight className="h-4 w-4" />
               </motion.a>
-              <WhatsAppButton />
             </div>
           </AnimatedSection>
         </div>
