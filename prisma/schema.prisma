@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?  // Display Name
+  username  String   @unique
+  password  String   // Hashed
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  icon        String   @default("Briefcase")
+  category    String   @default("General")
+  href        String?
+  createdAt   DateTime @default(now())
+}
+
+model Article {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  content      String   @db.Text   // Rich text content from TipTap
+  excerpt      String?  @db.Text   // Short list description
+  thumbnailUrl String?             // Featured Image link
+  
+  category     ArticleCategory?    // Uses PostgreSQL Enum
+  tags         String[] @default([]) // Array of tags for categorization
+  readTime     Int?                // e.g., 5 min
+  isFeatured   Boolean  @default(false)
+  views        Int      @default(0)
+  
+  metaTitle       String?
+  metaDescription String?          // limit 155 chars
+  
+  published    Boolean  @default(false)
+  author       String   @default("Admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  publishedAt  DateTime?           // For scheduling or explicitly set dates
+}
+
+enum ArticleCategory {
+  BUSINESS_REGISTRATION
+  INCOME_TAX_FILING
+  GST_COMPLIANCE
+  ACCOUNTING_BOOKKEEPING
+  AUDIT_ASSURANCE
+  TRADEMARK_IP
+  LEGAL_AGREEMENTS
+  ROC_COMPLIANCE
+  CORPORATE_INVESTIGATION
+  STARTUP_FUNDING
+  CERTIFICATIONS_ISO
+  E_COMMERCE_BANKING
+  PAYROLL_PF_ESI
+  NRI_TAXATION
+  GENERAL_UPDATES
+}
+
+
+
+model Setting {
+  id          String  @id @default(cuid())
+  key         String  @unique  // e.g. 'GEMINI_API_KEY'
+  value       String  @db.Text
+  description String?          // e.g. 'Gemini AI API Key for Chatbot'
+}
+

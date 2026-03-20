@@ -4,6 +4,7 @@ import "./globals.css";
 import PreHeaderBar from "@/components/layout/PreHeaderBar";
 import Navbar from "@/components/layout/Navbar";
 import WhatsAppCTA from "@/components/layout/WhatsAppCTA";
+import ChatBot from "@/components/ChatBot";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -44,7 +45,9 @@ export default function RootLayout({
         <Navbar />
         <main id="main">{children}</main>
         <WhatsAppCTA />
+        <ChatBot />
       </body>
     </html>
   );
 }
+

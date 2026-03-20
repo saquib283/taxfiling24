@@ -11,12 +11,13 @@
   --fg-muted: #475569;
   --fg-soft: #94A3B8;
   
-  /* Brand Colors (Modern Indigo to Violet) */
-  --primary: #4F46E5;
-  --primary-hover: #4338CA;
-  --accent: #8B5CF6;
-  --accent-light: #A78BFA;
-  --accent-soft: #EDE9FE;
+  /* Brand Colors (Professional Corporate Blue) */
+  --primary: #0F4C81;       /* high-trust Classic blue */
+  --primary-hover: #0A365C;
+  --accent: #0088CC;       /* Bright Cyan Blue highlighted triggers */
+  --accent-light: #33A1DE;
+  --accent-soft: #E6F3FA;
+
   
   /* Semantic Colors */
   --success: #10B981;
@@ -57,7 +58,8 @@ body {
   background: var(--bg);
   color: var(--fg);
   /* Optional: Background mesh or subtle gradient can be placed here */
-  background-image: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(0, 136, 204, 0.05) 0%, transparent 70%);
+
   background-attachment: fixed;
 }
 
