@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { Plus, Edit, Trash2, Eye, FileText } from "lucide-react";
+import { Plus, Edit, Eye, FileText } from "lucide-react";
+import DeleteButton from "@/components/admin/DeleteButton";
 
 
 
@@ -73,9 +74,7 @@ export default async function ArticlesListPage() {
                     <Link href={`/admin/articles/${article.id}`} className="inline-flex p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700">
                       <Edit className="h-4 w-4" />
                     </Link>
-                    <button className="p-1.5 hover:bg-red-50 rounded text-red-500 hover:text-red-700">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <DeleteButton id={article.id} endpoint="/api/admin/articles" />
                   </td>
                 </tr>
               ))}

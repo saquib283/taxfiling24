@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Save, ArrowLeft, Eye } from "lucide-react";
 import Link from "next/link";
+import RichTextEditor from "./RichTextEditor";
 
 interface ArticleFormProps {
   article?: any; // Pass existing article for edit mode
@@ -36,6 +37,7 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
     metaTitle: article?.metaTitle || "",
     metaDescription: article?.metaDescription || "",
     published: article?.published || false,
+    thumbnailUrl: article?.thumbnailUrl || "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -92,6 +94,30 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
     }
   };
 
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setFormData(p => ({ ...p, thumbnailUrl: data.url }));
+      } else {
+        alert("Failed to upload thumbnail");
+      }
+    } catch (err) {
+      alert("Something went wrong uploading thumbnail");
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -121,7 +147,41 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Content Column */}
-        <div className="md:col-span-2 space-y-4">
+        <div className="md:col-span-2 space-y-6">
+          {/* Thumbnail / Cover Selection */}
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+            {formData.thumbnailUrl ? (
+              <div className="relative rounded-xl overflow-hidden aspect-video bg-gray-100 group">
+                <img src={formData.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <label className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/30 cursor-pointer transition-colors text-sm">
+                    Change
+                    <input type="file" onChange={handleThumbnailUpload} accept="image/*" className="hidden" />
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={() => setFormData(p => ({ ...p, thumbnailUrl: "" }))}
+                    className="p-2 bg-red-500/80 backdrop-blur-md rounded-lg text-white hover:bg-red-600 transition-colors text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer transition-colors bg-gray-50/50 hover:bg-gray-50">
+                <div className="flex flex-col items-center p-6 text-center">
+                  <div className="p-3 bg-white rounded-full shadow-sm border border-gray-100 mb-2">
+                    <Save className="h-5 w-5 text-gray-400 rotate-180" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-700">Add Cover Image</p>
+                  <p className="text-xs text-gray-400 mt-1">Recommended size 1200x630 (aspect ratio 1.91:1)</p>
+                </div>
+                <input type="file" onChange={handleThumbnailUpload} accept="image/*" className="hidden" />
+              </label>
+            )}
+          </div>
+
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -150,16 +210,10 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-              <textarea
-                required
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                rows={12}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-mono text-sm"
-                placeholder="# Heading... "
+              <RichTextEditor 
+                value={formData.content} 
+                onChange={(html) => setFormData(p => ({ ...p, content: html }))} 
               />
-              <p className="text-xs text-gray-400 mt-1">Supports basic rendering for now. Avoid direct scripts.</p>
             </div>
             
             <div>

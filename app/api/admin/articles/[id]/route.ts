@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function POST(request: Request) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const data = await request.json();
 
-    // Basic Validation
-    if (!data.title || !data.slug || !data.content) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const article = await prisma.article.create({
+    const article = await prisma.article.update({
+      where: { id },
       data: {
         title: data.title,
         slug: data.slug,
@@ -29,8 +29,24 @@ export async function POST(request: Request) {
     return NextResponse.json(article);
   } catch (error: any) {
     if (error.code === "P2002") {
-      return NextResponse.json({ error: "Slug already exists. Try changing the title." }, { status: 400 });
+      return NextResponse.json({ error: "Slug already exists." }, { status: 400 });
     }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await prisma.article.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ message: "Article deleted successfully" });
+  } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

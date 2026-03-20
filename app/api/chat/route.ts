@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
     const { message, history = [] } = await request.json();
-    const apiKey = process.env.GEMINI_API_KEY;
+    const setting = await prisma.setting.findUnique({ where: { key: "GEMINI_API_KEY" } });
+    const apiKey = setting?.value || process.env.GEMINI_API_KEY;
 
     if (!apiKey || apiKey === 'KWEFK') {
       return NextResponse.json({ error: "API Key not configured or placeholder" }, { status: 500 });

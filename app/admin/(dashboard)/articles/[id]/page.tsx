@@ -1,8 +1,8 @@
 import ArticleForm from "@/components/admin/ArticleForm";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-const prisma = new PrismaClient();
+// Fetch article data
 
 export default async function EditArticlePage({
   params,

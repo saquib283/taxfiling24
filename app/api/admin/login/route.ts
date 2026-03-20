@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { cookies } from "next/headers";
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -43,7 +41,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Login successful" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

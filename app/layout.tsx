@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import PreHeaderBar from "@/components/layout/PreHeaderBar";
-import Navbar from "@/components/layout/Navbar";
-
-import ChatBot from "@/components/ChatBot";
-import Footer from "@/components/sections/Footer";
+import prisma from "@/lib/prisma";
+import "./globals.css";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -29,13 +26,32 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const dbSettings = await prisma.setting.findMany();
+  const theme = dbSettings.reduce((acc: any, curr) => {
+    acc[curr.key] = curr.value;
+    return acc;
+  }, {});
+
+  const primary = theme.theme_primary || "#0F4C81";
+  const accent = theme.theme_accent || "#0088CC";
+  const radius = theme.theme_radius ? `${theme.theme_radius}rem` : "1rem";
+
   return (
     <html lang="en" className={outfit.variable}>
+      <head>
+        <style>{`
+          :root {
+            --primary: ${primary};
+            --accent: ${accent};
+            --radius: ${radius};
+          }
+        `}</style>
+      </head>
       <body className={`${outfit.variable} ${outfit.className} antialiased selection:bg-[var(--accent)] selection:text-white`}>
         {/* Ambient Background Glows */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -51,12 +67,7 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <PreHeaderBar />
-        <Navbar />
         <main id="main">{children}</main>
-        <Footer />
-
-        <ChatBot />
       </body>
     </html>
   );

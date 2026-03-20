@@ -8,37 +8,37 @@ import { fadeUp } from "@/lib/animations";
 
 const COMPLIANCE_DATA = [
   {
-    month: "April 2024",
+    month: "April 2026",
     deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for March 2024." },
-      { date: 11, title: "GSTR-1 Monthly", category: "GST", desc: "Monthly return for outward supplies for March 2024." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for March 2024." },
-      { date: 30, title: "Challan-cum-Statement (26QB/26QC)", category: "Income Tax", desc: "Filing of challan-cum-statement for March 2024." },
+      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for March 2026." },
+      { date: 11, title: "GSTR-1 Monthly", category: "GST", desc: "Monthly return for outward supplies for March 2026." },
+      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for March 2026." },
+      { date: 30, title: "Challan-cum-Statement (26QB/26QC)", category: "Income Tax", desc: "Filing of challan-cum-statement for March 2026." },
     ]
   },
   {
-    month: "May 2024",
+    month: "May 2026",
     deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for April 2024." },
-      { date: 15, title: "PF & ESI Payment", category: "Labor Law", desc: "Monthly deposit of PF & ESI contributions for April 2024." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for April 2024." },
-      { date: 31, title: "TDS Return (Q4)", category: "Income Tax", desc: "Quarterly statement of TDS for the quarter ending March 2024." },
+      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for April 2026." },
+      { date: 15, title: "PF & ESI Payment", category: "Labor Law", desc: "Monthly deposit of PF & ESI contributions for April 2026." },
+      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for April 2026." },
+      { date: 31, title: "TDS Return (Q4)", category: "Income Tax", desc: "Quarterly statement of TDS for the quarter ending March 2026." },
     ]
   },
   {
-    month: "June 2024",
+    month: "June 2026",
     deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for May 2024." },
-      { date: 15, title: "Advance Tax (1st Installment)", category: "Income Tax", desc: "First installment of advance tax (15%) for FY 2024-25." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for May 2024." },
+      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for May 2026." },
+      { date: 15, title: "Advance Tax (1st Installment)", category: "Income Tax", desc: "First installment of advance tax (15%) for FY 2026-27." },
+      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for May 2026." },
     ]
   },
   {
-    month: "July 2024",
+    month: "July 2026",
     deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for June 2024." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for June 2024." },
-      { date: 31, title: "ITR Filing (Individuals)", category: "Income Tax", desc: "Last date for filing Income Tax Returns for non-audit cases for AY 2024-25." },
+      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for June 2026." },
+      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for June 2026." },
+      { date: 31, title: "ITR Filing (Individuals)", category: "Income Tax", desc: "Last date for filing Income Tax Returns for non-audit cases for AY 2026-27." },
     ]
   }
 ];
@@ -70,7 +70,7 @@ export default function ComplianceCalendar() {
             Stay Compliant
           </span>
           <h2 className="mb-4 text-3xl font-bold text-[var(--fg)] sm:text-4xl">
-            Tax Compliance Calendar 2024
+            Tax Compliance Calendar 2026
           </h2>
           <p className="mx-auto max-w-2xl text-[var(--fg-muted)]">
             Never miss an important filing deadline. Use our interactive calendar to track GST, Income Tax, and other corporate compliance dates.

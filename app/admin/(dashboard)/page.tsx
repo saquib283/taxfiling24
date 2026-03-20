@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { 
   FileText, 
   Briefcase, 
@@ -12,7 +12,7 @@ import {
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-const prisma = new PrismaClient();
+// Admin Stats Fetching
 
 async function getStats() {
   const [totalArticles, totalServices, articleViews] = await Promise.all([

@@ -8,9 +8,7 @@ import AboutSection from "@/components/sections/AboutSection";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import CTASection from "@/components/sections/CTASection";
 import FAQSection from "@/components/sections/FAQSection";
-import ContactSection from "@/components/sections/ContactSection";
 import ComplianceCalendar from "@/components/sections/ComplianceCalendar";
-import TaxCalculator from "@/components/sections/TaxCalculator";
 
 
 export default function Home() {
@@ -23,12 +21,10 @@ export default function Home() {
       <FeaturesSection />
 
       <TestimonialsSection />
-      <TaxCalculator />
       <ComplianceCalendar />
       <NeedGuidanceSection />
       <CTASection />
       <FAQSection />
-      <ContactSection />
 
     </>
   );
