@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Shield, X, Loader2, Users } from "lucide-react";
+import { Plus, Trash2, Shield, X, Loader2, Users, Edit } from "lucide-react";
 
 interface User {
   id: string;
@@ -16,7 +16,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", username: "", password: "", role: "ADMIN" });
+  const [editForm, setEditForm] = useState({ name: "", role: "ADMIN" });
 
   const fetchUsers = async () => {
     const res = await fetch("/api/admin/users");
@@ -35,6 +37,19 @@ export default function UsersPage() {
     });
     setForm({ name: "", username: "", password: "", role: "ADMIN" });
     setShowAdd(false);
+    setSaving(false);
+    fetchUsers();
+  };
+
+  const handleEdit = async () => {
+    if (!editingId) return;
+    setSaving(true);
+    await fetch(`/api/admin/users/${editingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    setEditingId(null);
     setSaving(false);
     fetchUsers();
   };
@@ -81,6 +96,26 @@ export default function UsersPage() {
         </div>
       )}
 
+      {editingId && (
+        <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-6 mb-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Edit User</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Full Name" className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="ADMIN">ADMIN</option>
+              <option value="EDITOR">EDITOR</option>
+              <option value="VIEWER">VIEWER</option>
+            </select>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button onClick={handleEdit} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+            </button>
+            <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium">Cancel</button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {users.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
@@ -109,7 +144,10 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td className="p-4 text-gray-400 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right flex items-center justify-end gap-1">
+                    <button onClick={() => { setEditingId(u.id); setEditForm({ name: u.name || "", role: u.role }); setShowAdd(false); }} className="p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600 transition-colors">
+                      <Edit className="h-4 w-4" />
+                    </button>
                     <button onClick={() => handleDelete(u.id)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </button>

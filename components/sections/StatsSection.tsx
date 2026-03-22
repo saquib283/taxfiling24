@@ -3,14 +3,17 @@
 import { motion } from "framer-motion";
 import { fadeUp, staggerContainer } from "@/lib/animations";
 
-const STATS = [
-  { value: "2,000+", label: "Happy Clients" },
-  { value: "100+", label: "Services Offered" },
-  { value: "15+", label: "Years of Experience" },
-  { value: "100%", label: "Secure & Trusted" },
-];
+interface StatsSectionProps {
+  settings?: Record<string, string>;
+}
 
-export default function StatsSection() {
+export default function StatsSection({ settings = {} }: StatsSectionProps) {
+  const STATS = [
+    { value: settings.stats_clients || "2,000+", label: "Happy Clients" },
+    { value: settings.stats_services || "100+", label: "Services Offered" },
+    { value: settings.stats_experience || "15+", label: "Years of Experience" },
+    { value: settings.stats_satisfaction || "100%", label: "Secure & Trusted" },
+  ];
   return (
     <section className="bg-[var(--primary)] text-white py-14 lg:py-20 relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />

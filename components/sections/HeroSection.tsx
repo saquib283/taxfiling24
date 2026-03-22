@@ -6,7 +6,18 @@ import { Phone, ArrowRight, Check } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 import { fadeUp, slideInRight } from "@/lib/animations";
 
-export default function HeroSection() {
+interface HeroProps {
+  settings?: Record<string, string>;
+}
+
+export default function HeroSection({ settings = {} }: HeroProps) {
+  const badge = settings.hero_badge || "Complete Business Solutions";
+  const headline = settings.hero_headline || "Complete Business, Tax & Compliance Solutions";
+  const subheading = settings.hero_subheading || "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India.";
+  const ctaPrimary = settings.hero_cta_primary || "Talk To Expert";
+  const ctaSecondary = settings.hero_cta_secondary || "Explore Services";
+  const phoneRaw = settings.contact_whatsapp || CONTACT.phoneRaw;
+
   return (
     <section
       id="hero"
@@ -26,25 +37,31 @@ export default function HeroSection() {
             className="flex flex-col"
           >
             <span className="mb-6 inline-flex w-fit rounded-full border border-[var(--accent-light)]/30 bg-[var(--accent-soft)]/50 px-5 py-2 text-sm font-semibold tracking-wide text-[var(--primary)] shadow-sm backdrop-blur-md uppercase">
-              Complete Business Solutions
+              {badge}
             </span>
             <h1 className="mb-5 text-3xl font-extrabold tracking-tight leading-tight text-[var(--fg)] sm:text-4xl lg:text-5xl lg:leading-[1.1]">
-              Complete Business, <br className="hidden lg:block" />
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>Tax & Compliance</span> Solutions
+              {headline.includes("Tax") ? (
+                <>
+                  {headline.split("Tax")[0]}<br className="hidden lg:block" />
+                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>Tax{headline.split("Tax").slice(1).join("Tax")}</span>
+                </>
+              ) : (
+                <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>{headline}</span>
+              )}
             </h1>
             <p className="mb-8 max-w-lg text-[var(--fg-muted)] leading-relaxed sm:text-lg">
-              Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India.
+              {subheading}
             </p>
             <div className="mb-8 flex flex-wrap gap-4">
               <motion.a
-                href={`tel:${CONTACT.phoneRaw}`}
+                href={`tel:${phoneRaw}`}
                 className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 font-bold text-white shadow-[var(--shadow-md)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
                 style={{ backgroundImage: "var(--gradient-primary)" }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
                 <Phone className="h-4 w-4" />
-                Talk To Expert
+                {ctaPrimary}
               </motion.a>
               <motion.a
                 href="#services"
@@ -52,7 +69,7 @@ export default function HeroSection() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Explore Services
+                {ctaSecondary}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </motion.a>
             </div>

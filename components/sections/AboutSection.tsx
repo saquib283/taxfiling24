@@ -11,7 +11,19 @@ import { CheckCircle, Award, IndianRupee, UserCheck } from "lucide-react";
 
 const ICONS = [CheckCircle, Award, IndianRupee, UserCheck];
 
-export default function AboutSection() {
+export default function AboutSection({ settings = {} }: { settings?: Record<string, string> }) {
+  const clientsCount = settings.stats_clients || "2000+";
+  const yearsExp = settings.stats_experience || "15+";
+  const title = settings.about_title || "Your Trusted Partner for Business Success";
+  const desc = settings.about_description || "With over 15 years of excellence in business consultancy. We are a team of highly qualified Chartered Accountants (CA), Company Secretaries (CS), and Legal Experts dedicated to simplifying complex compliance requirements.";
+
+  let parsedFeatures = ABOUT_FEATURES;
+  if (settings.about_features_json) {
+    try {
+      parsedFeatures = JSON.parse(settings.about_features_json);
+    } catch {}
+  }
+  
   return (
     <section id="about" className="border-t border-[var(--border)] bg-[var(--bg-card)] py-16 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,11 +56,11 @@ export default function AboutSection() {
               </div>
             </div>
             <div className="absolute bottom-5 left-5 rounded-xl bg-[var(--primary)] px-4 py-3 text-white shadow-[var(--shadow)]">
-              <p className="text-2xl font-bold">2,000+</p>
+              <p className="text-2xl font-bold">{clientsCount}</p>
               <p className="text-sm text-white/90">Happy Clients</p>
             </div>
             <div className="absolute right-5 top-5 rounded-xl bg-[var(--accent)] px-4 py-3 text-white shadow-[var(--shadow)]">
-              <p className="text-xl font-bold">15+</p>
+              <p className="text-xl font-bold">{yearsExp}</p>
               <p className="text-xs text-white/90">Years of Experience</p>
             </div>
           </motion.div>
@@ -60,13 +72,10 @@ export default function AboutSection() {
             variants={fadeUp}
           >
             <h3 className="mb-5 text-2xl font-bold text-[var(--fg)] sm:text-3xl">
-              Your Trusted Partner for Business Success
+              {title}
             </h3>
             <p className="mb-4 text-[var(--fg-muted)] leading-relaxed">
-              With over <strong className="text-[var(--fg)]">15 years</strong> of excellence in business consultancy. We are a team of highly qualified <strong className="text-[var(--fg)]">Chartered Accountants (CA)</strong>, <strong className="text-[var(--fg)]">Company Secretaries (CS)</strong>, and <strong className="text-[var(--fg)]">Legal Experts</strong> dedicated to simplifying complex compliance requirements.
-            </p>
-            <p className="mb-8 text-[var(--fg-muted)] leading-relaxed">
-              From startups and MSMEs to NGOs and large corporates, we&apos;ve served over <strong className="text-[var(--primary)]">2000+ clients</strong> across India, delivering timely, accurate, and cost-effective solutions.
+              {desc}
             </p>
             <div className="flex flex-wrap gap-4">
               <motion.a
@@ -93,8 +102,8 @@ export default function AboutSection() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {ABOUT_FEATURES.map((feature, index) => {
-            const Icon = ICONS[index];
+          {parsedFeatures.map((feature: any, index: number) => {
+            const Icon = ICONS[index % ICONS.length];
             return (
               <AnimatedSection key={feature.title}>
                 <motion.div

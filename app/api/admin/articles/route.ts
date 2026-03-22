@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-log";
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
       },
     });
 
+    await logActivity("CREATED", "Article", `Created article: ${article.title}`, article.id);
     return NextResponse.json(article);
   } catch (error: any) {
     if (error.code === "P2002") {

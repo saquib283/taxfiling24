@@ -6,7 +6,14 @@ import { Phone, Mail, MapPin } from "lucide-react";
 import { FileCheck } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 
-export default function Footer() {
+export default function Footer({ settings = {} }: { settings?: Record<string, string> }) {
+  const phone = settings.contact_phone || CONTACT.phone;
+  const phoneRaw = phone.replace(/\D/g, "");
+  const email = settings.contact_email || CONTACT.email;
+  const address = settings.contact_address || CONTACT.address;
+  const tagline = settings.footer_tagline || "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.";
+  const copyright = settings.footer_copyright || "© 2025 TaxFiling24. All rights reserved.";
+
   return (
     <footer>
 
@@ -23,7 +30,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-[var(--fg-muted)] leading-relaxed">
-              Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.
+              {tagline}
             </p>
           </div>
 
@@ -72,18 +79,18 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-[var(--fg-muted)]">
               <li className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" />
-                {CONTACT.address}
+                {address}
               </li>
               <li>
-                <a href={`mailto:${CONTACT.email}`} className="flex items-center gap-2 hover:text-[var(--primary)]">
+                <a href={`mailto:${email}`} className="flex items-center gap-2 hover:text-[var(--primary)]">
                   <Mail className="h-4 w-4 shrink-0 text-[var(--primary)]" />
-                  {CONTACT.email}
+                  {email}
                 </a>
               </li>
               <li>
-                <a href={`tel:${CONTACT.phoneRaw}`} className="flex items-center gap-2 hover:text-[var(--primary)]">
+                <a href={`tel:${phoneRaw}`} className="flex items-center gap-2 hover:text-[var(--primary)]">
                   <Phone className="h-4 w-4 shrink-0 text-[var(--primary)]" />
-                  {CONTACT.phone}
+                  {phone}
                 </a>
               </li>
             </ul>
@@ -94,7 +101,7 @@ export default function Footer() {
       <div className="border-t border-[var(--border)] bg-[var(--bg)] py-4">
         <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 sm:flex-row sm:px-6 lg:px-8">
           <p className="text-center text-xs text-[var(--fg-muted)] sm:text-left">
-            © 2025 TaxFiling24. All rights reserved.
+            {copyright}
           </p>
           <p className="text-center text-xs text-[var(--fg-soft)] sm:text-right">
             Developed by <a href="https://mdrehansaquib.in" target="_blank" rel="noopener noreferrer" className="text-[var(--primary)]">Md Rehan Saquib</a>

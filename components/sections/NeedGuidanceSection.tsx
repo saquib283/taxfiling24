@@ -4,7 +4,9 @@ import { motion } from "framer-motion";
 import { Phone } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 
-export default function NeedGuidanceSection() {
+export default function NeedGuidanceSection({ settings = {} }: { settings?: Record<string, string> }) {
+  const phone = settings.contact_phone || CONTACT.phone;
+  const phoneRaw = phone.replace(/\D/g, "");
   return (
     <section className="py-12 lg:py-16">
       <motion.div
@@ -19,7 +21,7 @@ export default function NeedGuidanceSection() {
             Need Help? or Looking for any specific service?
           </p>
           <motion.a
-            href={`tel:${CONTACT.phoneRaw}`}
+            href={`tel:${phoneRaw}`}
             className="inline-flex items-center gap-2 rounded-xl px-8 py-4 font-bold tracking-wide text-white shadow-[var(--shadow-md)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
             style={{ backgroundImage: "var(--gradient-primary)" }}
             whileHover={{ scale: 1.02 }}

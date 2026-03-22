@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import nodemailer from "nodemailer";
+import { logActivity } from "@/lib/activity-log";
 
 export async function POST(request: Request) {
   try {
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
       },
     });
 
+    await logActivity("SENT", "Campaign", `Sent campaign: ${subject} to ${emails.length} subscribers`, campaign.id);
     return NextResponse.json({ success: true, campaign });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Failed to send campaign" }, { status: 500 });

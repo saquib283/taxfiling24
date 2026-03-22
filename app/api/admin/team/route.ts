@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-log";
 
 export async function GET() {
   try {
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const member = await prisma.teamMember.create({ data: body });
+    await logActivity("CREATED", "TeamMember", `Added team member: ${member.name}`, member.id);
     return NextResponse.json(member, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

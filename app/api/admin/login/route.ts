@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 2, // 2 hours
-      path: "/admin",
+      path: "/",
     });
 
     return NextResponse.json({ message: "Login successful" });

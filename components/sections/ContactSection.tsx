@@ -4,7 +4,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FORM_SERVICES } from "@/lib/constants";
 
-export default function ContactSection() {
+export default function ContactSection({ services = [] }: { services?: string[] }) {
+  const displayServices = services.length > 0 ? services : FORM_SERVICES;
+
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -71,7 +73,7 @@ export default function ContactSection() {
             }}
           >
             <option value="">Choose service</option>
-            {FORM_SERVICES.map((s) => (
+            {displayServices.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>

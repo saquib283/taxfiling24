@@ -5,8 +5,9 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 import FAQItem from "@/components/ui/FAQItem";
 import { FAQ_ITEMS } from "@/lib/constants";
 
-export default function FAQSection() {
+export default function FAQSection({ faqs = [] }: { faqs?: any[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const displayFaqs = faqs.length > 0 ? faqs : FAQ_ITEMS;
 
   return (
     <section className="border-t border-[var(--border)] bg-[var(--bg)] py-16 lg:py-24">
@@ -26,9 +27,9 @@ export default function FAQSection() {
           </p>
         </AnimatedSection>
         <div className="mx-auto max-w-2xl space-y-3">
-          {FAQ_ITEMS.map((item, i) => (
+          {displayFaqs.map((item, i) => (
             <FAQItem
-              key={i}
+              key={item.id || i}
               question={item.question}
               answer={item.answer}
               isOpen={openIndex === i}

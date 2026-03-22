@@ -21,7 +21,12 @@ const ICONS = [
   Headset,
 ];
 
-export default function FeaturesSection() {
+interface FeaturesSectionProps {
+  dynamicFeatures?: { title: string; description: string }[];
+}
+
+export default function FeaturesSection({ dynamicFeatures }: FeaturesSectionProps) {
+  const features = dynamicFeatures && dynamicFeatures.length > 0 ? dynamicFeatures : FEATURES;
   return (
     <section className="border-t border-[var(--border)] bg-[var(--bg-muted)] py-16 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,7 +40,7 @@ export default function FeaturesSection() {
           </p>
         </AnimatedSection>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((feature, index) => {
+          {features.map((feature, index) => {
             const Icon = ICONS[index];
             return (
               <AnimatedSection key={feature.title} className="h-full">

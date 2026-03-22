@@ -95,6 +95,26 @@ export default function CalendarManagerPage() {
         </div>
       )}
 
+      {editingId && (
+        <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-6 mb-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Edit Deadline</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Title" className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <textarea value={form.desc} onChange={e => setForm({ ...form, desc: e.target.value })} placeholder="Description" rows={2} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => handleUpdate(editingId)} disabled={saving || !form.title || !form.date} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Update
+            </button>
+            <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium">Cancel</button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {deadlines.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
@@ -119,7 +139,8 @@ export default function CalendarManagerPage() {
                   <td className="p-4 font-medium text-gray-900">{d.title}</td>
                   <td className="p-4"><span className="px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-600 border border-blue-200">{d.category}</span></td>
                   <td className="p-4 text-gray-500 text-xs line-clamp-1 max-w-xs">{d.desc}</td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right flex items-center justify-end gap-1">
+                    <button onClick={() => { setEditingId(d.id); setForm({ title: d.title, category: d.category, date: new Date(d.date).toISOString().split("T")[0], desc: d.desc }); setShowAdd(false); }} className="p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600"><Edit className="h-4 w-4" /></button>
                     <button onClick={() => handleDelete(d.id)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                   </td>
                 </tr>

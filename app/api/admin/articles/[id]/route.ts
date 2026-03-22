@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-log";
 
 export async function PUT(
   request: Request,
@@ -26,6 +27,7 @@ export async function PUT(
       },
     });
 
+    await logActivity("UPDATED", "Article", `Updated article: ${article.title}`, article.id);
     return NextResponse.json(article);
   } catch (error: any) {
     if (error.code === "P2002") {
@@ -45,6 +47,7 @@ export async function DELETE(
       where: { id },
     });
 
+    await logActivity("DELETED", "Article", `Deleted article`, id);
     return NextResponse.json({ message: "Article deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -4,7 +4,15 @@ import { motion } from "framer-motion";
 import { Send, Phone, ShieldCheck } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 
-export default function CTASection() {
+interface CTASectionProps {
+  settings?: Record<string, string>;
+}
+
+export default function CTASection({ settings = {} }: CTASectionProps) {
+  const headline = settings.cta_headline || "Ready to Get Started with Your Business?";
+  const subtext = settings.cta_subtext || "Let our experts handle your registration, compliance, and taxation. Get your free consultation today!";
+  const buttonText = settings.cta_button_text || "Submit Your Requirement";
+
   return (
     <section className="relative overflow-hidden py-24 lg:py-32" style={{ backgroundImage: "var(--gradient-primary)" }}>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.06%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
@@ -25,10 +33,10 @@ export default function CTASection() {
             <Send className="h-7 w-7" strokeWidth={2} />
           </div>
           <h2 className="mb-4 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
-            Ready to Get Started with Your Business?
+            {headline}
           </h2>
           <p className="mb-10 text-white/90">
-            Let our experts handle your registration, compliance, and taxation. Get your free consultation today!
+            {subtext}
           </p>
             <div className="mb-10 flex flex-wrap justify-center gap-4">
             <motion.a
@@ -38,7 +46,7 @@ export default function CTASection() {
               whileTap={{ scale: 0.98 }}
             >
               <Send className="h-4 w-4" />
-              Submit Your Requirement
+              {buttonText}
             </motion.a>
             <motion.a
               href={`tel:${CONTACT.phoneRaw}`}

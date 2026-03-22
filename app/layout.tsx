@@ -2,45 +2,53 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import prisma from "@/lib/prisma";
-import "./globals.css";
 
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://taxfiling24.com"),
-  title: "TaxFiling24 | Complete Business, Tax & Compliance Solutions",
-  description:
-    "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India with expert CA & CS consultancy services.",
-  openGraph: {
-    title: "TaxFiling24 | Complete Business, Tax & Compliance Solutions",
-    description:
-      "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory across India.",
-    url: "https://taxfiling24.com",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "TaxFiling24 | Complete Business, Tax & Compliance Solutions",
-  },
-};
+async function getSiteSettings() {
+  try {
+    const settings = await prisma.setting.findMany();
+    return settings.reduce((acc: any, curr: any) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+  } catch {
+    return {};
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const theme = await getSiteSettings();
+  const title = theme.seo_home_title || "TaxFiling24 | Complete Business, Tax & Compliance Solutions";
+  const description = theme.seo_home_description || "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India with expert CA & CS consultancy services.";
+  const ogImage = theme.seo_home_og_image || undefined;
+
+  return {
+    metadataBase: new URL("https://taxfiling24.com"),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: "https://taxfiling24.com",
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let dbSettings: any[] = [];
-  try {
-    dbSettings = await prisma.setting.findMany();
-  } catch (error) {
-    console.error("Failed to fetch settings from database. Using default theme.", error);
-  }
-  const theme = dbSettings.reduce((acc: any, curr: any) => {
-    acc[curr.key] = curr.value;
-    return acc;
-  }, {});
+  const theme = await getSiteSettings();
 
   const primary = theme.theme_primary || "#0A2540";
   const accent = theme.theme_accent || "#D4AF37";
@@ -76,6 +84,12 @@ export default async function RootLayout({
   const shadows = shadowMap[shadowStyle] || shadowMap.subtle;
   const googleFontUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
 
+  // Code injection from admin
+  const injectHead = theme.inject_head || "";
+  const injectBody = theme.inject_body || "";
+  const injectCss = theme.inject_css || "";
+  const gaId = theme.ga_id || "";
+
   return (
     <html lang="en" className={outfit.variable}>
       <head>
@@ -98,7 +112,15 @@ export default async function RootLayout({
             font-family: var(--font-body);
             font-size: var(--font-size-base);
           }
+          ${injectCss}
         `}</style>
+        {gaId && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
+            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');` }} />
+          </>
+        )}
+        {injectHead && <div dangerouslySetInnerHTML={{ __html: injectHead }} />}
       </head>
       <body className={`${outfit.variable} ${outfit.className} antialiased selection:bg-[var(--accent)] selection:text-white`}>
         {/* Ambient Background Glows */}
@@ -116,6 +138,7 @@ export default async function RootLayout({
           Skip to main content
         </a>
         <main id="main">{children}</main>
+        {injectBody && <div dangerouslySetInnerHTML={{ __html: injectBody }} />}
       </body>
     </html>
   );

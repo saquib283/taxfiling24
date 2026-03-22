@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-log";
 
 export async function PUT(
   request: Request,
@@ -14,6 +15,7 @@ export async function PUT(
       data: { isApproved: isApproved ?? false },
     });
 
+    await logActivity(isApproved ? "APPROVED" : "REJECTED", "Review", `Review ${isApproved ? "approved" : "rejected"}`, id);
     return NextResponse.json(review);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -29,6 +31,7 @@ export async function DELETE(
       where: { id },
     });
 
+    await logActivity("DELETED", "Review", `Deleted review`, id);
     return NextResponse.json({ message: "Review deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

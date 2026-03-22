@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { Star, MessageCircle } from "lucide-react";
 import ApproveButton from "@/components/admin/ApproveButton";
 import DeleteButton from "@/components/admin/DeleteButton";
+import AddReviewForm from "@/components/admin/AddReviewForm";
 
 export default async function ReviewsListPage() {
   const reviews = await prisma.review.findMany({
@@ -12,9 +13,12 @@ export default async function ReviewsListPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">Reviews</h1>
-        <p className="text-gray-600">Moderate and approve client testimonials and reviews</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">Reviews</h1>
+          <p className="text-gray-600">Moderate and approve client testimonials and reviews</p>
+        </div>
+        <AddReviewForm />
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

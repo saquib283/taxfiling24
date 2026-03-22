@@ -1,13 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, Loader2, User, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function ProfilePage() {
-  const [form, setForm] = useState({ name: "Admin", currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [form, setForm] = useState({ name: "", currentPassword: "", newPassword: "", confirmPassword: "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/profile")
+      .then(res => res.json())
+      .then(data => {
+        if (data.name) setForm(prev => ({ ...prev, name: data.name }));
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async () => {
     if (form.newPassword && form.newPassword !== form.confirmPassword) {

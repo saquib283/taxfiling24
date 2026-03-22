@@ -22,8 +22,9 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     return NextResponse.json(user);
-  } catch (error) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (error: any) {
+    console.error("Profile API Error:", error);
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
 

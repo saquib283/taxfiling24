@@ -1,23 +1,30 @@
-"use client";
-
 import ContactSection from "@/components/sections/ContactSection";
-import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, MessageCircle } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
+import prisma from "@/lib/prisma";
+import { getSettings } from "@/lib/settings";
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const settings = await getSettings();
+  const dbServices = await prisma.service.findMany({
+    select: { title: true },
+    orderBy: { title: "asc" }
+  });
+  const serviceTitles = dbServices.map(s => s.title);
+
+  const phone = settings.contact_phone || CONTACT.phone;
+  const phoneRaw = phone.replace(/\D/g, "");
+  const email = settings.contact_email || CONTACT.email;
+  const address = settings.contact_address || CONTACT.address;
+  const whatsapp = settings.contact_whatsapp || CONTACT.whatsapp;
+
   return (
     <div className="bg-slate-50/50 min-h-screen pt-32 pb-20 overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
           {/* Left Column: Direct Layout */}
-          <motion.div 
-            initial={{ opacity: 0, x: -16 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="lg:col-span-5 max-w-xl mx-auto lg:mx-0 flex flex-col pt-4"
-          >
+          <div className="lg:col-span-5 max-w-xl mx-auto lg:mx-0 flex flex-col pt-4 animate-in fade-in slide-in-from-left-4 duration-700">
             <span className="inline-flex items-center gap-2 bg-[var(--accent-soft)] text-[var(--primary)] px-3 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase mb-5 border border-[var(--accent-light)]/20 shadow-sm w-fit">
               <MessageCircle className="h-3.5 w-3.5" />
               Contact Us
@@ -35,15 +42,15 @@ export default function ContactPage() {
                 { 
                   icon: Phone, 
                   title: "Call our Counsel", 
-                  value: CONTACT.phone, 
-                  href: `tel:${CONTACT.phoneRaw}`, 
+                  value: phone, 
+                  href: `tel:${phoneRaw}`, 
                   btnText: "Call Now" 
                 },
                 { 
                   icon: Mail, 
                   title: "Email Support Desk", 
-                  value: CONTACT.email, 
-                  href: `mailto:${CONTACT.email}`, 
+                  value: email, 
+                  href: `mailto:${email}`, 
                   btnText: "Send Mail" 
                 },
               ].map((item, idx) => (
@@ -72,9 +79,9 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800">Corporate Address</h4>
-                  <p className="text-slate-500 text-sm mt-1 leading-relaxed">{CONTACT.address}</p>
+                  <p className="text-slate-500 text-sm mt-1 leading-relaxed">{address}</p>
                   <a 
-                    href={CONTACT.whatsapp} 
+                    href={whatsapp} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="inline-flex items-center gap-1 text-emerald-600 font-bold text-xs mt-3 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/50 hover:bg-emerald-100/50 transition-colors"
@@ -84,11 +91,11 @@ export default function ContactPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Right Column: Overlay Frame with strictly loaded Form Card */}
           <div className="lg:col-span-7">
-            <ContactSection />
+            <ContactSection services={serviceTitles} />
           </div>
 
         </div>

@@ -19,6 +19,7 @@ const CONTENT_SECTIONS = [
     fields: [
       { key: "about_title", label: "Title", placeholder: "Why Choose TaxFiling24?" },
       { key: "about_description", label: "Description", placeholder: "We provide expert financial...", type: "textarea" },
+      { key: "about_features_json", label: "Features (JSON Array)", placeholder: '[{"title":"Accuracy","description":"100% Guaranteed"}]', type: "textarea" },
     ]
   },
   {
@@ -61,6 +62,12 @@ const CONTENT_SECTIONS = [
     fields: [
       { key: "footer_tagline", label: "Footer Tagline", placeholder: "Taxfiling24 makes tax and compliance simple..." },
       { key: "footer_copyright", label: "Copyright Text", placeholder: "© 2025 TaxFiling24. All rights reserved." },
+    ]
+  },
+  {
+    label: "Pricing Plans",
+    fields: [
+      { key: "pricing_plans", label: "Plans (JSON Array)", placeholder: '[{"name":"Basic","price":"₹999","description":"...","features":["..."],"highlighted":false}]', type: "textarea" },
     ]
   },
   {
