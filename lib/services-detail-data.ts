@@ -201,5 +201,37 @@ export const SERVICES_DETAIL_DATA: Record<string, ServiceDetail> = {
     documentsRequired: ["E-commerce Seller CSV dumps", "Bank terms sheets", "Past 3-year financials"],
     process: [{ step: "01", title: "Review requirements", description: "Custom analysis of format preferred." }, { step: "02", title: "Data mapping", description: "Mapping heavy data dumps mechanically." }],
     faqs: [{ question: "Do you assist with Bank Loans?", answer: "We assist in CMA report prep required for it." }]
+  },
+  "virtual-cfo-advisory-services": {
+    title: "Virtual CFO & Advisory Services",
+    description: "High-end financial strategy, budgeting, and advisory without the overhead of a full-time executive.",
+    heroBg: "from-slate-700 to-slate-900",
+    overview: "Our Virtual CFO services provide startups and SMEs with expert financial guidance, cash flow management, profitability analysis, and strategic planning. We act as your financial co-pilot to help you steer the business toward sustainable growth.",
+    benefits: [
+      "Access to Expert Financial Strategies",
+      "Cost-Effective alternative to full-time CFO",
+      "Better Cash Flow & Working Capital Management",
+      "Investor-Ready Financial Modeling"
+    ],
+    subServices: [
+      { title: "Financial Planning & Analysis", description: "Deep dive into profit margins and future projections." },
+      { title: "Cash Flow Management", description: "Monitor and optimize the inflow and outflow of funds." },
+      { title: "Fundraising Support", description: "Pitch deck financials, term sheet reviews, and investor reporting." },
+      { title: "Process Implementation", description: "Setting up robust internal financial controls and ERPs." }
+    ],
+    documentsRequired: [
+      "Past 3 years Audited Financials",
+      "Current Business Plan or Pitch Deck",
+      "Existing MIS Reports (if any)"
+    ],
+    process: [
+      { step: "01", title: "Business Understanding", description: "Initial deep dive into your business model and pain points." },
+      { step: "02", title: "Gap Analysis", description: "Evaluating current financial health and control systems." },
+      { step: "03", title: "Strategy Implementation", description: "Executing tailored financial plans and monthly reviews." }
+    ],
+    faqs: [
+      { question: "Is Virtual CFO service suitable for early-stage startups?", answer: "Yes, it helps startups establish strong financial foundations from day one." },
+      { question: "How often do we interact with our Virtual CFO?", answer: "Typically, weekly alignment syncs and detailed monthly board meetings." }
+    ]
   }
 };

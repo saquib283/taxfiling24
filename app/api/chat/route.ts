@@ -1,8 +1,30 @@
 import { NextResponse } from 'next/server';
 import prisma from "@/lib/prisma";
 
+const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
+
 export async function POST(request: Request) {
   try {
+    const clientIp = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const now = Date.now();
+    const windowMs = 60 * 1000; // 1 minute
+    const maxRequests = 10; // 10 messages per minute
+
+    const rateData = rateLimitMap.get(clientIp) || { count: 0, lastRequest: now };
+
+    if (now - rateData.lastRequest > windowMs) {
+      rateData.count = 1;
+      rateData.lastRequest = now;
+    } else {
+      rateData.count = (rateData.count || 0) + 1;
+    }
+
+    rateLimitMap.set(clientIp, { count: rateData.count, lastRequest: now });
+
+    if (rateData.count > maxRequests) {
+      return NextResponse.json({ error: "Too many messages. Please wait a minute before trying again." }, { status: 429 });
+    }
+
     const { message, history = [] } = await request.json();
     const setting = await prisma.setting.findUnique({ where: { key: "GEMINI_API_KEY" } });
     const apiKey = setting?.value || process.env.GEMINI_API_KEY;

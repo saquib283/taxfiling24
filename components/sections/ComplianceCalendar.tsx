@@ -165,6 +165,14 @@ export default function ComplianceCalendar() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="rounded-xl bg-white px-6 py-3 font-bold text-[var(--primary)] shadow-sm"
+                onClick={() => {
+                  setSelectedDeadline({
+                    title: "All Tax Compliances",
+                    category: "General Alerts",
+                  });
+                  setIsModalOpen(true);
+                  setIsSubmitted(false);
+                }}
               >
                 Sign Up for Alerts
               </motion.button>

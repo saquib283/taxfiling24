@@ -38,9 +38,9 @@ export default function FeaturesSection() {
           {FEATURES.map((feature, index) => {
             const Icon = ICONS[index];
             return (
-              <AnimatedSection key={feature.title}>
+              <AnimatedSection key={feature.title} className="h-full">
                 <motion.div
-                  className="group relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-2 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-lg)] sm:p-8"
+                  className="group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-2 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-lg)] sm:p-8"
                   whileHover={{ y: -4 }}
                   whileTap={{ scale: 0.98 }}
                 >

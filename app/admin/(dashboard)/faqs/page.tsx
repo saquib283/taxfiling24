@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, GripVertical, Save, X, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Save, X, Loader2, Sparkles } from "lucide-react";
 
 interface FAQItem {
   id: string;
@@ -18,6 +18,7 @@ export default function FAQManagerPage() {
   const [form, setForm] = useState({ question: "", answer: "" });
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const fetchFAQs = async () => {
     const res = await fetch("/api/admin/faqs");
@@ -27,6 +28,29 @@ export default function FAQManagerPage() {
   };
 
   useEffect(() => { fetchFAQs(); }, []);
+
+  const handleAIGenerateAnswer = async () => {
+    if (!form.question) return alert("Please enter a question first.");
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: form.question, topic: form.question, type: "faq" })
+      });
+      const data = await res.json();
+      if (res.ok && data.reply) {
+        const plainText = data.reply.replace(/<[^>]*>/g, ""); // Strip HTML tags template
+        setForm(p => ({ ...p, answer: plainText.trim() }));
+      } else {
+        alert(data.error || "Failed to generate answer");
+      }
+    } catch {
+      alert("Something went wrong with AI generation");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleAdd = async () => {
     setSaving(true);
@@ -88,7 +112,18 @@ export default function FAQManagerPage() {
           <h3 className="font-semibold text-gray-900 mb-4">Add New FAQ</h3>
           <div className="space-y-4">
             <input value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} placeholder="Question" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} placeholder="Answer" rows={4} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div className="relative">
+              <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} placeholder="Answer" rows={4} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-24" />
+              <button
+                type="button"
+                onClick={handleAIGenerateAnswer}
+                disabled={aiLoading || !form.question.trim()}
+                className="absolute right-3 top-3 flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {aiLoading ? "Drafting..." : "Suggest AI"}
+              </button>
+            </div>
             <div className="flex gap-2">
               <button onClick={handleAdd} disabled={saving || !form.question || !form.answer} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
@@ -112,7 +147,18 @@ export default function FAQManagerPage() {
                 {editingId === faq.id ? (
                   <div className="space-y-3">
                     <input value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} rows={3} className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <div className="relative">
+                      <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} rows={3} className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-24" />
+                      <button
+                        type="button"
+                        onClick={handleAIGenerateAnswer}
+                        disabled={aiLoading || !form.question.trim()}
+                        className="absolute right-2 top-2 flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {aiLoading ? "Drafts..." : "Suggest AI"}
+                      </button>
+                    </div>
                     <div className="flex gap-2">
                       <button onClick={() => handleUpdate(faq.id)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium flex items-center gap-1"><Save className="h-3 w-3" /> Save</button>
                       <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium">Cancel</button>

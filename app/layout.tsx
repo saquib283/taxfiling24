@@ -31,7 +31,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const dbSettings = await prisma.setting.findMany();
+  let dbSettings: any[] = [];
+  try {
+    dbSettings = await prisma.setting.findMany();
+  } catch (error) {
+    console.error("Failed to fetch settings from database. Using default theme.", error);
+  }
   const theme = dbSettings.reduce((acc: any, curr: any) => {
     acc[curr.key] = curr.value;
     return acc;

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Mail, Send, Trash2, Users, FileText, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Mail, Send, Trash2, Users, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Subscriber {
   id: string;
@@ -27,6 +28,9 @@ export default function CampaignsPage() {
   const [sending, setSending] = useState(false);
 
   const [form, setForm] = useState({ subject: "", content: "" });
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
 
   const fetchData = async () => {
     const [subRes, campRes] = await Promise.all([
@@ -61,6 +65,31 @@ export default function CampaignsPage() {
     }
   };
 
+  const handleAIGenerate = async () => {
+    if (!aiTopic.trim()) return;
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: form.subject, topic: aiTopic.trim(), category: "Email Campaign", type: "email" })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.reply) {
+        setForm({ ...form, content: data.reply });
+        setAiModalOpen(false);
+        setAiTopic("");
+      } else {
+        alert(data.error || "Failed to generate AI content");
+      }
+    } catch (err) {
+      alert("Something went wrong with AI generation");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleDeleteSubscriber = async (id: string) => {
     if (!confirm("Remove this subscriber?")) return;
     await fetch(`/api/admin/subscribers/${id}`, { method: "DELETE" });
@@ -80,7 +109,18 @@ export default function CampaignsPage() {
 
         {/* Compose Form */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><FileText className="h-4 w-4" /> Compose Campaign</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2"><FileText className="h-4 w-4" /> Compose Campaign</h3>
+            <button
+              type="button"
+              onClick={() => { setAiTopic(form.subject || ""); setAiModalOpen(true); }}
+              disabled={aiLoading}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Generate with AI
+            </button>
+          </div>
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
@@ -146,6 +186,67 @@ export default function CampaignsPage() {
           )}
         </div>
       </div>
+
+      {/* AI Modal Overlay */}
+      <AnimatePresence>
+        {aiModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 m-0"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-600" />
+                  Generate Email Content
+                </h3>
+                <button type="button" onClick={() => setAiModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700">Campaign Topic or Context</label>
+                <textarea
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  disabled={aiLoading}
+                  placeholder="e.g., Important Tax Season reminders for ITR-1 filers..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setAiModalOpen(false)}
+                  disabled={aiLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAIGenerate}
+                  disabled={aiLoading || !aiTopic.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {aiLoading ? "Generating..." : "Generate"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

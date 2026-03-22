@@ -42,6 +42,11 @@ export const SERVICES = [
     description: "E-commerce and banking support",
     href: "/services/special-services-e-commerce-banking-documentation",
   },
+  {
+    title: "VIRTUAL CFO & ADVISORY SERVICES",
+    description: "Strategic financial management and business advisory",
+    href: "/services/virtual-cfo-advisory-services",
+  },
 ];
 
 export const FEATURES = [
@@ -210,5 +215,6 @@ export const FORM_SERVICES = [
   "ACCOUNTING, FINANCIAL MANAGEMENT & REPORTING",
   "AUDIT, FORENSIC, RISK & CORPORATE INVESTIGATION",
   "SPECIAL SERVICES, E-COMMERCE, BANKING & DOCUMENTATION",
+  "VIRTUAL CFO & ADVISORY SERVICES",
   "Other",
 ];

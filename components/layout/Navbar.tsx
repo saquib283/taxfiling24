@@ -55,12 +55,11 @@ export default function Navbar() {
           className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[var(--shadow-sm)]"
-            style={{ backgroundImage: "var(--gradient-primary)" }}
-          >
-            <FileCheck className="h-5 w-5" strokeWidth={2.5} />
-          </div>
+          <img 
+            src="/logo.png" 
+            className="h-10 w-10 object-cover rounded-full shadow-[var(--shadow-sm)]" 
+            alt="TaxFiling24 Logo" 
+          />
           <span className="text-xl font-bold tracking-tight text-[var(--fg)]">
             TaxFiling
             <span
@@ -111,7 +110,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <Link
             href="/contact"
-            className="hidden md:block bg-[var(--fg)] px-6 py-2.5 rounded-xl font-bold text-sm text-[var(--bg-card)] shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:shadow-[var(--shadow-md)] transition-all duration-200"
+            className="hidden md:block bg-[var(--primary)] px-6 py-2.5 rounded-xl font-bold text-sm text-[var(--bg-card)] shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-md)] transition-all duration-200"
           >
             Contact
           </Link>
@@ -176,7 +175,7 @@ export default function Navbar() {
                         onClick={() => setMobileMenuOpen(false)}
                         className={`block rounded-lg py-2.5 px-3 text-left text-sm font-medium transition-colors ${
                           item.href === "/contact"
-                            ? "mt-2 bg-[var(--fg)] text-[var(--bg-card)] text-center font-bold hover:bg-[var(--primary)] hover:text-white"
+                            ? "mt-2 bg-[var(--primary)] text-[var(--bg-card)] text-center font-bold hover:bg-[var(--primary-hover)]"
                             : "text-[var(--fg)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
                         }`}
                       >

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Save, ArrowLeft, Eye, Edit3, Upload } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Save, ArrowLeft, Eye, Edit3, Upload, Sparkles, X, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import RichTextEditor from "./RichTextEditor";
 
@@ -25,6 +25,18 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiSeoLoading, setAiSeoLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const [formData, setFormData] = useState({
     title: article?.title || "",
@@ -117,10 +129,62 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
         const data = await res.json();
         setFormData(p => ({ ...p, thumbnailUrl: data.url }));
       } else {
-        alert("Failed to upload thumbnail");
+        setToast({ message: "Failed to upload thumbnail", type: "error" });
       }
     } catch (err) {
-      alert("Something went wrong uploading thumbnail");
+      setToast({ message: "Something went wrong uploading thumbnail", type: "error" });
+    }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!aiTopic.trim()) return;
+
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: formData.title, topic: aiTopic.trim(), category: formData.category })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.reply) {
+        setFormData(p => ({ ...p, content: data.reply }));
+        setAiModalOpen(false);
+        setAiTopic("");
+      } else {
+        setToast({ message: data.error || "Failed to generate AI content", type: "error" });
+      }
+    } catch (err) {
+      setToast({ message: "Something went wrong with AI generation", type: "error" });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAIGenerateSEO = async () => {
+    setAiSeoLoading(true);
+    try {
+      const res = await fetch("/api/admin/ai/generate-seo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: formData.title, content: formData.content })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.metaTitle && data.metaDescription) {
+        setFormData(p => ({ 
+          ...p, 
+          metaTitle: data.metaTitle, 
+          metaDescription: data.metaDescription 
+        }));
+      } else {
+        setToast({ message: data.error || "Failed to generate SEO suggestions", type: "error" });
+      }
+    } catch (err) {
+      setToast({ message: "Something went wrong with AI SEO generation", type: "error" });
+    } finally {
+      setAiSeoLoading(false);
     }
   };
 
@@ -197,7 +261,7 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
             )}
             <div className="h-px bg-gray-100 mb-6" />
             <div
-              className="prose prose-sm sm:prose-base max-w-none text-gray-800"
+              className="tiptap prose prose-sm sm:prose-base max-w-none text-gray-800"
               dangerouslySetInnerHTML={{ __html: formData.content || "<p class='text-gray-400'>No content yet…</p>" }}
             />
           </div>
@@ -269,7 +333,18 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Content</label>
+                  <button
+                    type="button"
+                    onClick={() => { setAiTopic(formData.title || ""); setAiModalOpen(true); }}
+                    disabled={aiLoading}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {aiLoading ? "Generating..." : "Generate with AI"}
+                  </button>
+                </div>
                 <RichTextEditor 
                   value={formData.content} 
                   onChange={(html) => setFormData(p => ({ ...p, content: html }))} 
@@ -357,7 +432,18 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-              <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-2">SEO Fallbacks</h3>
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <h3 className="font-semibold text-gray-900 border-none pb-0">SEO Fallbacks</h3>
+                <button
+                  type="button"
+                  onClick={handleAIGenerateSEO}
+                  disabled={aiSeoLoading}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {aiSeoLoading ? "Suggesting..." : "Suggest with AI"}
+                </button>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Meta Title</label>
                 <input
@@ -382,6 +468,86 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
           </div>
         </div>
       )}
+
+      {/* AI Modal Overlay */}
+      <AnimatePresence>
+        {aiModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 m-0"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-600" />
+                  Generate with AI
+                </h3>
+                <button type="button" onClick={() => setAiModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Topic or Prompt</label>
+                <textarea
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  disabled={aiLoading}
+                  placeholder="e.g., 10 Essential Income Tax Savings for Salaried Employees in 2026..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setAiModalOpen(false)}
+                  disabled={aiLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAIGenerate}
+                  disabled={aiLoading || !aiTopic.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {aiLoading ? "Generating..." : "Generate"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+          {/* Custom Toast Notification */}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 50, opacity: 0 }}
+                className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl shadow-lg border text-sm font-medium flex items-center gap-2 z-50 ${
+                  toast.type === 'success' 
+                    ? 'bg-green-50 border-green-100 text-green-800' 
+                    : 'bg-red-50 border-red-100 text-red-800'
+                }`}
+              >
+                {toast.type === 'error' ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                <span>{toast.message}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
     </form>
   );
 }

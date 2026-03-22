@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
 import { Inbox, Clock, CheckCircle, Archive, Mail, Phone } from "lucide-react";
-import InquiryActions from "@/components/admin/InquiryActions";
+import InquiryRow from "@/components/admin/InquiryRow";
 
 export default async function InquiriesPage() {
   const inquiries = await prisma.inquiry.findMany({ orderBy: { createdAt: "desc" } });
@@ -32,30 +32,7 @@ export default async function InquiriesPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {inquiries.map((inquiry: any) => (
-              <div key={inquiry.id} className="p-5 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{inquiry.name}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                        inquiry.status === "PENDING" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
-                        inquiry.status === "RESOLVED" ? "bg-green-50 text-green-700 border-green-200" :
-                        "bg-gray-50 text-gray-600 border-gray-200"
-                      }`}>{inquiry.status}</span>
-                      {inquiry.service && (
-                        <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-600 border border-blue-200">{inquiry.service}</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{inquiry.message}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{inquiry.email}</span>
-                      {inquiry.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{inquiry.phone}</span>}
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(inquiry.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  <InquiryActions id={inquiry.id} status={inquiry.status} />
-                </div>
-              </div>
+              <InquiryRow key={inquiry.id} inquiry={inquiry} />
             ))}
           </div>
         )}

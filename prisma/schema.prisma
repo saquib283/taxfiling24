@@ -17,13 +17,21 @@ model User {
 }
 
 model Service {
-  id          String   @id @default(cuid())
-  title       String
-  description String   @db.Text
-  icon        String   @default("Briefcase")
-  category    String   @default("General")
-  href        String?
-  createdAt   DateTime @default(now())
+  id                String   @id @default(cuid())
+  slug              String   @unique @default(uuid())
+  title             String
+  description       String   @db.Text
+  overview          String?  @db.Text
+  heroBg            String?  @default("from-blue-600 to-indigo-700")
+  icon              String   @default("Briefcase")
+  category          String   @default("General")
+  href              String?
+  benefits          Json?
+  subServices       Json?
+  documentsRequired Json?
+  process           Json?
+  faqs              Json?
+  createdAt         DateTime @default(now())
 }
 
 model Article {

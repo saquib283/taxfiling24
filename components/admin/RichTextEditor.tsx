@@ -32,7 +32,7 @@ import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Merge, Split,
   Pilcrow, ChevronDown, Upload
 } from "lucide-react";
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
 interface RichTextEditorProps {
   value: string;
@@ -106,7 +106,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
     },
     editorProps: {
       attributes: {
-        class: "prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[400px] p-5 text-gray-800",
+        class: "tiptap prose prose-sm sm:prose-base max-w-none focus:outline-none min-h-[400px] p-5 text-gray-800",
       },
       handleDrop: (view, event, _slice, moved) => {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) {
@@ -137,6 +137,13 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
       },
     },
   });
+  
+
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value);
+    }
+  }, [value, editor]);
 
   const uploadAndInsertImage = useCallback(async (file: File) => {
     if (!editor) return;

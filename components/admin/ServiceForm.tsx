@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Save, ArrowLeft, Briefcase, Shield, FileHeart, TrendingUp, Settings, Users } from "lucide-react";
+import { Save, ArrowLeft, Briefcase, Shield, FileHeart, TrendingUp, Settings, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 interface ServiceFormProps {
@@ -19,6 +19,7 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     title: service?.title || "",
@@ -58,6 +59,30 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
       setError("Something went wrong saving the service.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAIGenerateDesc = async () => {
+    if (!formData.title) return alert("Please enter a service title first.");
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: formData.title, topic: formData.title, category: formData.category, type: "service" })
+      });
+      const data = await res.json();
+      if (res.ok && data.reply) {
+        // Strip HTML tag setups if AI returns it, for plaintext <textarea>
+        const plainText = data.reply.replace(/<[^>]*>/g, "");
+        setFormData(p => ({ ...p, description: plainText.trim() }));
+      } else {
+        alert(data.error || "Failed to generate description");
+      }
+    } catch {
+      alert("Something went wrong with AI generation");
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -132,7 +157,18 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <button
+              type="button"
+              onClick={handleAIGenerateDesc}
+              disabled={aiLoading || !formData.title}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+            >
+              <Sparkles className="h-3 w-3" />
+              {aiLoading ? "Suggesting..." : "Suggest with AI"}
+            </button>
+          </div>
           <textarea
             required
             name="description"
