@@ -88,3 +88,67 @@ model Review {
   createdAt  DateTime @default(now())
 }
 
+model Inquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  service   String?
+  message   String   @db.Text
+  status    String   @default("PENDING") // PENDING, RESOLVED, ARCHIVED
+  createdAt DateTime @default(now())
+}
+
+model FAQ {
+  id        String  @id @default(cuid())
+  question  String
+  answer    String  @db.Text
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+}
+
+model TeamMember {
+  id          String  @id @default(cuid())
+  name        String
+  designation String
+  image       String?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+}
+
+model ComplianceDeadline {
+  id       String   @id @default(cuid())
+  title    String
+  category String   // "Income Tax", "GST", "Labor Law"
+  date     DateTime
+  desc     String   @db.Text
+  isActive Boolean  @default(true)
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String   // "CREATED", "UPDATED", "DELETED"
+  entity    String   // "Article", "Service", "FAQ", etc.
+  entityId  String?
+  details   String?  @db.Text
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+}
+
+model Campaign {
+  id        String   @id @default(cuid())
+  subject   String
+  content   String   @db.Text
+  status    String   @default("DRAFT") // DRAFT, SENT
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+}
+

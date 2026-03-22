@@ -13,7 +13,7 @@ export default function Navbar() {
 
   const navItems = [
     { href: "/", label: "Home" },
-    { href: "/#about", label: "About" },
+    { href: "/about", label: "About" },
     { 
       href: "/services", 
       label: "Services",
@@ -73,7 +73,7 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden absolute left-1/2 -translate-x-1/2 items-center gap-1 md:flex">
-          {navItems.filter(i => i.href !== "/#contact").map((item) => {
+          {navItems.filter(i => i.href !== "/contact").map((item) => {
             if (item.children) {
               return (
                 <div key={item.label} className="relative group">
@@ -110,7 +110,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/#contact"
+            href="/contact"
             className="hidden md:block bg-[var(--fg)] px-6 py-2.5 rounded-xl font-bold text-sm text-[var(--bg-card)] shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:shadow-[var(--shadow-md)] transition-all duration-200"
           >
             Contact
@@ -175,7 +175,7 @@ export default function Navbar() {
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`block rounded-lg py-2.5 px-3 text-left text-sm font-medium transition-colors ${
-                          item.href === "/#contact"
+                          item.href === "/contact"
                             ? "mt-2 bg-[var(--fg)] text-[var(--bg-card)] text-center font-bold hover:bg-[var(--primary)] hover:text-white"
                             : "text-[var(--fg)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
                         }`}

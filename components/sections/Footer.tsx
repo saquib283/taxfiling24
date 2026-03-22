@@ -12,7 +12,7 @@ export default function Footer() {
 
 
       <div className="border-t border-[var(--border)] bg-[var(--bg-card)] py-12">
-        <div className="container mx-auto grid gap-10 px-4 md:grid-cols-3 sm:px-6 lg:px-8">
+        <div className="container mx-auto grid gap-10 px-4 md:grid-cols-4 sm:px-6 lg:px-8">
           <div>
             <Link href="/" className="mb-6 flex items-center gap-2.5 transition-opacity hover:opacity-90">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-[var(--shadow-sm)]" style={{ backgroundImage: "var(--gradient-primary)" }}>
@@ -26,13 +26,35 @@ export default function Footer() {
               Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.
             </p>
           </div>
+
+          <div>
+            <h3 className="mb-4 font-semibold text-[var(--fg)]">Newsletter</h3>
+            <p className="text-xs text-[var(--fg-muted)] mb-3">Subscribe to receive compliance alerts & tax updates.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+              const res = await fetch("/api/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+              });
+              const data = await res.json();
+              alert(data.message || data.error);
+              if (res.ok) form.reset();
+            }} className="flex flex-col gap-2">
+              <input type="email" name="email" required placeholder="Your Email address" className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+              <button type="submit" className="px-3 py-2 bg-[var(--fg)] text-[var(--bg-card)] rounded-lg text-xs font-semibold hover:bg-[var(--primary)] hover:text-white transition-all">Subscribe</button>
+            </form>
+          </div>
           <div>
             <h3 className="mb-4 font-semibold text-[var(--fg)]">Quick Links</h3>
             <ul className="space-y-2">
               {[
-                { href: "#hero", label: "Home" },
-                { href: "#services", label: "Services" },
-                { href: "#contact", label: "Contact" },
+                { href: "/", label: "Home" },
+                { href: "/about", label: "About Us" },
+                { href: "/services", label: "Services" },
+                { href: "/contact", label: "Contact" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link

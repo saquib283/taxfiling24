@@ -25,7 +25,7 @@ export async function GET() {
   try {
     const settings = await prisma.setting.findMany();
     // Convert to key-value object for easier consumption
-    const config = settings.reduce((acc: any, curr) => {
+    const config = settings.reduce((acc: any, curr: any) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {});

@@ -152,7 +152,7 @@ export default function IntegrationsPage() {
                 <h2 className="font-semibold text-gray-900">Available Integrations</h2>
               </div>
               <div className="divide-y divide-gray-200">
-                {integrations.map((integration) => (
+                {integrations.map((integration: any) => (
                   <motion.div
                     key={integration.id}
                     whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.05)" }}

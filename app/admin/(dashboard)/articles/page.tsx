@@ -49,7 +49,7 @@ export default async function ArticlesListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {articles.map((article) => (
+              {articles.map((article: any) => (
                 <tr key={article.id} className="hover:bg-gray-50 text-sm">
                   <td className="p-4">
                     <p className="font-medium text-gray-900">{article.title}</p>

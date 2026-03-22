@@ -11,36 +11,37 @@
   --fg-muted: #475569;
   --fg-soft: #94A3B8;
   
-  /* Brand Colors (Professional Corporate Blue) */
-  --primary: #0F4C81;       /* high-trust Classic blue */
-  --primary-hover: #0A365C;
-  --accent: #0088CC;       /* Bright Cyan Blue highlighted triggers */
-  --accent-light: #33A1DE;
-  --accent-soft: #E6F3FA;
-
+  /* Brand Colors (Premium CA Aesthetic) */
+  --primary: #0A2540;       /* Deep high-trust Navy */
+  --primary-hover: #11345E;
+  --accent: #D4AF37;        /* Elegant Gold */
+  --accent-light: #FFDF73;
+  --accent-soft: #FCF9EC;
   
   /* Semantic Colors */
   --success: #10B981;
   --success-bg: #D1FAE5;
-  --star: #F59E0B;
+  --error: #EF4444;
+  --star: #D4AF37;
   --border: #E2E8F0;
   
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
-  --gradient-glow: linear-gradient(135deg, rgba(79, 70, 229, 0.5) 0%, rgba(139, 92, 246, 0.5) 100%);
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, #11345E 100%);
+  --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #B5952D 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(10, 37, 64, 0.3) 0%, rgba(212, 175, 55, 0.3) 100%);
 
   /* Premium Shadows */
-  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.04);
-  --shadow: 0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 20px 40px -8px rgba(15, 76, 129, 0.08), 0 8px 16px -4px rgba(15, 23, 42, 0.04);
-  --shadow-glow: 0 0 24px -4px rgba(0, 136, 204, 0.2);
+  --shadow-sm: 0 2px 4px rgba(10, 37, 64, 0.04);
+  --shadow: 0 4px 12px rgba(10, 37, 64, 0.06), 0 1px 2px rgba(10, 37, 64, 0.04);
+  --shadow-md: 0 12px 24px -4px rgba(10, 37, 64, 0.08), 0 4px 8px -2px rgba(10, 37, 64, 0.04);
+  --shadow-lg: 0 20px 40px -8px rgba(10, 37, 64, 0.12), 0 8px 16px -4px rgba(10, 37, 64, 0.06);
+  --shadow-glow: 0 0 24px -4px rgba(212, 175, 55, 0.3);
   
   /* Radii */
-  --radius: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
   --radius-full: 9999px;
 }
 
@@ -80,4 +81,92 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--fg-muted);
+}
+
+/* ─── TipTap Editor Styles ─── */
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.tiptap th,
+.tiptap td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  position: relative;
+  vertical-align: top;
+  min-width: 80px;
+}
+
+.tiptap th {
+  background: #f8fafc;
+  font-weight: 600;
+  text-align: left;
+}
+
+.tiptap .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(59, 130, 246, 0.08);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.tiptap ul[data-type="taskList"] li > label {
+  margin-top: 0.25rem;
+  user-select: none;
+}
+
+.tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap iframe {
+  border-radius: 0.5rem;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.tiptap hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 1.5rem 0;
+}
+
+.tiptap mark {
+  border-radius: 0.125rem;
+  padding: 0.125rem 0;
+}
+
+.tiptap .tableWrapper {
+  overflow-x: auto;
+}
+
+.tiptap .resize-cursor {
+  cursor: col-resize;
 }

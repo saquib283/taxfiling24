@@ -32,23 +32,66 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const dbSettings = await prisma.setting.findMany();
-  const theme = dbSettings.reduce((acc: any, curr) => {
+  const theme = dbSettings.reduce((acc: any, curr: any) => {
     acc[curr.key] = curr.value;
     return acc;
   }, {});
 
-  const primary = theme.theme_primary || "#0F4C81";
-  const accent = theme.theme_accent || "#0088CC";
-  const radius = theme.theme_radius ? `${theme.theme_radius}rem` : "1rem";
+  const primary = theme.theme_primary || "#0A2540";
+  const accent = theme.theme_accent || "#D4AF37";
+  const radius = theme.theme_radius ? `${theme.theme_radius}rem` : "0.75rem";
+  const fontFamily = theme.theme_font || "Outfit";
+  const fontSize = theme.theme_font_size ? `${theme.theme_font_size}px` : "15px";
+  const shadowStyle = theme.theme_shadow || "subtle";
+
+  // Map shadow style to actual CSS values
+  const shadowMap: Record<string, { sm: string; md: string; lg: string }> = {
+    none: {
+      sm: "none",
+      md: "none",
+      lg: "none",
+    },
+    subtle: {
+      sm: "0 2px 4px rgba(10, 37, 64, 0.04)",
+      md: "0 4px 12px rgba(10, 37, 64, 0.06), 0 1px 2px rgba(10, 37, 64, 0.04)",
+      lg: "0 12px 24px -4px rgba(10, 37, 64, 0.08), 0 4px 8px -2px rgba(10, 37, 64, 0.04)",
+    },
+    medium: {
+      sm: "0 2px 6px rgba(0, 0, 0, 0.06)",
+      md: "0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)",
+      lg: "0 16px 32px -4px rgba(0, 0, 0, 0.1), 0 6px 12px -2px rgba(0, 0, 0, 0.06)",
+    },
+    elevated: {
+      sm: "0 4px 8px rgba(0, 0, 0, 0.08)",
+      md: "0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.06)",
+      lg: "0 20px 48px -4px rgba(0, 0, 0, 0.14), 0 8px 16px -4px rgba(0, 0, 0, 0.08)",
+    },
+  };
+
+  const shadows = shadowMap[shadowStyle] || shadowMap.subtle;
+  const googleFontUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
 
   return (
     <html lang="en" className={outfit.variable}>
       <head>
+        {fontFamily !== "Outfit" && (
+          <link rel="stylesheet" href={googleFontUrl} />
+        )}
         <style>{`
           :root {
             --primary: ${primary};
             --accent: ${accent};
             --radius: ${radius};
+            --font-body: '${fontFamily}', var(--font-outfit), system-ui, sans-serif;
+            --font-size-base: ${fontSize};
+            --shadow-sm: ${shadows.sm};
+            --shadow: ${shadows.md};
+            --shadow-md: ${shadows.md};
+            --shadow-lg: ${shadows.lg};
+          }
+          body {
+            font-family: var(--font-body);
+            font-size: var(--font-size-base);
           }
         `}</style>
       </head>

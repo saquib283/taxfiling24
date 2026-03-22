@@ -46,7 +46,7 @@ export default async function ServicesListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {services.map((service) => (
+              {services.map((service: any) => (
                 <tr key={service.id} className="hover:bg-gray-50 text-sm">
                   <td className="p-4">
                     <p className="font-medium text-gray-900">{service.title}</p>

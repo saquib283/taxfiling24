@@ -38,7 +38,7 @@ export default async function ReviewsListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {reviews.map((review) => (
+              {reviews.map((review: any) => (
                 <tr key={review.id} className="hover:bg-gray-50 text-sm">
                   <td className="p-4">
                     <p className="font-medium text-gray-900">{review.name}</p>

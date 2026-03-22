@@ -26,7 +26,7 @@ export default async function ArticlesPage() {
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {articles.map((article) => (
+            {articles.map((article: any) => (
               <AnimatedSection key={article.id}>
                 <Link href={`/articles/${article.slug}`} className="group block h-full">
                   <div className="flex flex-col h-full bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-1 transition-all duration-300">

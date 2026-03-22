@@ -12,14 +12,15 @@ const STATS = [
 
 export default function StatsSection() {
   return (
-    <section className="border-y border-[var(--border)] bg-[var(--bg-card)] py-14 lg:py-18">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="bg-[var(--primary)] text-white py-14 lg:py-20 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="grid grid-cols-2 gap-6 md:grid-cols-4"
+           variants={staggerContainer}
+           initial="hidden"
+           whileInView="show"
+           viewport={{ once: true }}
+           className="grid grid-cols-2 gap-8 md:grid-cols-4"
         >
           {STATS.map((stat) => (
             <motion.div
@@ -27,10 +28,10 @@ export default function StatsSection() {
               variants={fadeUp}
               className="text-center"
             >
-              <p className="text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ backgroundImage: "var(--gradient-primary)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <p className="text-4xl font-extrabold tracking-tight sm:text-6xl text-[var(--accent-light)] drop-shadow-md">
                 {stat.value}
               </p>
-              <p className="mt-2 text-sm font-semibold uppercase tracking-wider text-[var(--fg-muted)]">{stat.label}</p>
+              <p className="mt-3 text-sm font-bold uppercase tracking-widest text-white/80">{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>

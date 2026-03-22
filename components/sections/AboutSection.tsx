@@ -35,7 +35,7 @@ export default function AboutSection() {
             <div className="overflow-hidden rounded-[var(--radius-lg)] shadow-[var(--shadow)]">
               <div className="aspect-[4/3]">
                 <Image
-                  src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80"
+                  src="/images/team_consulting.png"
                   alt="Business professionals"
                   fill
                   className="object-cover"

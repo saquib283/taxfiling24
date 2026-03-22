@@ -76,7 +76,7 @@ export default function HeroSection() {
             <div className="relative overflow-hidden rounded-[var(--radius-xl)] bg-[var(--bg-muted)] shadow-[var(--shadow-lg)] border border-[var(--border)]">
               <div className="aspect-[4/3] w-full lg:aspect-[16/10]">
                 <Image
-                  src="/hero.png"
+                  src="/images/hero_bg.png"
                   alt="Tax and Compliance consulting session with expert advisory"
                   fill
                   className="object-cover"

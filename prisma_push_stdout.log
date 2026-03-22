@@ -1,0 +1,12 @@
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-wispy-glade-adlfifbz-pooler.c-2.us-east-1.aws.neon.tech"
+
+Your database is now in sync with your Prisma schema. Done in 9.16s
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[GEPERM: operation not permitted, rename 'C:\Users\aakas\Downloads\taxfiling24\nod
+e_modules\.prisma\client\query_engine-windows.dll.node.tmp8084' -> 
+'C:\Users\aakas\Downloads\taxfiling24\node_modules\.prisma\client\query_engine-w
+indows.dll.node'
+
