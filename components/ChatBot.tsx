@@ -160,7 +160,7 @@ export default function ChatBot() {
         {/* Main Trigger Button */}
         <motion.button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-[image:var(--gradient-primary)] text-white shadow-[var(--shadow-lg)] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-[image:var(--gradient-primary)] text-white shadow-[var(--shadow-lg)] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2 border-4 border-double border-white"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           aria-label="Contact Menu"
