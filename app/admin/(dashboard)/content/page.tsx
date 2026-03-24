@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 
 const CONTENT_SECTIONS = [
   {
@@ -79,7 +79,143 @@ const CONTENT_SECTIONS = [
       { key: "announcement_bg", label: "Banner Color", placeholder: "#0F4C81" },
     ]
   },
+  {
+    label: "Services Section",
+    fields: [
+      { key: "services_title", label: "Title", placeholder: "Services We Offer" },
+      { key: "services_subtext", label: "Subtext", placeholder: "Explore our comprehensive tax and legal services." },
+    ]
+  },
+  {
+    label: "Process Section",
+    fields: [
+      { key: "process_badge", label: "Badge Text", placeholder: "How It Works" },
+      { key: "process_title", label: "Title", placeholder: "Our Strategic Operating Model" },
+      { key: "process_subtext", label: "Subtext", placeholder: "Our four-stage framework ensures absolute compliance..." },
+      { 
+        key: "process_steps_json", 
+        label: "Steps Configuration", 
+        type: "json_array", 
+        itemFields: [
+          { key: "step", label: "Step Number", placeholder: "01" },
+          { key: "title", label: "Title", placeholder: "Strategic Discovery" },
+          { key: "description", label: "Description", placeholder: "Initial consultation...", type: "textarea" },
+          { key: "image", label: "Image URL / Path", placeholder: "/images/process_discovery.png" },
+        ]
+      },
+    ]
+  },
+  {
+    label: "Testimonials Section",
+    fields: [
+      { key: "testimonials_title", label: "Title", placeholder: "What Our Clients Say" },
+      { key: "testimonials_subtext", label: "Subtext", placeholder: "Trusted by thousands of businesses across India." },
+    ]
+  },
+  {
+    label: "Articles Section",
+    fields: [
+      { key: "articles_title", label: "Title", placeholder: "Latest Insights" },
+      { key: "articles_subtext", label: "Subtext", placeholder: "Stay updated with the latest in tax, compliance, and corporate law." },
+    ]
+  },
+  {
+    label: "Compliance Calendar",
+    fields: [
+      { key: "calendar_title", label: "Title", placeholder: "Tax Compliance Calendar" },
+      { key: "calendar_subtext", label: "Subtext", placeholder: "Never miss a due date. Stay ahead with our monthly compliance tracker." },
+    ]
+  },
+  {
+    label: "FAQ Section",
+    fields: [
+      { key: "faq_title", label: "Title", placeholder: "Frequently Asked Questions" },
+      { key: "faq_subtext", label: "Subtext", placeholder: "Find answers to our most common queries regarding tax filing and incorporation." },
+    ]
+  },
+  {
+    label: "Guidance Banner",
+    fields: [
+      { key: "guidance_title", label: "Headline", placeholder: "Need Expert Guidance?" },
+      { key: "guidance_button", label: "Button Text", placeholder: "Request a Call Back" },
+    ]
+  },
 ];
+
+function JsonArrayEditor({ 
+  value, 
+  onChange, 
+  itemFields 
+}: { 
+  value: string; 
+  onChange: (val: string) => void; 
+  itemFields: any[] 
+}) {
+  const items = JSON.parse(value || "[]");
+
+  const updateItem = (index: number, fieldKey: string, val: any) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [fieldKey]: val };
+    onChange(JSON.stringify(newItems));
+  };
+
+  const addItem = () => {
+    onChange(JSON.stringify([...items, {}]));
+  };
+
+  const removeItem = (index: number) => {
+    onChange(JSON.stringify(items.filter((_: any, i: number) => i !== index)));
+  };
+
+  const moveItem = (index: number, direction: 'up' | 'down') => {
+    const newItems = [...items];
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= items.length) return;
+    [newItems[index], newItems[target]] = [newItems[target], newItems[index]];
+    onChange(JSON.stringify(newItems));
+  };
+
+  return (
+    <div className="space-y-4">
+      {items.map((item: any, idx: number) => (
+        <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-200 relative group">
+          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => moveItem(idx, 'up')} className="p-1 hover:bg-gray-200 rounded"><ChevronUp className="h-4 w-4 text-gray-500" /></button>
+            <button onClick={() => moveItem(idx, 'down')} className="p-1 hover:bg-gray-200 rounded"><ChevronDown className="h-4 w-4 text-gray-500" /></button>
+            <button onClick={() => removeItem(idx)} className="p-1 hover:bg-red-100 rounded text-red-500"><Trash2 className="h-4 w-4" /></button>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {itemFields.map(f => (
+              <div key={f.key}>
+                <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">{f.label}</label>
+                {f.type === "textarea" ? (
+                  <textarea
+                    value={item[f.key] || ""}
+                    onChange={e => updateItem(idx, f.key, e.target.value)}
+                    placeholder={f.placeholder}
+                    rows={2}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={item[f.key] || ""}
+                    onChange={e => updateItem(idx, f.key, e.target.value)}
+                    placeholder={f.placeholder}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button onClick={addItem} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:text-blue-500 hover:border-blue-200 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 text-sm font-medium">
+        <Plus className="h-4 w-4" /> Add New Item
+      </button>
+    </div>
+  );
+}
 
 export default function ContentEditorPage() {
   const [values, setValues] = useState<Record<string, string>>({});
@@ -137,7 +273,13 @@ export default function ContentEditorPage() {
             {section.fields.map(field => (
               <div key={field.key}>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">{field.label}</label>
-                {(field as any).type === "textarea" ? (
+                {((field as any).type === "json_array") ? (
+                  <JsonArrayEditor 
+                    value={values[field.key] || "[]"} 
+                    onChange={val => setValues({ ...values, [field.key]: val })}
+                    itemFields={(field as any).itemFields}
+                  />
+                ) : (field as any).type === "textarea" ? (
                   <textarea
                     value={values[field.key] || ""}
                     onChange={e => setValues({ ...values, [field.key]: e.target.value })}

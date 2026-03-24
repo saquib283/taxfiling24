@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Save, ArrowLeft, Briefcase, Shield, FileHeart, TrendingUp, Settings, Users, Sparkles } from "lucide-react";
+import { Save, ArrowLeft, Briefcase, Shield, FileHeart, TrendingUp, Settings, Users, Sparkles, Plus, Trash2, GripVertical } from "lucide-react";
 import Link from "next/link";
 
 interface ServiceFormProps {
@@ -27,11 +27,37 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
     icon: service?.icon || "Briefcase",
     category: service?.category || "General",
     href: service?.href || "",
+    overview: service?.overview || "",
+    benefits: Array.isArray(service?.benefits) ? service?.benefits : [],
+    subServices: Array.isArray(service?.subServices) ? service?.subServices : [],
+    documentsRequired: Array.isArray(service?.documentsRequired) ? service?.documentsRequired : [],
+    process: Array.isArray(service?.process) ? service?.process : [],
+    faqs: Array.isArray(service?.faqs) ? service?.faqs : [],
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleArrayChange = (field: keyof typeof formData, index: number, value: any) => {
+    setFormData(p => {
+      const arr = [...(p[field] as any[])];
+      arr[index] = value;
+      return { ...p, [field]: arr };
+    });
+  };
+
+  const handleArrayAdd = (field: keyof typeof formData, emptyItem: any) => {
+    setFormData(p => ({ ...p, [field]: [...(p[field] as any[]), emptyItem] }));
+  };
+
+  const handleArrayRemove = (field: keyof typeof formData, index: number) => {
+    setFormData(p => {
+      const arr = [...(p[field] as any[])];
+      arr.splice(index, 1);
+      return { ...p, [field]: arr };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,6 +217,187 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
             placeholder="/services/tax-filing"
           />
         </div>
+      </div>
+
+      {/* --- ADVANCED JSON FIELDS --- */}
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-8">
+        <h2 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-3">Service Details & Content</h2>
+        
+        {/* OVERVIEW */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Service Overview (Extended)</label>
+          <textarea
+            name="overview"
+            value={formData.overview}
+            onChange={handleChange}
+            rows={4}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 text-sm"
+            placeholder="Detailed overview for the service page..."
+          />
+        </div>
+
+        {/* BENEFITS ARRAY */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-700">Key Benefits</label>
+            <button type="button" onClick={() => handleArrayAdd("benefits", "")} className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded-md">
+              <Plus className="h-3 w-3" /> Add Benefit
+            </button>
+          </div>
+          <div className="space-y-2">
+            {formData.benefits.map((benefit: string, idx: number) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={benefit}
+                  onChange={(e) => handleArrayChange("benefits", idx, e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="e.g. 100% Audit Assistance"
+                />
+                <button type="button" onClick={() => handleArrayRemove("benefits", idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {formData.benefits.length === 0 && <p className="text-xs text-gray-400 italic">No benefits added yet.</p>}
+          </div>
+        </div>
+
+        {/* REQUIRED DOCUMENTS ARRAY */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-700">Required Documents</label>
+            <button type="button" onClick={() => handleArrayAdd("documentsRequired", "")} className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded-md">
+              <Plus className="h-3 w-3" /> Add Document
+            </button>
+          </div>
+          <div className="space-y-2">
+            {formData.documentsRequired.map((doc: string, idx: number) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={doc}
+                  onChange={(e) => handleArrayChange("documentsRequired", idx, e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="e.g. PAN Card copy"
+                />
+                <button type="button" onClick={() => handleArrayRemove("documentsRequired", idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {formData.documentsRequired.length === 0 && <p className="text-xs text-gray-400 italic">No documents added yet.</p>}
+          </div>
+        </div>
+
+        {/* SUB-SERVICES ARRAY */}
+        <div className="pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-700">Included Sub-Services</label>
+            <button type="button" onClick={() => handleArrayAdd("subServices", { title: "", description: "" })} className="text-xs flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-md">
+              <Plus className="h-3 w-3" /> Add Sub-Service
+            </button>
+          </div>
+          <div className="space-y-4">
+            {formData.subServices.map((sub: any, idx: number) => (
+              <div key={idx} className="flex gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <GripVertical className="h-5 w-5 text-gray-400 mt-2 cursor-move flex-shrink-0" />
+                <div className="flex-1 space-y-3">
+                  <input
+                    type="text"
+                    value={sub.title}
+                    onChange={(e) => handleArrayChange("subServices", idx, { ...sub, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Sub-Service Title"
+                  />
+                  <textarea
+                    value={sub.description}
+                    onChange={(e) => handleArrayChange("subServices", idx, { ...sub, description: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Short description..."
+                  />
+                </div>
+                <button type="button" onClick={() => handleArrayRemove("subServices", idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* PROCESS STEPS ARRAY */}
+        <div className="pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-700">Execution Process Steps</label>
+            <button type="button" onClick={() => handleArrayAdd("process", { step: String(formData.process.length + 1).padStart(2, '0'), title: "", description: "" })} className="text-xs flex items-center gap-1 text-purple-600 hover:text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-md">
+              <Plus className="h-3 w-3" /> Add Process Step
+            </button>
+          </div>
+          <div className="space-y-4">
+            {formData.process.map((step: any, idx: number) => (
+              <div key={idx} className="flex gap-3 items-start bg-purple-50/30 p-4 rounded-xl border border-purple-100">
+                <div className="font-bold text-sm text-purple-700 mt-2 w-6 shrink-0">{step.step}</div>
+                <div className="flex-1 space-y-3">
+                  <input
+                    type="text"
+                    value={step.title}
+                    onChange={(e) => handleArrayChange("process", idx, { ...step, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Step Title (e.g. Document Collection)"
+                  />
+                  <textarea
+                    value={step.description}
+                    onChange={(e) => handleArrayChange("process", idx, { ...step, description: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="What happens in this step?"
+                  />
+                </div>
+                <button type="button" onClick={() => handleArrayRemove("process", idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQS ARRAY */}
+        <div className="pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-700">Frequently Asked Questions</label>
+            <button type="button" onClick={() => handleArrayAdd("faqs", { question: "", answer: "" })} className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-700 font-semibold bg-indigo-50 px-2 py-1 rounded-md">
+              <Plus className="h-3 w-3" /> Add FAQ
+            </button>
+          </div>
+          <div className="space-y-4">
+            {formData.faqs.map((faq: any, idx: number) => (
+              <div key={idx} className="flex gap-3 items-start bg-indigo-50/30 p-4 rounded-xl border border-indigo-100">
+                <GripVertical className="h-5 w-5 text-gray-400 mt-2 cursor-move flex-shrink-0" />
+                <div className="flex-1 space-y-3">
+                  <input
+                    type="text"
+                    value={faq.question}
+                    onChange={(e) => handleArrayChange("faqs", idx, { ...faq, question: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium"
+                    placeholder="Question?"
+                  />
+                  <textarea
+                    value={faq.answer}
+                    onChange={(e) => handleArrayChange("faqs", idx, { ...faq, answer: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Detailed Answer..."
+                  />
+                </div>
+                <button type="button" onClick={() => handleArrayRemove("faqs", idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </form>
   );

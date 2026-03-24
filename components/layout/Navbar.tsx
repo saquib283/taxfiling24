@@ -5,35 +5,64 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { FileCheck } from "lucide-react";
+ 
+interface NavItem {
+  label: string;
+  href: string;
+  visible?: boolean;
+  children?: {
+    label: string;
+    href: string;
+    visible?: boolean;
+  }[];
+}
 
 export default function Navbar({ settings = {} }: { settings?: Record<string, string> }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
 
-  const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
+  const hardcodedNavItems: NavItem[] = [
+    { href: "/", label: "Home", visible: true },
+    { href: "/about", label: "About", visible: true },
     { 
       href: "/services", 
       label: "Services",
+      visible: true,
       children: [
-        { href: "/services", label: "All Services" },
-        { href: "/services#income-tax", label: "Income Tax" },
-        { href: "/services#gst", label: "GST Filings" },
-        { href: "/services#business", label: "Business Registration" },
+        { href: "/services", label: "All Services", visible: true },
+        { href: "/services#income-tax", label: "Income Tax", visible: true },
+        { href: "/services#gst", label: "GST Filings", visible: true },
+        { href: "/services#business", label: "Business Registration", visible: true },
       ]
     },
     { 
       href: "/tools", 
       label: "Tools",
+      visible: true,
       children: [
-        { href: "/tools/tax-calculator", label: "Tax Calculator" },
+        { href: "/tools/tax-calculator", label: "Income Tax Calculator", visible: true },
+        { href: "/tools/gst-calculator", label: "GST Calculator (HSN)", visible: true }
       ]
     },
-    { href: "/articles", label: "Articles" },
-    { href: "/contact", label: "Contact" },
+    { href: "/articles", label: "Articles", visible: true },
+    { href: "/contact", label: "Contact", visible: true },
   ];
+
+  const [navItems, setNavItems] = useState(hardcodedNavItems);
+
+  useEffect(() => {
+    if (settings.NAVBAR_CONFIG) {
+      try {
+        const config = JSON.parse(settings.NAVBAR_CONFIG);
+        if (Array.isArray(config) && config.length > 0) {
+          setNavItems(config);
+        }
+      } catch (err) {
+        console.error("Failed to parse NAVBAR_CONFIG:", err);
+      }
+    }
+  }, [settings.NAVBAR_CONFIG]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -72,7 +101,7 @@ export default function Navbar({ settings = {} }: { settings?: Record<string, st
         </Link>
 
         <div className="hidden absolute left-1/2 -translate-x-1/2 items-center gap-1 md:flex">
-          {navItems.filter(i => i.href !== "/contact").map((item) => {
+          {navItems.filter(item => item.visible !== false && item.href !== "/contact").map((item) => {
             if (item.children) {
               return (
                 <div key={item.label} className="relative group">
@@ -80,8 +109,8 @@ export default function Navbar({ settings = {} }: { settings?: Record<string, st
                     {item.label}
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
                   </button>
-                  <div className="absolute top-full left-0 mt-1 w-52 bg-white border border-[var(--border)] rounded-xl shadow-[var(--shadow-md)] py-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2">
-                    {item.children.map((child) => (
+                  <div className="absolute top-full left-0 mt-1 w-52 bg-white border border-[var(--border)] rounded-xl shadow-[var(--shadow-md)] py-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                    {item.children.map((child: any) => (
                       <Link 
                         key={child.href} 
                         href={child.href}
@@ -133,7 +162,7 @@ export default function Navbar({ settings = {} }: { settings?: Record<string, st
             className="border-t border-[var(--border)] bg-transparent px-4 py-4 md:hidden"
           >
             <div className="flex flex-col gap-0.5">
-              {navItems.map((item) => {
+              {navItems.filter(item => item.visible !== false).map((item) => {
                 const hasChildren = !!item.children;
                 
                 return (
@@ -155,7 +184,7 @@ export default function Navbar({ settings = {} }: { settings?: Record<string, st
                               exit={{ opacity: 0, height: 0 }}
                               className="pl-4 space-y-1 bg-gray-50/50 rounded-lg mt-1 mb-1"
                             >
-                              {item.children?.map((child) => (
+                              {item.children?.map((child: any) => (
                                 <Link
                                   key={child.href}
                                   href={child.href}

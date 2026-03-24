@@ -61,6 +61,7 @@ export default function Footer({ settings = {} }: { settings?: Record<string, st
                 { href: "/", label: "Home" },
                 { href: "/about", label: "About Us" },
                 { href: "/services", label: "Services" },
+                { href: "/tools/gst-calculator", label: "GST & Tax Tools" },
                 { href: "/contact", label: "Contact" },
               ].map((link) => (
                 <li key={link.href}>

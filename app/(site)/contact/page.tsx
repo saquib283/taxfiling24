@@ -1,16 +1,39 @@
 import ContactSection from "@/components/sections/ContactSection";
+import ContactMap from "@/components/ui/ContactMap";
 import { MapPin, Phone, Mail, MessageCircle } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 import prisma from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import JsonLd, { webPageSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description:
+    "Get in touch with TaxFiling24 for expert tax filing, GST registration, company incorporation, and financial advisory services. Call, email, or WhatsApp us today.",
+  alternates: {
+    canonical: "https://taxfiling24.com/contact",
+  },
+  openGraph: {
+    title: "Contact Us | TaxFiling24",
+    description:
+      "Get in touch with TaxFiling24 for expert tax filing, GST registration, company incorporation, and financial advisory services.",
+    url: "https://taxfiling24.com/contact",
+  },
+};
 
 export default async function ContactPage() {
   const settings = await getSettings();
-  const dbServices = await prisma.service.findMany({
-    select: { title: true },
-    orderBy: { title: "asc" }
-  });
-  const serviceTitles = dbServices.map(s => s.title);
+  let serviceTitles: string[] = [];
+  try {
+    const dbServices = await prisma.service.findMany({
+      select: { title: true },
+      orderBy: { title: "asc" }
+    });
+    serviceTitles = dbServices.map(s => s.title);
+  } catch (error) {
+    console.warn("[DB] Failed to fetch services for contact form:", error);
+  }
 
   const phone = settings.contact_phone || CONTACT.phone;
   const phoneRaw = phone.replace(/\D/g, "");
@@ -20,6 +43,19 @@ export default async function ContactPage() {
 
   return (
     <div className="bg-slate-50/50 min-h-screen pt-32 pb-20 overflow-hidden">
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", url: "https://taxfiling24.com" },
+            { name: "Contact Us", url: "https://taxfiling24.com/contact" },
+          ]),
+          webPageSchema({
+            name: "Contact TaxFiling24",
+            description: "Get in touch with TaxFiling24 for expert tax filing and financial advisory services.",
+            url: "https://taxfiling24.com/contact",
+          }),
+        ]}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
@@ -98,6 +134,20 @@ export default async function ContactPage() {
             <ContactSection services={serviceTitles} />
           </div>
 
+        </div>
+
+        {/* Global Headquarters Map Section */}
+        <div className="mt-24 lg:mt-32 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
+              Visit Our Headquarters
+            </h2>
+            <p className="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed">
+              We are centrally located in New Delhi. Drop by for a coffee and a strategic consultation regarding your corporate compliance.
+            </p>
+          </div>
+          
+          <ContactMap address={address} />
         </div>
       </div>
     </div>

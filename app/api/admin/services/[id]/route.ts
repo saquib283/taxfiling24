@@ -17,6 +17,12 @@ export async function PUT(
         icon: data.icon,
         category: data.category,
         href: data.href || null,
+        overview: data.overview !== undefined ? data.overview : undefined,
+        benefits: data.benefits !== undefined ? data.benefits : undefined,
+        subServices: data.subServices !== undefined ? data.subServices : undefined,
+        documentsRequired: data.documentsRequired !== undefined ? data.documentsRequired : undefined,
+        process: data.process !== undefined ? data.process : undefined,
+        faqs: data.faqs !== undefined ? data.faqs : undefined,
       },
     });
 

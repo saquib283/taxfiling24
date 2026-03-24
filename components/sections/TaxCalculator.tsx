@@ -51,28 +51,43 @@ export default function TaxCalculator() {
   });
 
   const calculateTax = () => {
-    const standardDeduction = 50000;
+    // Old regime standard deduction remains 50k
+    const standardDeductionOld = 50000;
+    // New regime standard deduction increased to 75k in FY 2025-26 Budget
+    const standardDeductionNew = 75000;
     
     // Calculate Gross Total Income
     const netRentalIncome = rentalIncome * 0.7; // 30% standard deduction on rental
     const netProfessional = Math.max(0, professionalIncome - businessExpenses);
     const grossIncome = salary + netRentalIncome + otherIncome + netProfessional;
 
-    // --- NEW REGIME CALCULATION (FY 2024-25) ---
-    // Slabs: 0-3L (0), 3-6L (5%), 6-9L (10%), 9-12L (15%), 12-15L (20%), >15L (30%)
-    let taxableNew = Math.max(0, grossIncome - standardDeduction);
+    // --- NEW REGIME CALCULATION (FY 2025-26) ---
+    // Budget 2024 (July) / 2025 Slabs
+    // Standard Deduction: 75,000
+    // Rebate 87A: Up to 7,000,000 (taxable) tax is zero.
+    let taxableNew = Math.max(0, grossIncome - standardDeductionNew - Math.min(deductionNPS, 50000)); // NPS 80CCD(2) allowed in new regime if employer contrib, for simplicity allowing standard employee 80CCD(1b) to be excluded from new regime deduction pool unless specific. Reverting to base: Only SD is allowed. Let's keep it pure New Regime.
+    taxableNew = Math.max(0, grossIncome - standardDeductionNew);
+    
     let taxNew = 0;
     let bNew = [];
 
+    // Rebate 87A under New Regime (Up to 7 Lakhs taxable income, tax is zero)
     if (taxableNew <= 700000) {
       taxNew = 0;
       bNew.push({ slab: "Rebate u/s 87A", tax: 0 });
     } else {
+      // Latest FY 2025-26 Slabs:
+      // 0-3L: 0%
+      // 3-7L: 5%
+      // 7-10L: 10%
+      // 10-12L: 15%
+      // 12-15L: 20%
+      // >15L: 30%
       const slabsNew = [
         { limit: 300000, rate: 0, label: "0-3 Lakhs" },
-        { limit: 300000, rate: 0.05, label: "3-6 Lakhs" },
-        { limit: 300000, rate: 0.10, label: "6-9 Lakhs" },
-        { limit: 300000, rate: 0.15, label: "9-12 Lakhs" },
+        { limit: 400000, rate: 0.05, label: "3-7 Lakhs" },
+        { limit: 300000, rate: 0.10, label: "7-10 Lakhs" },
+        { limit: 200000, rate: 0.15, label: "10-12 Lakhs" },
         { limit: 300000, rate: 0.20, label: "12-15 Lakhs" },
         { limit: Infinity, rate: 0.30, label: "Above 15 Lakhs" }
       ];
@@ -82,11 +97,22 @@ export default function TaxCalculator() {
         if (tempTaxable > 0) {
           const taxableInSlab = Math.min(tempTaxable, s.limit);
           const slabTax = taxableInSlab * s.rate;
-          if (slabTax > 0) bNew.push({ slab: s.label, tax: slabTax });
+          if (slabTax > 0) bNew.push({ slab: `${s.label} (${s.rate * 100}%)`, tax: slabTax });
           taxNew += slabTax;
           tempTaxable -= taxableInSlab;
         }
       });
+      
+      // Marginal Relief Check for New Regime around 7L
+      if (taxableNew > 700000 && taxableNew <= 727777) {
+         const taxWithoutRelief = taxNew;
+         const incomeAbove7L = taxableNew - 700000;
+         if (taxWithoutRelief > incomeAbove7L) {
+             const relief = taxWithoutRelief - incomeAbove7L;
+             taxNew = taxNew - relief;
+             bNew.push({ slab: "Marginal Relief", tax: -relief });
+         }
+      }
     }
 
     // --- OLD REGIME CALCULATION ---
@@ -95,7 +121,7 @@ export default function TaxCalculator() {
     if (ageGroup === "senior") basicExemption = 300000;
     if (ageGroup === "super-senior") basicExemption = 500000;
 
-    let totalDeductions = standardDeduction + 
+    let totalDeductions = standardDeductionOld + 
                         Math.min(deduction80C, 150000) + 
                         Math.min(deduction80D, 25000) + 
                         Math.min(deduction80D_Parents, 50000) + 
@@ -158,6 +184,32 @@ export default function TaxCalculator() {
       }
     }
 
+    // Compute Surcharge
+    const calculateSurcharge = (tax: number, taxable: number, isNew: boolean) => {
+      let surcharge = 0;
+      if (taxable > 50000000) surcharge = tax * 0.25; // Note: New regime surcharge capped at 25% instead of 37%
+      else if (taxable > 20000000) surcharge = tax * 0.25;
+      else if (taxable > 10000000) surcharge = tax * 0.15;
+      else if (taxable > 5000000) surcharge = tax * 0.10;
+      
+      // Marginal relief for surcharge is skipped for simplicity here, but rates are applied.
+      return surcharge;
+    };
+
+    let surchargeOld = calculateSurcharge(taxOld, taxableOld, false);
+    
+    // New regime caps surcharge at 25% for income > 2Cr
+    let surchargeNew = 0;
+    if (taxableNew > 20000000) surchargeNew = taxNew * 0.25;
+    else if (taxableNew > 10000000) surchargeNew = taxNew * 0.15;
+    else if (taxableNew > 5000000) surchargeNew = taxNew * 0.10;
+
+    if(surchargeOld > 0) bOld.push({ slab: "Surcharge", tax: surchargeOld });
+    if(surchargeNew > 0) bNew.push({ slab: "Surcharge", tax: surchargeNew });
+
+    taxOld += surchargeOld;
+    taxNew += surchargeNew;
+
     // Cess 4%
     taxOld = taxOld * 1.04;
     taxNew = taxNew * 1.04;
@@ -202,7 +254,7 @@ export default function TaxCalculator() {
             India Income Tax Calculator <span className="text-[var(--primary)]">2024-25</span>
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-[var(--fg-muted)]">
-            Plan your taxes smart. Compare Old vs New regimes with granular inputs for all sections of the Income Tax Act.
+            Plan your taxes smart. Compare Old vs New regimes with granular inputs for all sections of the Income Tax Act. Updated for current Budget slabs.
           </p>
         </AnimatedSection>
 

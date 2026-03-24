@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import prisma from "@/lib/prisma";
+import JsonLd, {
+  organizationSchema,
+  webSiteSchema,
+  localBusinessSchema,
+} from "@/components/seo/JsonLd";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -24,22 +29,77 @@ export async function generateMetadata(): Promise<Metadata> {
   const theme = await getSiteSettings();
   const title = theme.seo_home_title || "TaxFiling24 | Complete Business, Tax & Compliance Solutions";
   const description = theme.seo_home_description || "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India with expert CA & CS consultancy services.";
-  const ogImage = theme.seo_home_og_image || undefined;
+  const ogImage = theme.seo_home_og_image || "/logo.png";
 
   return {
     metadataBase: new URL("https://taxfiling24.com"),
-    title,
+    title: {
+      default: title,
+      template: "%s | TaxFiling24",
+    },
     description,
+    keywords: [
+      "tax filing",
+      "GST registration",
+      "company registration",
+      "chartered accountant",
+      "income tax return",
+      "ITR filing",
+      "business registration India",
+      "LLP registration",
+      "ROC compliance",
+      "tax planning",
+      "virtual CFO",
+      "audit services",
+      "trademark registration",
+      "MSME registration",
+      "financial advisory",
+      "TaxFiling24",
+    ],
+    authors: [{ name: "TaxFiling24", url: "https://taxfiling24.com" }],
+    creator: "TaxFiling24",
+    publisher: "TaxFiling24",
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    alternates: {
+      canonical: "https://taxfiling24.com",
+    },
     openGraph: {
+      type: "website",
+      locale: "en_IN",
+      siteName: "TaxFiling24",
       title,
       description,
       url: "https://taxfiling24.com",
-      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: "TaxFiling24 — Complete Business, Tax & Compliance Solutions",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
+      description,
+      images: [ogImage],
     },
+    verification: {
+      // Add your Google Search Console verification code here
+      // google: "your-verification-code",
+    },
+    category: "finance",
   };
 }
 
@@ -123,6 +183,14 @@ export default async function RootLayout({
         {injectHead && <div dangerouslySetInnerHTML={{ __html: injectHead }} />}
       </head>
       <body className={`${outfit.variable} ${outfit.className} antialiased selection:bg-[var(--accent)] selection:text-white`}>
+        {/* Site-wide Structured Data */}
+        <JsonLd
+          data={[
+            organizationSchema(),
+            webSiteSchema(),
+            localBusinessSchema(),
+          ]}
+        />
         {/* Ambient Background Glows */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="absolute top-[10%] left-[5%] h-80 w-80 rounded-full bg-blue-400 opacity-[0.07] blur-[100px]" />

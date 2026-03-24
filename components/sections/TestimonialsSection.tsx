@@ -4,7 +4,11 @@ import { useState, useEffect } from "react";
 import { Star, Quote } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 
-export default function TestimonialsSection() {
+interface TestimonialsProps {
+  settings?: Record<string, string>;
+}
+
+export default function TestimonialsSection({ settings = {} }: TestimonialsProps) {
   const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
@@ -17,6 +21,9 @@ export default function TestimonialsSection() {
       })
       .catch(() => {});
   }, []);
+
+  const sectionTitle = settings.testimonials_title || "Don't Just Take Our Word For It";
+  const sectionSubtext = settings.testimonials_subtext || "We build long-term partnerships that drive your business forward with verified transparency and unmatched execution speeds.";
 
   if (reviews.length === 0) return null;
 
@@ -51,10 +58,12 @@ export default function TestimonialsSection() {
             Thousands of Happy Clients
           </span>
           <h2 className="mb-6 text-4xl font-extrabold tracking-tight text-[var(--fg)] sm:text-5xl lg:text-6xl">
-            Don't Just Take Our Word For It
+            {sectionTitle}
           </h2>
           <p className="mx-auto max-w-2xl text-lg leading-relaxed text-[var(--fg-muted)]">
-            We build <strong className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">long-term</strong> partnerships that drive your business forward with verified transparency and unmatched execution speeds.
+            {sectionSubtext === "We build long-term partnerships that drive your business forward with verified transparency and unmatched execution speeds." ? (
+               <>We build <strong className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">long-term</strong> partnerships that drive your business forward with verified transparency and unmatched execution speeds.</>
+            ) : sectionSubtext}
           </p>
         </AnimatedSection>
       </div>

@@ -2,8 +2,16 @@ import { getSetting } from "@/lib/settings";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | TaxFiling24",
+  title: "Privacy Policy",
   description: "Read TaxFiling24's privacy policy to understand how we collect, use, and protect your personal information.",
+  alternates: {
+    canonical: "https://taxfiling24.com/privacy",
+  },
+  openGraph: {
+    title: "Privacy Policy | TaxFiling24",
+    description: "Read TaxFiling24's privacy policy to understand how we collect, use, and protect your personal information.",
+    url: "https://taxfiling24.com/privacy",
+  },
 };
 
 export default async function PrivacyPage() {

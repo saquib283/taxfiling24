@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+
 import Image from "next/image";
 import { Phone, Calendar } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
@@ -8,14 +10,17 @@ import { ABOUT_FEATURES } from "@/lib/constants";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
 import { CheckCircle, Award, IndianRupee, UserCheck } from "lucide-react";
+import BookingModal from "@/components/ui/BookingModal";
 
 const ICONS = [CheckCircle, Award, IndianRupee, UserCheck];
 
 export default function AboutSection({ settings = {} }: { settings?: Record<string, string> }) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const clientsCount = settings.stats_clients || "2000+";
   const yearsExp = settings.stats_experience || "15+";
   const title = settings.about_title || "Your Trusted Partner for Business Success";
-  const desc = settings.about_description || "With over 15 years of excellence in business consultancy. We are a team of highly qualified Chartered Accountants (CA), Company Secretaries (CS), and Legal Experts dedicated to simplifying complex compliance requirements.";
+  const desc = settings.about_description || "TaxFiling24 is a premier financial and legal advisory firm serving as a catalyst for growth for over 2,500+ businesses across India. Our team of senior CAs, CSs, and Legal experts leverages modern technology to simplify complex compliance, allowing you to focus on scaling your vision with peace of mind.";
 
   let parsedFeatures = ABOUT_FEATURES;
   if (settings.about_features_json) {
@@ -88,16 +93,17 @@ export default function AboutSection({ settings = {} }: { settings?: Record<stri
                 <Phone className="h-4 w-4" />
                 Talk To Expert
               </motion.a>
-              <motion.a
-                href="#contact"
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--border)] px-6 py-3.5 font-bold text-[var(--fg)] transition-all hover:-translate-y-1 hover:border-[var(--primary)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
+              <motion.button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--border)] px-6 py-3.5 font-bold text-[var(--fg)] transition-all hover:-translate-y-1 hover:border-[var(--primary)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] cursor-pointer"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
                 <Calendar className="h-4 w-4" />
                 Schedule Appointment
-              </motion.a>
+              </motion.button>
             </div>
+            <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
           </motion.div>
         </div>
 

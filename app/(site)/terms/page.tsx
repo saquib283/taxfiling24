@@ -2,8 +2,16 @@ import { getSetting } from "@/lib/settings";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | TaxFiling24",
-  description: "Read TaxFiling24's terms of service to understand the conditions under which we provide our services.",
+  title: "Terms of Service",
+  description: "Read TaxFiling24's terms of service to understand the conditions under which we provide our professional services.",
+  alternates: {
+    canonical: "https://taxfiling24.com/terms",
+  },
+  openGraph: {
+    title: "Terms of Service | TaxFiling24",
+    description: "Read TaxFiling24's terms of service to understand the conditions under which we provide our professional services.",
+    url: "https://taxfiling24.com/terms",
+  },
 };
 
 export default async function TermsPage() {

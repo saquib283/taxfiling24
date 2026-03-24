@@ -9,121 +9,142 @@ export const CONTACT = {
 export const SERVICES = [
   {
     title: "BUSINESS SETUP & REGISTRATION SERVICES",
-    description: "Company registration, LLP, Partnership, and more",
+    description: "Pvt Ltd, LLP, Section 8 (NGO), Nidhi & Producer Company Incorporation",
     href: "/services/business-setup-registration-services",
   },
   {
     title: "LICENCES, IP, CERTIFICATIONS & LEGAL REGISTRATIONS",
-    description: "Trademarks, licences, certifications",
+    description: "Trademark, FSSAI, Startup India, MSME, IEC & Professional Tax",
     href: "/services/licences-ip-certifications-legal-registrations",
   },
   {
     title: "TAXATION, GST & COMPLIANCE MANAGEMENT",
-    description: "GST filing, tax compliance, and management",
+    description: "GST Filing, Corporate Tax, NRI Taxation & IT Notice Assistance",
     href: "/services/taxation-gst-compliance-management",
   },
   {
     title: "CORPORATE, ROC & SECRETARIAL FILINGS",
-    description: "Annual filings, ROC compliance",
+    description: "Annual Returns (AOC-4/MGT-7), Director KYC & Change in Capital",
     href: "/services/corporate-roc-secretarial-filings",
   },
   {
     title: "ACCOUNTING, FINANCIAL MANAGEMENT & REPORTING",
-    description: "Bookkeeping, financial reporting",
+    description: "Cloud Bookkeeping, Payroll (ESI/PF), and MIS Dashboarding",
     href: "/services/accounting-financial-management-reporting",
   },
   {
     title: "AUDIT, FORENSIC, RISK & CORPORATE INVESTIGATION",
-    description: "Audits and investigations",
+    description: "Statutory, Tax, Internal Control Auditors & Due Diligence",
     href: "/services/audit-forensic-risk-corporate-investigation",
   },
   {
     title: "SPECIAL SERVICES, E-COMMERCE, BANKING & DOCUMENTATION",
-    description: "E-commerce and banking support",
+    description: "Marketplace Reconciliation, CMA Reports & Business Modeling",
     href: "/services/special-services-e-commerce-banking-documentation",
   },
   {
     title: "VIRTUAL CFO & ADVISORY SERVICES",
-    description: "Strategic financial management and business advisory",
+    description: "Strategic Cashflow Planning, Fundraising Support & Board Advisory",
     href: "/services/virtual-cfo-advisory-services",
   },
 ];
 
 export const FEATURES = [
   {
-    title: "100% Compliance Guarantee",
-    description:
-      "We ensure your business stays fully compliant with all regulatory requirements. Zero penalties, zero stress.",
+    title: "Strategic Compliance Management",
+    description: "We go beyond periodic filings to provide strategic foresight, ensuring your business stays ahead of regulatory changes.",
   },
   {
-    title: "Expert & Certified Team",
-    description:
-      "Certified professionals with extensive experience in taxation and compliance",
+    title: "Technology-Enabled Excellence",
+    description: "Leverage our proprietary cloud-based workflows for real-time tracking of your company's compliance health and documentation.",
   },
   {
-    title: "Lightning Fast Turnaround",
-    description:
-      "Quick processing times without compromising quality. Most registrations completed within 7-15 days.",
+    title: "3-Tier Quality Assurance",
+    description: "Every filing undergoes a rigorous 3-tier internal audit by senior experts to ensure zero-error submissions and absolute peace of mind.",
   },
   {
-    title: "Affordable & Transparent Pricing",
-    description:
-      "Transparent pricing with no hidden costs, ensuring you always know exactly how much you're investing before we begin.",
+    title: "Dedicated Relationship Managers",
+    description: "Experience personalized service with a single point of contact who understands the nuances of your business and industry.",
   },
   {
-    title: "Tax & Compliance Reminders",
-    description:
-      "Never miss a deadline with our proactive reminder system for all your recurring compliances and filings.",
+    title: "Transparent & Outcome-Linked Pricing",
+    description: "Clear engagement terms with no hidden surprises. We focus on delivering value-driven outcomes for every rupee invested.",
   },
   {
-    title: "24/7 Quick Customer Support",
-    description:
-      "Round-the-clock support via phone, email, and WhatsApp. We're here whenever you need us.",
+    title: "Pan-India Executive Network",
+    description: "Unmatched operational reach across all Registrar of Companies (ROC) and Regional Director (RD) offices in India.",
+  },
+];
+
+export const PROCESS_STEPS = [
+  {
+    step: "01",
+    title: "Strategic Discovery",
+    description: "Comprehensive initial consultation to map your specific business requirements and compliance roadmap.",
+    image: "/images/process_discovery.png",
+  },
+  {
+    step: "02",
+    title: "Secure Onboarding",
+    description: "Digital collection of necessary documentation through our secure portal with immediate document verification.",
+    image: "/images/process_onboarding.png",
+  },
+  {
+    step: "03",
+    title: "Execution & Audit",
+    description: "Meticulous drafting and multi-level internal review by subject matter experts before final regulatory submission.",
+    image: "/images/process_execution.png",
+  },
+  {
+    step: "04",
+    title: "Post-Filing Monitoring",
+    description: "Regular compliance health checks and proactive alerts for upcoming deadlines to ensure lifelong business continuity.",
+    image: "/images/process_monitoring.png",
   },
 ];
 
 export const ABOUT_FEATURES = [
   {
-    title: "Accuracy",
-    description: "100% Error-free filings and Documentation",
+    title: "Absolute Integrity",
+    description: "Total transparency in all dealings with zero hidden agendas.",
   },
   {
-    title: "Expertise",
-    description: "Certified Teams + deep industry knowledge",
+    title: "Subject Expertise",
+    description: "Decades of cumulative experience across diverse industry verticals.",
   },
   {
-    title: "Affordability",
-    description: "Transparent pricing with no hidden costs",
+    title: "Scalability Focus",
+    description: "Solutions designed to grow alongside your business ventures.",
   },
   {
-    title: "Client - First",
-    description: "Personalized support tailored to your needs",
+    title: "Client Centricity",
+    description: "Bespoke advisory tailored for unique organizational challenges.",
   },
 ];
 
 export const TESTIMONIALS = [
   {
-    name: "Mehboob Afzal",
-    company: "Afzal Healthcare",
-    text: "Taxfiling24 made our company registration incredibly smooth. They handled everything from naming to DSC procurement in less than two weeks!",
+    name: "Dr. Mehboob Afzal",
+    company: "Founder, Afzal Healthcare Group",
+    text: "TaxFiling24 transformed our complex multi-entity restructuring into a seamless transition. Their technical depth in Corporate Law and Taxation is truly enterprise-grade.",
     rating: 5,
   },
   {
     name: "Shabnam Reyaz",
-    company: "Shina Decorative Bags",
-    text: "We used them for GST compliance. Their proactive reminders saved us from late fees completely. Highly professional and transparent.",
+    company: "Director, Shina Decorative Brands",
+    text: "Their cloud-enabled compliance tracking has been a game-changer for our finance department. We haven't missed a single deadline in 3 years. Highly recommended.",
     rating: 5,
   },
   {
     name: "Mehtab Alam",
-    company: "Exotic Furnishers",
-    text: "Their Virtual CFO services provided our SME with high-end financial strategy without the overhead of a full-time executive. Game changer.",
+    company: "CEO, Exotic Furnishers Pvt Ltd",
+    text: "The Virtual CFO advisory provided by TaxFiling24 helped us secure critical expansion funding. Their strategic insights go well beyond basic bookkeeping.",
     rating: 5,
   },
   {
     name: "Amit Kumar",
-    company: "Kumar Enterprises",
-    text: "Managing corporate tax and ROC filings used to be stressful. Taxfiling24’s expert team ensured zero penalties and smooth annual reporting.",
+    company: "Managing Partner, Kumar & Associates",
+    text: "For cross-border taxation and NRI compliance, their expertise is unmatched in the Indian market. They handle scrutiny cases with absolute focus and success.",
     rating: 5,
   },
 ];

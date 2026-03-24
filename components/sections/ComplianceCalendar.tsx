@@ -1,49 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, ChevronLeft, ChevronRight, Info, Bell } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
 
-const COMPLIANCE_DATA = [
-  {
-    month: "April 2026",
-    deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for March 2026." },
-      { date: 11, title: "GSTR-1 Monthly", category: "GST", desc: "Monthly return for outward supplies for March 2026." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for March 2026." },
-      { date: 30, title: "Challan-cum-Statement (26QB/26QC)", category: "Income Tax", desc: "Filing of challan-cum-statement for March 2026." },
-    ]
-  },
-  {
-    month: "May 2026",
-    deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for April 2026." },
-      { date: 15, title: "PF & ESI Payment", category: "Labor Law", desc: "Monthly deposit of PF & ESI contributions for April 2026." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for April 2026." },
-      { date: 31, title: "TDS Return (Q4)", category: "Income Tax", desc: "Quarterly statement of TDS for the quarter ending March 2026." },
-    ]
-  },
-  {
-    month: "June 2026",
-    deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for May 2026." },
-      { date: 15, title: "Advance Tax (1st Installment)", category: "Income Tax", desc: "First installment of advance tax (15%) for FY 2026-27." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for May 2026." },
-    ]
-  },
-  {
-    month: "July 2026",
-    deadlines: [
-      { date: 7, title: "TDS Payment", category: "Income Tax", desc: "Due date for deposit of Tax Deducted/Collected for June 2026." },
-      { date: 20, title: "GSTR-3B Monthly", category: "GST", desc: "Monthly summary return and tax payment for June 2026." },
-      { date: 31, title: "ITR Filing (Individuals)", category: "Income Tax", desc: "Last date for filing Income Tax Returns for non-audit cases for AY 2026-27." },
-    ]
-  }
-];
+interface Deadline {
+  id: string;
+  title: string;
+  category: string;
+  date: Date | string;
+  desc: string;
+}
 
-export default function ComplianceCalendar() {
+interface ComplianceCalendarProps {
+  deadlines: Deadline[];
+  settings?: Record<string, string>;
+}
+
+export default function ComplianceCalendar({ deadlines = [], settings = {} }: ComplianceCalendarProps) {
+  // Group deadlines by month
+  const groupedData = useMemo(() => {
+    if (!deadlines || deadlines.length === 0) return [];
+
+    const months: Record<string, any[]> = {};
+    
+    deadlines.forEach(d => {
+      const date = new Date(d.date);
+      const monthKey = date.toLocaleString("en-US", { month: "long", year: "numeric" });
+      
+      if (!months[monthKey]) {
+        months[monthKey] = [];
+      }
+      
+      months[monthKey].push({
+        ...d,
+        day: date.getDate(),
+        monthShort: date.toLocaleString("en-US", { month: "short" }).toUpperCase(),
+      });
+    });
+
+    // Sort deadlines within each month by day
+    return Object.entries(months).map(([month, items]) => ({
+      month,
+      deadlines: items.sort((a, b) => a.day - b.day)
+    })).sort((a, b) => {
+      // Sort months chronologically
+      return new Date(a.month).getTime() - new Date(b.month).getTime();
+    });
+  }, [deadlines]);
+
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
   const [selectedDeadline, setSelectedDeadline] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,15 +58,22 @@ export default function ComplianceCalendar() {
   const [formData, setFormData] = useState({ name: "", email: "" });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  if (groupedData.length === 0) {
+    return null; // Or show a placeholder
+  }
+
   const nextMonth = () => {
-    setCurrentMonthIndex((prev) => (prev + 1) % COMPLIANCE_DATA.length);
+    setCurrentMonthIndex((prev) => (prev + 1) % groupedData.length);
   };
 
   const prevMonth = () => {
-    setCurrentMonthIndex((prev) => (prev - 1 + COMPLIANCE_DATA.length) % COMPLIANCE_DATA.length);
+    setCurrentMonthIndex((prev) => (prev - 1 + groupedData.length) % groupedData.length);
   };
 
-  const currentData = COMPLIANCE_DATA[currentMonthIndex];
+  const currentData = groupedData[currentMonthIndex];
+
+  const sectionTitle = settings.calendar_title || "Tax Compliance Calendar 2026";
+  const sectionSubtext = settings.calendar_subtext || "Never miss an important filing deadline. Use our interactive calendar to track GST, Income Tax, and other corporate compliance dates.";
 
   return (
     <section id="calendar" className="bg-[var(--bg-muted)]/50 py-16 lg:py-24">
@@ -70,10 +84,10 @@ export default function ComplianceCalendar() {
             Stay Compliant
           </span>
           <h2 className="mb-4 text-3xl font-bold text-[var(--fg)] sm:text-4xl">
-            Tax Compliance Calendar 2026
+            {sectionTitle}
           </h2>
           <p className="mx-auto max-w-2xl text-[var(--fg-muted)]">
-            Never miss an important filing deadline. Use our interactive calendar to track GST, Income Tax, and other corporate compliance dates.
+            {sectionSubtext}
           </p>
         </AnimatedSection>
 
@@ -112,8 +126,8 @@ export default function ComplianceCalendar() {
                     className="group relative flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-sm transition-all hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-md)] sm:flex-row sm:items-center"
                   >
                     <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-[var(--accent-soft)] p-2 text-[var(--primary)]">
-                      <span className="text-2xl font-bold leading-none">{deadline.date}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{currentData.month.split(" ")[0].substring(0, 3)}</span>
+                      <span className="text-2xl font-bold leading-none">{deadline.day}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{deadline.monthShort}</span>
                     </div>
                     
                     <div className="flex-1">

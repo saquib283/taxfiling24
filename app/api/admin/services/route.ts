@@ -16,6 +16,12 @@ export async function POST(request: Request) {
         icon: data.icon || "Briefcase",
         category: data.category || "General",
         href: data.href || null,
+        overview: data.overview || null,
+        benefits: data.benefits || [],
+        subServices: data.subServices || [],
+        documentsRequired: data.documentsRequired || [],
+        process: data.process || [],
+        faqs: data.faqs || [],
       },
     });
 

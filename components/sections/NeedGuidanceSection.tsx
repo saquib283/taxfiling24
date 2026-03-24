@@ -7,6 +7,10 @@ import { CONTACT } from "@/lib/constants";
 export default function NeedGuidanceSection({ settings = {} }: { settings?: Record<string, string> }) {
   const phone = settings.contact_phone || CONTACT.phone;
   const phoneRaw = phone.replace(/\D/g, "");
+  
+  const sectionTitle = settings.guidance_title || "Need Guidance?";
+  const buttonText = settings.guidance_button || "Talk To Expert";
+
   return (
     <section className="py-12 lg:py-16">
       <motion.div
@@ -16,7 +20,7 @@ export default function NeedGuidanceSection({ settings = {} }: { settings?: Reco
         className="container mx-auto px-4 text-center sm:px-6 lg:px-8"
       >
         <div className="mx-auto max-w-xl rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-10 shadow-[var(--shadow-lg)] transition-all hover:border-[var(--accent-light)]">
-          <h2 className="mb-2 text-2xl font-bold text-[var(--fg)]">Need Guidance?</h2>
+          <h2 className="mb-2 text-2xl font-bold text-[var(--fg)]">{sectionTitle}</h2>
           <p className="mb-8 font-medium text-[var(--fg-muted)]">
             Need Help? or Looking for any specific service?
           </p>
@@ -28,7 +32,7 @@ export default function NeedGuidanceSection({ settings = {} }: { settings?: Reco
             whileTap={{ scale: 0.98 }}
           >
             <Phone className="h-5 w-5" />
-            Talk To Expert
+            {buttonText}
           </motion.a>
         </div>
       </motion.div>

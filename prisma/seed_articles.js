@@ -34,7 +34,7 @@ async function main() {
       slug: "pvt-ltd-vs-llp-india-comparison",
       content: "<h2>Structuring Your Business</h2><p>Choosing the right business structure is the first major decision for any entrepreneur. Both Private Limited Company (Pvt. Ltd.) and Limited Liability Partnership (LLP) offer distinct advantages depending on your funding and growth goals.</p><h3>At a Glance:</h3><ul><li><strong>Pvt. Ltd:</strong> Best for startups looking for Venture Capital funding. Has higher compliance requirements.</li><li><strong>LLP:</strong> Ideal for service professionals and bootstrapped businesses. Lower compliance burden.</li></ul>",
       excerpt: "Starting a business? Compare the differences, benefits, and compliance requirements of a Private Limited Company and an LLP structure.",
-      thumbnailUrl: "https://images.unsplash.com/photo-1507679839221-20b803e6485a?w=600&q=80",
+      thumbnailUrl: "https://images.unsplash.com/photo-1574607383476-f517f260d30b?w=600&q=80",
       category: "BUSINESS_REGISTRATION",
       tags: ["Startup", "PvtLtd", "LLP", "Legal"],
       readTime: 6,

@@ -5,9 +5,17 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 import FAQItem from "@/components/ui/FAQItem";
 import { FAQ_ITEMS } from "@/lib/constants";
 
-export default function FAQSection({ faqs = [] }: { faqs?: any[] }) {
+interface FAQProps {
+  faqs?: any[];
+  settings?: Record<string, string>;
+}
+
+export default function FAQSection({ faqs = [], settings = {} }: FAQProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const displayFaqs = faqs.length > 0 ? faqs : FAQ_ITEMS;
+
+  const sectionTitle = settings.faq_title || "Frequently Asked Questions";
+  const sectionSubtext = settings.faq_subtext || "Find quick answers to common questions about our services";
 
   return (
     <section className="border-t border-[var(--border)] bg-[var(--bg)] py-16 lg:py-24">
@@ -20,10 +28,10 @@ export default function FAQSection({ faqs = [] }: { faqs?: any[] }) {
       <div className="container mx-auto px-4 pt-14 sm:px-6 lg:px-8">
         <AnimatedSection className="mb-12 text-center">
           <h2 className="mb-3 text-2xl font-bold text-[var(--fg)] sm:text-3xl lg:text-4xl">
-            Frequently Asked Questions
+            {sectionTitle}
           </h2>
           <p className="text-[var(--fg-muted)]">
-            Find quick answers to common questions about our services
+            {sectionSubtext}
           </p>
         </AnimatedSection>
         <div className="mx-auto max-w-2xl space-y-3">

@@ -2,8 +2,16 @@ import { getSetting } from "@/lib/settings";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Refund Policy | TaxFiling24",
-  description: "Read TaxFiling24's refund and cancellation policy.",
+  title: "Refund & Cancellation Policy",
+  description: "Read TaxFiling24's refund and cancellation policy for all professional services.",
+  alternates: {
+    canonical: "https://taxfiling24.com/refund",
+  },
+  openGraph: {
+    title: "Refund & Cancellation Policy | TaxFiling24",
+    description: "Read TaxFiling24's refund and cancellation policy for all professional services.",
+    url: "https://taxfiling24.com/refund",
+  },
 };
 
 export default async function RefundPage() {

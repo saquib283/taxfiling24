@@ -7,9 +7,17 @@ import DeleteButton from "@/components/admin/DeleteButton";
 import AddReviewForm from "@/components/admin/AddReviewForm";
 
 export default async function ReviewsListPage() {
-  const reviews = await prisma.review.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  let reviews: any[] = [];
+  let error: string | null = null;
+
+  try {
+    reviews = await prisma.review.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (e: any) {
+    console.error("Database error in ReviewsListPage:", e);
+    error = "Could not reach the database. Please check your connection in Neon.";
+  }
 
   return (
     <div className="p-6">
@@ -20,6 +28,13 @@ export default async function ReviewsListPage() {
         </div>
         <AddReviewForm />
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-3">
+          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+          {error}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {reviews.length === 0 ? (

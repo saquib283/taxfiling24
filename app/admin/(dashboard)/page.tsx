@@ -18,41 +18,57 @@ import {
 import Link from "next/link";
 
 async function getStats() {
-  const [totalArticles, totalServices, articleViews, totalInquiries, pendingInquiries, totalReviews, totalFaqs, totalTeam] = await Promise.all([
-    prisma.article.count(),
-    prisma.service.count(),
-    prisma.article.aggregate({ _sum: { views: true } }),
-    prisma.inquiry.count(),
-    prisma.inquiry.count({ where: { status: "PENDING" } }),
-    prisma.review.count(),
-    prisma.fAQ.count(),
-    prisma.teamMember.count(),
-  ]);
+  try {
+    const [totalArticles, totalServices, articleViews, totalInquiries, pendingInquiries, totalReviews, totalFaqs, totalTeam] = await Promise.all([
+      prisma.article.count(),
+      prisma.service.count(),
+      prisma.article.aggregate({ _sum: { views: true } }),
+      prisma.inquiry.count(),
+      prisma.inquiry.count({ where: { status: "PENDING" } }),
+      prisma.review.count(),
+      prisma.fAQ.count(),
+      prisma.teamMember.count(),
+    ]);
 
-  const recentArticles = await prisma.article.findMany({
-    take: 5,
-    orderBy: { createdAt: "desc" },
-    select: { id: true, title: true, views: true, published: true, createdAt: true },
-  });
+    const recentArticles = await prisma.article.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true, views: true, published: true, createdAt: true },
+    });
 
-  const recentInquiries = await prisma.inquiry.findMany({
-    take: 5,
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, email: true, service: true, status: true, createdAt: true },
-  });
+    const recentInquiries = await prisma.inquiry.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, email: true, service: true, status: true, createdAt: true },
+    });
 
-  return {
-    totalArticles,
-    totalServices,
-    totalViews: articleViews._sum.views || 0,
-    totalInquiries,
-    pendingInquiries,
-    totalReviews,
-    totalFaqs,
-    totalTeam,
-    recentArticles,
-    recentInquiries,
-  };
+    return {
+      totalArticles,
+      totalServices,
+      totalViews: articleViews._sum.views || 0,
+      totalInquiries,
+      pendingInquiries,
+      totalReviews,
+      totalFaqs,
+      totalTeam,
+      recentArticles,
+      recentInquiries,
+    };
+  } catch (error) {
+    console.error("Failed to fetch admin stats:", error);
+    return {
+      totalArticles: 0,
+      totalServices: 0,
+      totalViews: 0,
+      totalInquiries: 0,
+      pendingInquiries: 0,
+      totalReviews: 0,
+      totalFaqs: 0,
+      totalTeam: 0,
+      recentArticles: [],
+      recentInquiries: [],
+    };
+  }
 }
 
 export default async function AdminDashboard() {

@@ -12,6 +12,7 @@ import {
   Shield,
   LogOut,
   LayoutDashboard,
+  LayoutTemplate,
   Star,
   Inbox,
   PenSquare,
@@ -34,6 +35,7 @@ const menuSections = [
     title: "Overview",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/appointments", label: "Appointments", icon: Calendar },
       { href: "/admin/inquiries", label: "Inquiries", icon: Inbox },
       { href: "/admin/campaigns", label: "Campaigns", icon: Mail },
     ],
@@ -42,6 +44,7 @@ const menuSections = [
     title: "Content",
     items: [
       { href: "/admin/content", label: "Homepage Content", icon: PenSquare },
+      { href: "/admin/homepage", label: "Homepage Layout", icon: LayoutTemplate },
       { href: "/admin/articles", label: "Articles", icon: FileText },
       { href: "/admin/services", label: "Services", icon: Briefcase },
       { href: "/admin/faqs", label: "FAQs", icon: HelpCircle },

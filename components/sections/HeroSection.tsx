@@ -11,9 +11,9 @@ interface HeroProps {
 }
 
 export default function HeroSection({ settings = {} }: HeroProps) {
-  const badge = settings.hero_badge || "Complete Business Solutions";
-  const headline = settings.hero_headline || "Complete Business, Tax & Compliance Solutions";
-  const subheading = settings.hero_subheading || "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India.";
+  const badge = settings.hero_badge || "Premium Corporate Advisory";
+  const headline = settings.hero_headline || "Strategic Financial & Compliance Solutions";
+  const subheading = settings.hero_subheading || "Empowering enterprises with technology-driven compliance and seamless business registrations. Your pan-India partner for sustainable growth and absolute regulatory precision.";
   const ctaPrimary = settings.hero_cta_primary || "Talk To Expert";
   const ctaSecondary = settings.hero_cta_secondary || "Explore Services";
   const phoneRaw = settings.contact_whatsapp || CONTACT.phoneRaw;
