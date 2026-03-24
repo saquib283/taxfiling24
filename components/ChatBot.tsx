@@ -145,7 +145,7 @@ export default function ChatBot() {
                     setIsOpen(true);
                     setIsMenuOpen(false);
                   }}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-[var(--shadow-md)]"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)] text-white shadow-[var(--shadow-md)]"
                   whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.95 }}
                   aria-label="Open AI Chat"
@@ -160,7 +160,7 @@ export default function ChatBot() {
         {/* Main Trigger Button */}
         <motion.button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[var(--shadow-lg)] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-[image:var(--gradient-primary)] text-white shadow-[var(--shadow-lg)] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           aria-label="Contact Menu"
@@ -187,15 +187,15 @@ export default function ChatBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] sm:w-[400px] h-[500px] max-h-[70vh] flex flex-col rounded-2xl border border-blue-100 bg-white shadow-2xl overflow-hidden"
+            className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] sm:w-[400px] h-[500px] max-h-[70vh] flex flex-col rounded-2xl border border-[var(--border)] bg-white shadow-2xl overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between bg-blue-600 p-4 text-white">
+            <div className="flex items-center justify-between bg-[var(--primary)] p-4 text-white">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                 <h3 className="font-semibold">TaxFiling24 Assistant</h3>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-white hover:text-blue-100">
+              <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200 transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -206,7 +206,7 @@ export default function ChatBot() {
                 <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                      msg.role === "user" ? "bg-blue-600 text-white rounded-br-none" : "bg-white text-gray-800 border border-blue-50 rounded-bl-none shadow-sm"
+                      msg.role === "user" ? "bg-[var(--primary)] text-white rounded-br-none" : "bg-white text-gray-800 border border-[var(--border)] rounded-bl-none shadow-sm"
                     }`}
                   >
                     <ReactMarkdown
@@ -228,8 +228,8 @@ export default function ChatBot() {
               ))}
               {isLoading ? (
                 <div className="flex justify-start">
-                  <div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-4 py-2 text-sm bg-white text-gray-800 border border-blue-50 rounded-bl-none shadow-sm">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  <div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-4 py-2 text-sm bg-white text-gray-800 border border-[var(--border)] rounded-bl-none shadow-sm">
+                    <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
                     <span className="text-gray-400">Typing...</span>
                   </div>
                 </div>
@@ -245,12 +245,12 @@ export default function ChatBot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading}
-                className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 bg-white text-gray-800"
+                className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:bg-gray-50 bg-white text-gray-800"
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-[var(--primary)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 aria-label="Send Message"
               >
                 <Send className="h-5 w-5" />

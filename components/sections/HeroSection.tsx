@@ -21,7 +21,7 @@ export default function HeroSection({ settings = {} }: HeroProps) {
   return (
     <section
       id="hero"
-      className="relative overflow-hidden bg-[var(--bg)] pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24"
+      className="relative overflow-hidden bg-[var(--bg)] pt-6 pb-16 sm:pt-12 sm:pb-20 lg:pt-16 lg:pb-24"
     >
       {/* Hero Background Gradients */}
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(0,136,204,0.08),transparent_50%),radial-gradient(circle_at_bottom_left,rgba(15,76,129,0.05),transparent_50%)]" />
@@ -104,27 +104,27 @@ export default function HeroSection({ settings = {} }: HeroProps) {
               <motion.div
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute bottom-5 left-5 rounded-2xl border border-white/20 px-6 py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
+                className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 rounded-2xl border border-white/20 px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
                 style={{ backgroundImage: "var(--gradient-primary)" }}
               >
-                <p className="text-3xl font-extrabold tracking-tight">2,000+</p>
-                <p className="text-sm font-medium text-white/90">Happy Clients</p>
+                <p className="text-2xl sm:text-3xl font-extrabold tracking-tight">2,000+</p>
+                <p className="text-xs sm:text-sm font-medium text-white/90">Happy Clients</p>
               </motion.div>
 
               <motion.div
                 animate={{ y: [0, 8, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute right-5 top-5 rounded-2xl border border-white/20 px-6 py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
+                className="absolute right-4 top-4 sm:right-5 sm:top-5 rounded-2xl border border-white/20 px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
                 style={{ background: "linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%)" }}
               >
-                <p className="text-2xl font-extrabold tracking-tight">15+</p>
-                <p className="text-xs font-medium text-white/90">Years of Experience</p>
+                <p className="text-xl sm:text-2xl font-extrabold tracking-tight">15+</p>
+                <p className="text-[10px] sm:text-xs font-medium text-white/90">Years of Experience</p>
               </motion.div>
             </div>
             <motion.div
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -bottom-6 left-4 right-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 shadow-[var(--shadow-xl)] backdrop-blur-xl transition-transform hover:-translate-y-1 sm:left-auto sm:right-6 sm:w-72"
+              className="mt-6 sm:mt-0 sm:absolute sm:-bottom-6 sm:right-6 sm:w-72 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 shadow-[var(--shadow-xl)] backdrop-blur-xl transition-transform hover:-translate-y-1 mx-4 sm:mx-0"
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-sm" style={{ backgroundImage: "var(--gradient-primary)" }}>
