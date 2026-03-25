@@ -6,15 +6,19 @@ import { SITE_CONTENT_DEFAULTS } from "@/lib/constants";
 
 interface StatsSectionProps {
   settings?: Record<string, string>;
+  content?: {
+    items?: Array<{ value?: string; label?: string; isVisible?: boolean }>;
+  };
 }
 
-export default function StatsSection({ settings = {} }: StatsSectionProps) {
-  const STATS = [
+export default function StatsSection({ settings = {}, content }: StatsSectionProps) {
+  const fallbackStats = [
     { value: settings.stats_clients || SITE_CONTENT_DEFAULTS.stats_clients, label: "Happy Clients" },
     { value: settings.stats_services || "50+", label: "Services Offered" },
     { value: settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience, label: "Years of Experience" },
     { value: settings.stats_satisfaction || "99%", label: "Secure & Trusted" },
   ];
+  const stats = content?.items?.filter((item) => item.isVisible !== false && item.value && item.label) || fallbackStats;
   return (
     <section className="bg-[var(--primary)] text-white py-14 lg:py-20 relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />
@@ -26,7 +30,7 @@ export default function StatsSection({ settings = {} }: StatsSectionProps) {
            viewport={{ once: true }}
            className="grid grid-cols-2 gap-8 md:grid-cols-4"
         >
-          {STATS.map((stat) => (
+          {stats.map((stat) => (
             <motion.div
               key={stat.label}
               variants={fadeUp}

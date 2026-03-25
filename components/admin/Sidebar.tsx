@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  BarChart3,
   FileText,
   Briefcase,
   Settings,
@@ -12,7 +11,6 @@ import {
   Shield,
   LogOut,
   LayoutDashboard,
-  LayoutTemplate,
   Star,
   Inbox,
   PenSquare,
@@ -20,9 +18,7 @@ import {
   Calendar,
   Users,
   FileCheck,
-  Megaphone,
   DollarSign,
-  Sparkles,
   Globe,
   Code,
   Lock,
@@ -43,8 +39,7 @@ const menuSections = [
   {
     title: "Content",
     items: [
-      { href: "/admin/content", label: "Homepage Content", icon: PenSquare },
-      { href: "/admin/homepage", label: "Homepage Layout", icon: LayoutTemplate },
+      { href: "/admin/content", label: "Website Content", icon: PenSquare },
       { href: "/admin/articles", label: "Articles", icon: FileText },
       { href: "/admin/services", label: "Services", icon: Briefcase },
       { href: "/admin/faqs", label: "FAQs", icon: HelpCircle },
@@ -52,7 +47,6 @@ const menuSections = [
       { href: "/admin/team", label: "Team Members", icon: Users },
       { href: "/admin/calendar", label: "Compliance Calendar", icon: Calendar },
       { href: "/admin/pricing", label: "Pricing Plans", icon: DollarSign },
-      { href: "/admin/features", label: "Features", icon: Sparkles },
       { href: "/admin/pages", label: "Static Pages", icon: FileCheck },
     ],
   },

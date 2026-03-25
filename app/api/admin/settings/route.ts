@@ -21,9 +21,14 @@ export async function POST(request: Request) {
     revalidatePath("/", "layout");
 
     await logActivity("UPDATED", "Setting", `Updated ${Object.keys(settings).length} settings`);
-    return NextResponse.json({ message: "Settings updated successfully" });
+    return new Response(JSON.stringify({ message: "Settings updated successfully" }), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -36,8 +41,13 @@ export async function GET() {
       return acc;
     }, {});
 
-    return NextResponse.json(config);
+    return new Response(JSON.stringify(config), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

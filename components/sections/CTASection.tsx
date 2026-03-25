@@ -6,12 +6,24 @@ import { CONTACT } from "@/lib/constants";
 
 interface CTASectionProps {
   settings?: Record<string, string>;
+  content?: {
+    headline?: string;
+    subtext?: string;
+    primaryButtonText?: string;
+    secondaryButtonText?: string;
+    trustText?: string;
+  };
 }
 
-export default function CTASection({ settings = {} }: CTASectionProps) {
-  const headline = settings.cta_headline || "Ready to Get Started with Your Business?";
-  const subtext = settings.cta_subtext || "Let our experts handle your registration, compliance, and taxation. Get your free consultation today!";
-  const buttonText = settings.cta_button_text || "Submit Your Requirement";
+export default function CTASection({ settings = {}, content }: CTASectionProps) {
+  const headline = content?.headline || settings.cta_headline || "Ready to Get Started with Your Business?";
+  const subtext =
+    content?.subtext ||
+    settings.cta_subtext ||
+    "Let our experts handle your registration, compliance, and taxation. Get your free consultation today!";
+  const buttonText = content?.primaryButtonText || settings.cta_button_text || "Submit Your Requirement";
+  const secondaryButtonText = content?.secondaryButtonText || "Talk To Expert";
+  const trustText = content?.trustText || "Trusted by 2000+ businesses across India";
 
   return (
     <section className="relative overflow-hidden py-24 lg:py-32" style={{ backgroundImage: "var(--gradient-primary)" }}>
@@ -55,12 +67,12 @@ export default function CTASection({ settings = {} }: CTASectionProps) {
               whileTap={{ scale: 0.98 }}
             >
               <Phone className="h-4 w-4" />
-              Talk To Expert
+              {secondaryButtonText}
             </motion.a>
           </div>
           <p className="flex items-center justify-center gap-2 text-sm text-white/80">
             <ShieldCheck className="h-4 w-4" />
-            Trusted by 2000+ businesses across India
+            {trustText}
           </p>
         </motion.div>
       </div>

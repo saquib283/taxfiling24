@@ -11,22 +11,50 @@ import { fadeUp } from "@/lib/animations";
 import { CheckCircle, Award, IndianRupee, UserCheck } from "lucide-react";
 import BookingModal from "@/components/ui/BookingModal";
 
+type AboutPreviewContent = {
+  title?: string;
+  description?: string;
+  primaryCtaLabel?: string;
+  secondaryCtaLabel?: string;
+  features?: Array<{ title?: string; description?: string; isVisible?: boolean }>;
+};
+
 const ICONS = [CheckCircle, Award, IndianRupee, UserCheck];
 
-export default function AboutSection({ settings = {} }: { settings?: Record<string, string> }) {
+export default function AboutSection({
+  settings = {},
+  content,
+}: {
+  settings?: Record<string, string>;
+  content?: AboutPreviewContent;
+}) {
+  return <AboutSectionContent settings={settings} content={content} />;
+}
+
+export function AboutSectionContent({
+  settings = {},
+  content,
+}: {
+  settings?: Record<string, string>;
+  content?: AboutPreviewContent;
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const clientsCount = settings.stats_clients || SITE_CONTENT_DEFAULTS.stats_clients;
   const yearsExp = settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience;
-  const title = settings.about_title || SITE_CONTENT_DEFAULTS.about_title;
-  const desc = settings.about_description || SITE_CONTENT_DEFAULTS.about_description;
+  const title = content?.title || settings.about_title || SITE_CONTENT_DEFAULTS.about_title;
+  const desc = content?.description || settings.about_description || SITE_CONTENT_DEFAULTS.about_description;
 
   let parsedFeatures = ABOUT_FEATURES;
-  if (settings.about_features_json) {
+  if (content?.features?.length) {
+    parsedFeatures = content.features.filter((feature) => feature.isVisible !== false && feature.title && feature.description) as typeof ABOUT_FEATURES;
+  } else if (settings.about_features_json) {
     try {
       parsedFeatures = JSON.parse(settings.about_features_json);
     } catch {}
   }
+  const primaryCtaLabel = content?.primaryCtaLabel || "Talk To Expert";
+  const secondaryCtaLabel = content?.secondaryCtaLabel || "Schedule Appointment";
   
   return (
     <section id="about" className="border-t border-[var(--border)] bg-[var(--bg-card)] py-16 lg:py-24">
@@ -90,7 +118,7 @@ export default function AboutSection({ settings = {} }: { settings?: Record<stri
                 whileTap={{ scale: 0.98 }}
               >
                 <Phone className="h-4 w-4" />
-                Talk To Expert
+                {primaryCtaLabel}
               </motion.a>
               <motion.button
                 onClick={() => setIsModalOpen(true)}
@@ -99,7 +127,7 @@ export default function AboutSection({ settings = {} }: { settings?: Record<stri
                 whileTap={{ scale: 0.98 }}
               >
                 <Calendar className="h-4 w-4" />
-                Schedule Appointment
+                {secondaryCtaLabel}
               </motion.button>
             </div>
             <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
@@ -107,7 +135,7 @@ export default function AboutSection({ settings = {} }: { settings?: Record<stri
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {parsedFeatures.map((feature: any, index: number) => {
+          {parsedFeatures.map((feature, index) => {
             const Icon = ICONS[index % ICONS.length];
             return (
               <AnimatedSection key={feature.title}>

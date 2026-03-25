@@ -16,7 +16,10 @@ export async function proxy(request: NextRequest) {
 
     if (!token) {
       if (pathname.startsWith("/api/admin")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
       }
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
@@ -27,7 +30,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     } catch (err) {
       if (pathname.startsWith("/api/admin")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
       }
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }

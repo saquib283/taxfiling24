@@ -24,12 +24,19 @@ const ICONS = [
 interface FeaturesSectionProps {
   dynamicFeatures?: { title: string; description: string }[];
   settings?: Record<string, string>;
+  content?: {
+    title?: string;
+    description?: string;
+    items?: Array<{ title?: string; description?: string; isVisible?: boolean }>;
+  };
 }
 
-export default function FeaturesSection({ dynamicFeatures, settings = {} }: FeaturesSectionProps) {
-  const features = dynamicFeatures && dynamicFeatures.length > 0 ? dynamicFeatures : FEATURES;
-  const title = settings.features_title || SITE_CONTENT_DEFAULTS.features_title;
-  const description = settings.features_description || SITE_CONTENT_DEFAULTS.features_description;
+export default function FeaturesSection({ dynamicFeatures, settings = {}, content }: FeaturesSectionProps) {
+  const features =
+    content?.items?.filter((item) => item.isVisible !== false && item.title && item.description) ||
+    (dynamicFeatures && dynamicFeatures.length > 0 ? dynamicFeatures : FEATURES);
+  const title = content?.title || settings.features_title || SITE_CONTENT_DEFAULTS.features_title;
+  const description = content?.description || settings.features_description || SITE_CONTENT_DEFAULTS.features_description;
 
   return (
     <section className="border-t border-[var(--border)] bg-[var(--bg-muted)] py-16 lg:py-24">

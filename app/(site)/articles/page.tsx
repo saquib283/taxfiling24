@@ -1,9 +1,28 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowRight, Calendar, User } from "lucide-react";
+import { ArrowRight, Calendar } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
-import JsonLd, { breadcrumbSchema, webPageSchema } from "@/components/seo/JsonLd";
+import { getManagedPageSections } from "@/lib/managed-pages";
+import { getSettings } from "@/lib/settings";
+import JsonLd, { breadcrumbSchema } from "@/components/seo/JsonLd";
 import type { Metadata } from "next";
+
+interface ArticleCard {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  thumbnailUrl: string | null;
+  createdAt: Date;
+}
+
+interface ArticlesHeroContent {
+  title?: string;
+  description?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  readMoreText?: string;
+}
 
 export const metadata: Metadata = {
   title: "Articles & Insights",
@@ -21,9 +40,14 @@ export const metadata: Metadata = {
 };
 
 export default async function ArticlesPage() {
-  let articles: any[] = [];
+  let articles: ArticleCard[] = [];
+  const settings = await getSettings();
+  const sections = getManagedPageSections("articles", settings);
+  const heroSection = sections.find((section) => section.type === "articles.hero");
+  const hero = heroSection?.data as ArticlesHeroContent | undefined;
   try {
     articles = await prisma.article.findMany({
+      where: { published: true },
       orderBy: { createdAt: "desc" },
     });
   } catch (error) {
@@ -43,20 +67,21 @@ export default async function ArticlesPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <AnimatedSection className="text-center mb-16">
           <h1 className="text-4xl font-bold text-[var(--fg)] sm:text-5xl mb-4">
-            Insights & Updates
+            {hero?.title || "Insights & Updates"}
           </h1>
           <p className="mx-auto max-w-xl text-[var(--fg-muted)]">
-            Stay ahead with the latest tax guidelines, corporate compliance tips, and financial news.
+            {hero?.description || "Stay ahead with the latest tax guidelines, corporate compliance tips, and financial news."}
           </p>
         </AnimatedSection>
 
         {articles.length === 0 ? (
           <div className="text-center py-12 text-[var(--fg-muted)]">
-            No articles published yet. Check back soon!
+            <p className="font-medium">{hero?.emptyTitle || "No articles published yet."}</p>
+            <p className="mt-2 text-sm">{hero?.emptyDescription || "Check back soon!"}</p>
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {articles.map((article: any) => (
+            {articles.map((article) => (
               <AnimatedSection key={article.id}>
                 <Link href={`/articles/${article.slug}`} className="group block h-full">
                   <div className="group relative flex flex-col h-full bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1.5 focus-within:ring-2 focus-within:ring-[var(--primary)]/20">
@@ -95,7 +120,7 @@ export default async function ArticlesPage() {
 
                       <div className="pt-6 border-t border-slate-50 mt-auto flex items-center justify-between group/cta">
                         <span className="text-sm font-bold text-slate-900 group-hover:text-[var(--primary)] transition-colors">
-                          Read Full Article
+                          {hero?.readMoreText || "Read Full Article"}
                         </span>
                         <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[var(--primary)] group-hover:text-white transition-all duration-300">
                           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

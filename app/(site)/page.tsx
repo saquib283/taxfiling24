@@ -11,16 +11,47 @@ import CTASection from "@/components/sections/CTASection";
 import FAQSection from "@/components/sections/FAQSection";
 import ComplianceCalendar from "@/components/sections/ComplianceCalendar";
 import { getSettings } from "@/lib/settings";
+import { getManagedPageSections } from "@/lib/managed-pages";
 import prisma from "@/lib/prisma";
 import JsonLd, { faqSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
 
+interface ServiceSummary {
+  id?: string;
+  title: string;
+  slug?: string | null;
+  href?: string | null;
+}
+
+interface FAQEntry {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+interface ArticleCard {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  thumbnailUrl?: string | null;
+  createdAt: Date;
+}
+
+interface DeadlineEntry {
+  id: string;
+  title: string;
+  category: string;
+  date: Date;
+  desc: string;
+}
+
 export default async function Home() {
   let settings: Record<string, string> = {};
-  let servicesRes: any[] = [];
-  let faqsRes: any[] = [];
-  let articlesRes: any[] = [];
-  let deadlinesRes: any[] = [];
-  let dynamicFeatures: { title: string; description: string }[] | undefined;
+  let servicesRes: ServiceSummary[] = [];
+  let faqsRes: FAQEntry[] = [];
+  let articlesRes: ArticleCard[] = [];
+  let deadlinesRes: DeadlineEntry[] = [];
+  let homeSections = getManagedPageSections("home");
 
   try {
     // 1. Fetch settings and core data in parallel
@@ -39,58 +70,10 @@ export default async function Home() {
     faqsRes = fetchedFaqs;
     articlesRes = fetchedArticles;
     deadlinesRes = fetchedDeadlines;
-
-    // 2. Parse dynamic features if available
-    if (settings.features_list) {
-      try {
-        dynamicFeatures = JSON.parse(settings.features_list);
-      } catch {}
-    }
+    homeSections = getManagedPageSections("home", settings);
   } catch (error) {
     console.error("Database Resilience: Homepage failed to fetch some or all records. Using static fallbacks.", error);
   }
-
-  // Parse Dynamic Homepage Layout
-  const DEFAULT_LAYOUT = [
-    { id: "HeroSection", isVisible: true },
-    { id: "StatsSection", isVisible: true },
-    { id: "AboutSection", isVisible: true },
-    { id: "ServicesSection", isVisible: true },
-    { id: "ProcessSection", isVisible: true },
-    { id: "FeaturesSection", isVisible: true },
-    { id: "TestimonialsSection", isVisible: true },
-    { id: "ArticlesSection", isVisible: true },
-    { id: "ComplianceCalendar", isVisible: true },
-    { id: "NeedGuidanceSection", isVisible: true },
-    { id: "CTASection", isVisible: true },
-    { id: "FAQSection", isVisible: true },
-  ];
-
-  let layout = DEFAULT_LAYOUT;
-  if (settings.homepage_layout) {
-    try {
-      const parsed = JSON.parse(settings.homepage_layout);
-      // Ensure missing defaults are appended
-      const missing = DEFAULT_LAYOUT.filter(d => !parsed.find((p: any) => p.id === d.id));
-      layout = [...parsed, ...missing];
-    } catch {}
-  }
-
-  // Component Registry
-  const sectionMap: Record<string, React.ReactNode> = {
-    HeroSection: <HeroSection key="HeroSection" settings={settings} />,
-    StatsSection: <StatsSection key="StatsSection" settings={settings} />,
-    AboutSection: <AboutSection key="AboutSection" settings={settings} />,
-    ServicesSection: <ServicesSection key="ServicesSection" services={servicesRes} />,
-    ProcessSection: <ProcessSection key="ProcessSection" settings={settings} />,
-    FeaturesSection: <FeaturesSection key="FeaturesSection" dynamicFeatures={dynamicFeatures} settings={settings} />,
-    TestimonialsSection: <TestimonialsSection key="TestimonialsSection" settings={settings} />,
-    ArticlesSection: <ArticlesSection key="ArticlesSection" articles={articlesRes} />,
-    ComplianceCalendar: <ComplianceCalendar key="ComplianceCalendar" deadlines={deadlinesRes} />,
-    NeedGuidanceSection: <NeedGuidanceSection key="NeedGuidanceSection" settings={settings} />,
-    CTASection: <CTASection key="CTASection" settings={settings} />,
-    FAQSection: <FAQSection key="FAQSection" faqs={faqsRes} settings={settings} />,
-  };
 
   return (
     <>
@@ -102,7 +85,7 @@ export default async function Home() {
           ...(faqsRes.length > 0
             ? [
                 faqSchema(
-                  faqsRes.map((f: any) => ({
+                  faqsRes.map((f) => ({
                     question: f.question,
                     answer: f.answer,
                   }))
@@ -111,7 +94,38 @@ export default async function Home() {
             : []),
         ]}
       />
-      {layout.filter((s: any) => s.isVisible).map((section: any) => sectionMap[section.id])}
+      {homeSections
+        .filter((section) => section.isVisible)
+        .map((section) => {
+          switch (section.type) {
+            case "home.hero":
+              return <HeroSection key={section.id} settings={settings} content={section.data as Parameters<typeof HeroSection>[0]["content"]} />;
+            case "home.stats":
+              return <StatsSection key={section.id} settings={settings} content={section.data as Parameters<typeof StatsSection>[0]["content"]} />;
+            case "home.about":
+              return <AboutSection key={section.id} settings={settings} content={section.data as Parameters<typeof AboutSection>[0]["content"]} />;
+            case "home.services":
+              return <ServicesSection key={section.id} services={servicesRes} settings={settings} content={section.data as Parameters<typeof ServicesSection>[0]["content"]} />;
+            case "home.process":
+              return <ProcessSection key={section.id} settings={settings} content={section.data as Parameters<typeof ProcessSection>[0]["content"]} />;
+            case "home.features":
+              return <FeaturesSection key={section.id} settings={settings} content={section.data as Parameters<typeof FeaturesSection>[0]["content"]} />;
+            case "home.testimonials":
+              return <TestimonialsSection key={section.id} settings={settings} content={section.data as Parameters<typeof TestimonialsSection>[0]["content"]} />;
+            case "home.articles":
+              return <ArticlesSection key={section.id} articles={articlesRes} settings={settings} content={section.data as Parameters<typeof ArticlesSection>[0]["content"]} />;
+            case "home.calendar":
+              return <ComplianceCalendar key={section.id} deadlines={deadlinesRes} settings={settings} content={section.data as Parameters<typeof ComplianceCalendar>[0]["content"]} />;
+            case "home.guidance":
+              return <NeedGuidanceSection key={section.id} settings={settings} content={section.data as Parameters<typeof NeedGuidanceSection>[0]["content"]} />;
+            case "home.cta":
+              return <CTASection key={section.id} settings={settings} content={section.data as Parameters<typeof CTASection>[0]["content"]} />;
+            case "home.faq":
+              return <FAQSection key={section.id} faqs={faqsRes} settings={settings} content={section.data as Parameters<typeof FAQSection>[0]["content"]} />;
+            default:
+              return null;
+          }
+        })}
     </>
   );
 }

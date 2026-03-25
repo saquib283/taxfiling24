@@ -8,15 +8,26 @@ import { fadeUp, slideInRight } from "@/lib/animations";
 
 interface HeroProps {
   settings?: Record<string, string>;
+  content?: {
+    badge?: string;
+    headline?: string;
+    subheading?: string;
+    primaryCtaLabel?: string;
+    secondaryCtaLabel?: string;
+    highlights?: Array<{ text?: string; isVisible?: boolean }>;
+  };
 }
 
-export default function HeroSection({ settings = {} }: HeroProps) {
-  const badge = settings.hero_badge || "Premium Corporate Advisory";
-  const headline = settings.hero_headline || SITE_CONTENT_DEFAULTS.hero_headline;
-  const subheading = settings.hero_subheading || SITE_CONTENT_DEFAULTS.hero_subheading;
-  const ctaPrimary = settings.hero_cta_primary || "Talk To Expert";
-  const ctaSecondary = settings.hero_cta_secondary || "Explore Services";
+export default function HeroSection({ settings = {}, content }: HeroProps) {
+  const badge = content?.badge || settings.hero_badge || "Premium Corporate Advisory";
+  const headline = content?.headline || settings.hero_headline || SITE_CONTENT_DEFAULTS.hero_headline;
+  const subheading = content?.subheading || settings.hero_subheading || SITE_CONTENT_DEFAULTS.hero_subheading;
+  const ctaPrimary = content?.primaryCtaLabel || settings.hero_cta_primary || "Talk To Expert";
+  const ctaSecondary = content?.secondaryCtaLabel || settings.hero_cta_secondary || "Explore Services";
   const phoneRaw = settings.contact_whatsapp || CONTACT.phoneRaw;
+  const highlights =
+    content?.highlights?.filter((item) => item.isVisible !== false && item.text) ||
+    [{ text: "No Hidden Charges" }, { text: "Timely Compliance" }, { text: "Expert Team" }];
 
   return (
     <section
@@ -74,10 +85,10 @@ export default function HeroSection({ settings = {} }: HeroProps) {
               </motion.a>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--fg-muted)]">
-              {["No Hidden Charges", "Timely Compliance", "Expert Team"].map((item, i) => (
-                <span key={item} className="flex items-center gap-2">
+              {highlights.map((item) => (
+                <span key={item.text} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-[var(--success)]" strokeWidth={2.5} />
-                  {item}
+                  {item.text}
                 </span>
               ))}
             </div>

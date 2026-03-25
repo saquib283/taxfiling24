@@ -4,26 +4,44 @@ import { useState, useEffect } from "react";
 import { Star, Quote } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 
-interface TestimonialsProps {
-  settings?: Record<string, string>;
+interface ReviewItem {
+  id?: string;
+  name: string;
+  role?: string | null;
+  content: string;
+  rating?: number;
+  isApproved?: boolean;
 }
 
-export default function TestimonialsSection({ settings = {} }: TestimonialsProps) {
-  const [reviews, setReviews] = useState<any[]>([]);
+interface TestimonialsProps {
+  settings?: Record<string, string>;
+  content?: {
+    badge?: string;
+    title?: string;
+    subtext?: string;
+  };
+}
+
+export default function TestimonialsSection({ settings = {}, content }: TestimonialsProps) {
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
 
   useEffect(() => {
     fetch("/api/reviews")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setReviews(data.filter((r: any) => r.isApproved));
+          setReviews(data.filter((review): review is ReviewItem => Boolean(review?.isApproved)));
         }
       })
       .catch(() => {});
   }, []);
 
-  const sectionTitle = settings.testimonials_title || "Don't Just Take Our Word For It";
-  const sectionSubtext = settings.testimonials_subtext || "We build long-term partnerships that drive your business forward with verified transparency and unmatched execution speeds.";
+  const sectionBadge = content?.badge || "Thousands of Happy Clients";
+  const sectionTitle = content?.title || settings.testimonials_title || "Don't Just Take Our Word For It";
+  const sectionSubtext =
+    content?.subtext ||
+    settings.testimonials_subtext ||
+    "We build long-term partnerships that drive your business forward with verified transparency and unmatched execution speeds.";
 
   if (reviews.length === 0) return null;
 
@@ -55,7 +73,7 @@ export default function TestimonialsSection({ settings = {} }: TestimonialsProps
         <AnimatedSection className="text-center">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--accent-light)]/20 bg-[var(--accent-soft)] px-5 py-2 text-xs font-bold tracking-wider text-[var(--primary)] uppercase shadow-sm">
             <Star className="h-4 w-4 fill-current text-[#f59e0b]" />
-            Thousands of Happy Clients
+            {sectionBadge}
           </span>
           <h2 className="mb-6 text-4xl font-extrabold tracking-tight text-[var(--fg)] sm:text-5xl lg:text-6xl">
             {sectionTitle}
@@ -87,7 +105,7 @@ export default function TestimonialsSection({ settings = {} }: TestimonialsProps
               </div>
               
               <p className="relative z-10 mb-8 flex-1 text-base italic leading-relaxed text-[var(--fg-muted)] sm:text-lg">
-                "{review.content}"
+                &ldquo;{review.content}&rdquo;
               </p>
               
               <div className="relative z-10 flex items-center gap-4 border-t border-[var(--border)] pt-6">

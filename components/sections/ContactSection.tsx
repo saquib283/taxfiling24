@@ -4,7 +4,17 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FORM_SERVICES } from "@/lib/constants";
 
-export default function ContactSection({ services = [] }: { services?: string[] }) {
+export default function ContactSection({
+  services = [],
+  content,
+}: {
+  services?: string[];
+  content?: {
+    title?: string;
+    description?: string;
+    submitButtonText?: string;
+  };
+}) {
   const displayServices = services.length > 0 ? services : FORM_SERVICES;
 
   const [formData, setFormData] = useState({
@@ -29,8 +39,8 @@ export default function ContactSection({ services = [] }: { services?: string[] 
       className="bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-8 sm:p-10"
     >
       <div className="mb-8">
-        <h3 className="text-2xl font-black text-slate-900 mb-2">Send us a Message</h3>
-        <p className="text-slate-500 text-sm">We typically respond within 24 hours on business days.</p>
+        <h3 className="text-2xl font-black text-slate-900 mb-2">{content?.title || "Send us a Message"}</h3>
+        <p className="text-slate-500 text-sm">{content?.description || "We typically respond within 24 hours on business days."}</p>
       </div>
 
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
@@ -101,7 +111,7 @@ export default function ContactSection({ services = [] }: { services?: string[] 
           type="submit"
           className="w-full rounded-xl py-3.5 font-bold text-white bg-[var(--primary)] hover:bg-[var(--primary)]/90 shadow-sm transition-all hover:-translate-y-0.5"
         >
-          Submit Application
+          {content?.submitButtonText || "Submit Application"}
         </button>
       </form>
     </motion.div>

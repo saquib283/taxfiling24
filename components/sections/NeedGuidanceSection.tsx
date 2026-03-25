@@ -4,12 +4,23 @@ import { motion } from "framer-motion";
 import { Phone } from "lucide-react";
 import { CONTACT } from "@/lib/constants";
 
-export default function NeedGuidanceSection({ settings = {} }: { settings?: Record<string, string> }) {
+export default function NeedGuidanceSection({
+  settings = {},
+  content,
+}: {
+  settings?: Record<string, string>;
+  content?: {
+    title?: string;
+    description?: string;
+    buttonLabel?: string;
+  };
+}) {
   const phone = settings.contact_phone || CONTACT.phone;
   const phoneRaw = phone.replace(/\D/g, "");
   
-  const sectionTitle = settings.guidance_title || "Need Guidance?";
-  const buttonText = settings.guidance_button || "Talk To Expert";
+  const sectionTitle = content?.title || settings.guidance_title || "Need Guidance?";
+  const sectionDescription = content?.description || "Need Help? or Looking for any specific service?";
+  const buttonText = content?.buttonLabel || settings.guidance_button || "Talk To Expert";
 
   return (
     <section className="py-12 lg:py-16">
@@ -22,7 +33,7 @@ export default function NeedGuidanceSection({ settings = {} }: { settings?: Reco
         <div className="mx-auto max-w-xl rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-10 shadow-[var(--shadow-lg)] transition-all hover:border-[var(--accent-light)]">
           <h2 className="mb-2 text-2xl font-bold text-[var(--fg)]">{sectionTitle}</h2>
           <p className="mb-8 font-medium text-[var(--fg-muted)]">
-            Need Help? or Looking for any specific service?
+            {sectionDescription}
           </p>
           <motion.a
             href={`tel:${phoneRaw}`}

@@ -5,23 +5,35 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 import FAQItem from "@/components/ui/FAQItem";
 import { FAQ_ITEMS } from "@/lib/constants";
 
-interface FAQProps {
-  faqs?: any[];
-  settings?: Record<string, string>;
+interface FAQEntry {
+  id?: string;
+  question: string;
+  answer: string;
 }
 
-export default function FAQSection({ faqs = [], settings = {} }: FAQProps) {
+interface FAQProps {
+  faqs?: FAQEntry[];
+  settings?: Record<string, string>;
+  content?: {
+    trustBarText?: string;
+    title?: string;
+    subtext?: string;
+  };
+}
+
+export default function FAQSection({ faqs = [], settings = {}, content }: FAQProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const displayFaqs = faqs.length > 0 ? faqs : FAQ_ITEMS;
 
-  const sectionTitle = settings.faq_title || "Frequently Asked Questions";
-  const sectionSubtext = settings.faq_subtext || "Find quick answers to common questions about our services";
+  const trustBarText = content?.trustBarText || "Trusted by 2000+ businesses across India";
+  const sectionTitle = content?.title || settings.faq_title || "Frequently Asked Questions";
+  const sectionSubtext = content?.subtext || settings.faq_subtext || "Find quick answers to common questions about our services";
 
   return (
     <section className="border-t border-[var(--border)] bg-[var(--bg)] py-16 lg:py-24">
       <div className="border-y border-[var(--border)] bg-[var(--primary)] py-5">
         <p className="text-center text-sm font-medium text-white">
-          Trusted by 2000+ businesses across India
+          {trustBarText}
         </p>
       </div>
 
@@ -37,7 +49,7 @@ export default function FAQSection({ faqs = [], settings = {} }: FAQProps) {
         <div className="mx-auto max-w-2xl space-y-3">
           {displayFaqs.map((item, i) => (
             <FAQItem
-              key={item.id || i}
+              key={(item as any).id || i}
               question={item.question}
               answer={item.answer}
               isOpen={openIndex === i}

@@ -178,7 +178,7 @@ export default async function AdminDashboard() {
               {[
                 { href: "/admin/articles", label: "Create Article", icon: FileText },
                 { href: "/admin/services", label: "Add Service", icon: Briefcase },
-                { href: "/admin/content", label: "Edit Homepage", icon: PenSquare },
+                { href: "/admin/content", label: "Edit Website Content", icon: PenSquare },
                 { href: "/admin/faqs", label: "Manage FAQs", icon: HelpCircle },
                 { href: "/admin/calendar", label: "Add Deadline", icon: Calendar },
                 { href: "/admin/settings", label: "Settings", icon: Settings },

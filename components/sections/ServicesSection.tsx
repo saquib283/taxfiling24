@@ -8,6 +8,7 @@ import {
   Calculator,
   Shield,
   ShoppingCart,
+  ChevronRight,
 } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import ServiceCard from "@/components/ui/ServiceCard";
@@ -24,16 +25,27 @@ const ICONS = [
   ShoppingCart,
 ];
 
-interface ServicesProps {
-  services?: any[];
-  settings?: Record<string, string>;
+interface ServiceSummary {
+  id?: string;
+  title: string;
+  slug?: string | null;
+  href?: string | null;
 }
 
-export default function ServicesSection({ services = [], settings = {} }: ServicesProps) {
-  const displayServices = services.length > 0 ? services : SERVICES.slice(0, 8);
+interface ServicesProps {
+  services?: ServiceSummary[];
+  settings?: Record<string, string>;
+  content?: {
+    title?: string;
+    subtext?: string;
+  };
+}
+
+export default function ServicesSection({ services = [], settings = {}, content }: ServicesProps) {
+  const displayServices: any[] = services.length > 0 ? services : SERVICES.slice(0, 8);
   
-  const sectionTitle = settings.services_title || "Services We Offer";
-  const sectionSubtext = settings.services_subtext || "Comprehensive solutions for all your business, tax, and compliance needs";
+  const sectionTitle = content?.title || settings.services_title || "Services We Offer";
+  const sectionSubtext = content?.subtext || settings.services_subtext || "Comprehensive solutions for all your business, tax, and compliance needs";
 
   return (
     <section id="services" className="py-16 lg:py-24">
@@ -47,7 +59,7 @@ export default function ServicesSection({ services = [], settings = {} }: Servic
           </p>
         </AnimatedSection>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {displayServices.map((service, index) => {
+          {displayServices.map((service: any, index) => {
             const href = service.href || (service.slug ? `/services/${service.slug}` : `/services/${service.id}`);
             return (
               <AnimatedSection key={service.id || service.title} variants={fadeUp}>

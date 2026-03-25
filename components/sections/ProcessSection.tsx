@@ -1,25 +1,43 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { PROCESS_STEPS } from "@/lib/constants";
 import AnimatedSection from "@/components/ui/AnimatedSection";
-import { fadeUp, slideInLeft, slideInRight } from "@/lib/animations";
+import { slideInLeft, slideInRight } from "@/lib/animations";
 import { Shield, Award, Zap, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 interface ProcessProps {
   settings?: Record<string, string>;
+  content?: {
+    badge?: string;
+    title?: string;
+    subtext?: string;
+    steps?: Array<{
+      step?: string;
+      title?: string;
+      description?: string;
+      image?: string;
+      ctaLabel?: string;
+      ctaHref?: string;
+      isVisible?: boolean;
+    }>;
+  };
 }
 
-export default function ProcessSection({ settings = {} }: ProcessProps) {
-  const sectionBadge = settings.process_badge || "Engagement Model";
-  const sectionTitle = settings.process_title || "Our Strategic Operating Model";
-  const sectionSubtext = settings.process_subtext || "A meticulous, tech-enabled framework designed to ensure absolute regulatory accuracy and strategic scalability for your enterprise.";
+export default function ProcessSection({ settings = {}, content }: ProcessProps) {
+  const sectionBadge = content?.badge || settings.process_badge || "Engagement Model";
+  const sectionTitle = content?.title || settings.process_title || "Our Strategic Operating Model";
+  const sectionSubtext =
+    content?.subtext ||
+    settings.process_subtext ||
+    "A meticulous, tech-enabled framework designed to ensure absolute regulatory accuracy and strategic scalability for your enterprise.";
 
   // Dynamic process steps from settings with fallback
   let displaySteps = PROCESS_STEPS;
-  if (settings.process_steps_json) {
+  if (content?.steps?.length) {
+    displaySteps = content.steps.filter((step) => step.isVisible !== false && step.title) as typeof PROCESS_STEPS;
+  } else if (settings.process_steps_json) {
     try {
       const parsed = JSON.parse(settings.process_steps_json);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -53,7 +71,7 @@ export default function ProcessSection({ settings = {} }: ProcessProps) {
           {/* Vertical Center Line (Desktop) */}
           <div className="absolute left-1/2 top-0 h-full w-px bg-slate-200 -translate-x-1/2 hidden lg:block" />
 
-          {displaySteps.map((step, index) => {
+          {displaySteps.map((step: any, index) => {
             const isEven = index % 2 === 0;
             return (
               <div key={step.step} className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
@@ -72,10 +90,10 @@ export default function ProcessSection({ settings = {} }: ProcessProps) {
                       {step.description}
                     </p>
                     <Link 
-                      href="/about"
+                      href={step.ctaHref || "/about"}
                       className="mt-6 flex items-center gap-2 text-[var(--primary)] font-bold text-sm underline-offset-4 hover:underline cursor-pointer group transition-all"
                     >
-                      Explore Framework 
+                      {step.ctaLabel || "Explore Framework"}
                       <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </div>

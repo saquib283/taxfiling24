@@ -14,17 +14,35 @@ interface Deadline {
   desc: string;
 }
 
+interface CalendarDeadline extends Deadline {
+  day: number;
+  monthShort: string;
+}
+
+interface GroupedDeadlineMonth {
+  month: string;
+  deadlines: CalendarDeadline[];
+}
+
 interface ComplianceCalendarProps {
   deadlines: Deadline[];
   settings?: Record<string, string>;
+  content?: {
+    badge?: string;
+    title?: string;
+    subtext?: string;
+    alertTitle?: string;
+    alertDescription?: string;
+    alertButtonText?: string;
+  };
 }
 
-export default function ComplianceCalendar({ deadlines = [], settings = {} }: ComplianceCalendarProps) {
+export default function ComplianceCalendar({ deadlines = [], settings = {}, content }: ComplianceCalendarProps) {
   // Group deadlines by month
-  const groupedData = useMemo(() => {
+  const groupedData = useMemo<GroupedDeadlineMonth[]>(() => {
     if (!deadlines || deadlines.length === 0) return [];
 
-    const months: Record<string, any[]> = {};
+    const months: Record<string, CalendarDeadline[]> = {};
     
     deadlines.forEach(d => {
       const date = new Date(d.date);
@@ -52,7 +70,7 @@ export default function ComplianceCalendar({ deadlines = [], settings = {} }: Co
   }, [deadlines]);
 
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
-  const [selectedDeadline, setSelectedDeadline] = useState<any>(null);
+  const [selectedDeadline, setSelectedDeadline] = useState<Pick<Deadline, "title" | "category" | "desc"> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "" });
@@ -72,8 +90,16 @@ export default function ComplianceCalendar({ deadlines = [], settings = {} }: Co
 
   const currentData = groupedData[currentMonthIndex];
 
-  const sectionTitle = settings.calendar_title || "Tax Compliance Calendar 2026";
-  const sectionSubtext = settings.calendar_subtext || "Never miss an important filing deadline. Use our interactive calendar to track GST, Income Tax, and other corporate compliance dates.";
+  const sectionBadge = content?.badge || "Stay Compliant";
+  const sectionTitle = content?.title || settings.calendar_title || "Tax Compliance Calendar 2026";
+  const sectionSubtext =
+    content?.subtext ||
+    settings.calendar_subtext ||
+    "Never miss an important filing deadline. Use our interactive calendar to track GST, Income Tax, and other corporate compliance dates.";
+  const alertTitle = content?.alertTitle || "Never Miss a Deadline Again!";
+  const alertDescription =
+    content?.alertDescription || "Get automated WhatsApp and email reminders for all your tax compliances.";
+  const alertButtonText = content?.alertButtonText || "Sign Up for Alerts";
 
   return (
     <section id="calendar" className="bg-[var(--bg-muted)]/50 py-16 lg:py-24">
@@ -81,7 +107,7 @@ export default function ComplianceCalendar({ deadlines = [], settings = {} }: Co
         <AnimatedSection className="mb-12 text-center">
           <span className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-4 py-1.5 text-xs font-bold tracking-wider text-[var(--primary)] uppercase">
             <Calendar className="h-3.5 w-3.5" />
-            Stay Compliant
+            {sectionBadge}
           </span>
           <h2 className="mb-4 text-3xl font-bold text-[var(--fg)] sm:text-4xl">
             {sectionTitle}
@@ -172,8 +198,8 @@ export default function ComplianceCalendar({ deadlines = [], settings = {} }: Co
                 <Bell className="h-8 w-8" />
               </div>
               <div className="flex-1">
-                <h3 className="mb-1 text-xl font-bold italic">Never Miss a Deadline Again!</h3>
-                <p className="text-white/80">Get automated WhatsApp and email reminders for all your tax compliances.</p>
+                <h3 className="mb-1 text-xl font-bold italic">{alertTitle}</h3>
+                <p className="text-white/80">{alertDescription}</p>
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -183,12 +209,13 @@ export default function ComplianceCalendar({ deadlines = [], settings = {} }: Co
                   setSelectedDeadline({
                     title: "All Tax Compliances",
                     category: "General Alerts",
+                    desc: "Get automated WhatsApp and email reminders for all your tax compliances.",
                   });
                   setIsModalOpen(true);
                   setIsSubmitted(false);
                 }}
               >
-                Sign Up for Alerts
+                {alertButtonText}
               </motion.button>
             </div>
           </div>

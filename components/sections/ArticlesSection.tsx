@@ -5,16 +5,36 @@ import { ArrowRight, Calendar, Bookmark, TrendingUp } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import Image from "next/image";
 
-interface ArticlesSectionProps {
-  articles: any[];
-  settings?: Record<string, string>;
+interface ArticleSummary {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  thumbnailUrl?: string | null;
+  createdAt: Date | string;
 }
 
-export default function ArticlesSection({ articles, settings = {} }: ArticlesSectionProps) {
+interface ArticlesSectionProps {
+  articles: ArticleSummary[];
+  settings?: Record<string, string>;
+  content?: {
+    badge?: string;
+    title?: string;
+    subtext?: string;
+    buttonLabel?: string;
+  };
+}
+
+export default function ArticlesSection({ articles, settings = {}, content }: ArticlesSectionProps) {
   if (!articles || articles.length === 0) return null;
 
-  const sectionTitle = settings.articles_title || "Strategic Knowledge & Regulatory Updates";
-  const sectionSubtext = settings.articles_subtext || "Stay ahead of the curve with our professional analysis of India's evolving financial landscape, tax regulations, and corporate compliance standards.";
+  const sectionBadge = content?.badge || "Market Insights & Compliance Hub";
+  const sectionTitle = content?.title || settings.articles_title || "Strategic Knowledge & Regulatory Updates";
+  const sectionSubtext =
+    content?.subtext ||
+    settings.articles_subtext ||
+    "Stay ahead of the curve with our professional analysis of India's evolving financial landscape, tax regulations, and corporate compliance standards.";
+  const buttonLabel = content?.buttonLabel || "Access Complete Knowledge Base";
 
   return (
     <section id="articles" className="py-24 lg:py-32 bg-[var(--bg)] relative overflow-hidden">
@@ -27,7 +47,7 @@ export default function ArticlesSection({ articles, settings = {} }: ArticlesSec
         <AnimatedSection className="max-w-3xl mx-auto text-center mb-20">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[var(--primary)]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--primary)]">
             <TrendingUp size={14} />
-            Market Insights & Compliance Hub
+            {sectionBadge}
           </div>
           <h2 className="mb-6 text-3xl font-extrabold tracking-tight text-[var(--fg)] sm:text-4xl lg:text-5xl">
             {sectionTitle === "Strategic Knowledge & Regulatory Updates" ? (
@@ -107,7 +127,7 @@ export default function ArticlesSection({ articles, settings = {} }: ArticlesSec
             href="/articles" 
             className="inline-flex items-center gap-3 rounded-full bg-white border border-slate-200 px-8 py-4 text-sm font-bold text-slate-900 shadow-xl hover:shadow-2xl transition-all duration-500 group hover:border-[var(--primary)]/30 hover:-translate-y-1"
           >
-            <span>Access Complete Knowledge Base</span>
+            <span>{buttonLabel}</span>
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-400 group-hover:bg-[var(--primary)] group-hover:text-white transition-all duration-500">
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </div>
