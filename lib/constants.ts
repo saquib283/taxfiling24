@@ -239,3 +239,14 @@ export const FORM_SERVICES = [
   "VIRTUAL CFO & ADVISORY SERVICES",
   "Other",
 ];
+
+export const SITE_CONTENT_DEFAULTS = {
+  hero_headline: "Strategic Financial & Compliance Solutions",
+  hero_subheading: "Expert Tax Filing, Business Registration, and Corporate Compliance managed by Senior CAs & CSs.",
+  about_title: "Your Trusted Partner for Business Success",
+  about_description: "TaxFiling24 is a premier financial and legal advisory firm serving as a catalyst for growth for over 2,500+ businesses across India. Our team of senior CAs, CSs, and Legal experts leverages modern technology to simplify complex compliance, allowing you to focus on scaling your vision with peace of mind.",
+  stats_clients: "2000+",
+  stats_experience: "15+",
+  features_title: "Why most Business Choose us?",
+  features_description: "Because we are committed to exceptional service and 24/7 Quick support",
+};

@@ -83,7 +83,7 @@ export default async function Home() {
     AboutSection: <AboutSection key="AboutSection" settings={settings} />,
     ServicesSection: <ServicesSection key="ServicesSection" services={servicesRes} />,
     ProcessSection: <ProcessSection key="ProcessSection" settings={settings} />,
-    FeaturesSection: <FeaturesSection key="FeaturesSection" dynamicFeatures={dynamicFeatures} />,
+    FeaturesSection: <FeaturesSection key="FeaturesSection" dynamicFeatures={dynamicFeatures} settings={settings} />,
     TestimonialsSection: <TestimonialsSection key="TestimonialsSection" settings={settings} />,
     ArticlesSection: <ArticlesSection key="ArticlesSection" articles={articlesRes} />,
     ComplianceCalendar: <ComplianceCalendar key="ComplianceCalendar" deadlines={deadlinesRes} />,

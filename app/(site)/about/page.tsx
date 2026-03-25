@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="pt-24 pb-16 lg:pt-32 lg:pb-24">
+    <div className="pt-0 pb-16 lg:pb-24">
       <JsonLd
         data={[
           breadcrumbSchema([
@@ -37,7 +37,7 @@ export default function AboutPage() {
           }),
         ]}
       />
-      <section className="bg-[var(--primary)] text-white py-16 lg:py-20 relative overflow-hidden">
+      <section className="bg-[var(--primary)] text-white py-32 lg:py-40 relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black/40" />
         <div className="absolute inset-0 z-0">
           <Image
@@ -49,10 +49,10 @@ export default function AboutPage() {
           />
         </div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="mb-4 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-white">
+          <h1 className="mb-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-7xl text-white">
             About <span className="text-[var(--accent-light)]">Taxfiling24</span>
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/90 sm:text-xl">
+          <p className="mx-auto max-w-3xl text-lg text-white/90 sm:text-2xl">
             Empowering businesses through simplified taxation, seamless compliance, and expert financial advisory.
           </p>
         </div>

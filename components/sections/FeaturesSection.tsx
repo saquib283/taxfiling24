@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import AnimatedSection from "@/components/ui/AnimatedSection";
-import { FEATURES } from "@/lib/constants";
+import { FEATURES, SITE_CONTENT_DEFAULTS } from "@/lib/constants";
 
 const ICONS = [
   ShieldCheck,
@@ -23,20 +23,23 @@ const ICONS = [
 
 interface FeaturesSectionProps {
   dynamicFeatures?: { title: string; description: string }[];
+  settings?: Record<string, string>;
 }
 
-export default function FeaturesSection({ dynamicFeatures }: FeaturesSectionProps) {
+export default function FeaturesSection({ dynamicFeatures, settings = {} }: FeaturesSectionProps) {
   const features = dynamicFeatures && dynamicFeatures.length > 0 ? dynamicFeatures : FEATURES;
+  const title = settings.features_title || SITE_CONTENT_DEFAULTS.features_title;
+  const description = settings.features_description || SITE_CONTENT_DEFAULTS.features_description;
+
   return (
     <section className="border-t border-[var(--border)] bg-[var(--bg-muted)] py-16 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <AnimatedSection className="mb-12 text-center">
           <h2 className="mb-3 text-2xl font-bold text-[var(--fg)] sm:text-3xl lg:text-4xl">
-            Why most Business Choose us?
+            {title}
           </h2>
           <p className="mx-auto max-w-xl text-[var(--fg-muted)]">
-            Because we are committed to exceptional service and{" "}
-            <strong className="text-[var(--fg)]">24/7 Quick support</strong>
+            {description}
           </p>
         </AnimatedSection>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

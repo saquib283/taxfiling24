@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function GSTCalculatorPage() {
   return (
-    <div className="bg-[var(--bg)] min-h-screen py-16 lg:py-24">
+    <div className="bg-[var(--bg)] min-h-screen pb-16 lg:pb-24 pt-0">
       <JsonLd
         data={[
           breadcrumbSchema([
@@ -35,7 +35,7 @@ export default function GSTCalculatorPage() {
         ]}
       />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <GSTCalculator />
         </div>
       </div>

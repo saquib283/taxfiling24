@@ -2,100 +2,123 @@
 
 import { useState, useEffect } from "react";
 import { Save, Loader2, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { SITE_CONTENT_DEFAULTS, ABOUT_FEATURES, FEATURES, PROCESS_STEPS } from "@/lib/constants";
 
 const CONTENT_SECTIONS = [
   {
     label: "Hero Section",
     fields: [
-      { key: "hero_badge", label: "Badge Text", placeholder: "Complete Business Solutions" },
-      { key: "hero_headline", label: "Headline", placeholder: "Complete Business, Tax & Compliance Solutions" },
-      { key: "hero_subheading", label: "Subheading", placeholder: "Your Trusted Partner for Business Registration..." },
-      { key: "hero_cta_primary", label: "Primary Button Text", placeholder: "Talk To Expert" },
-      { key: "hero_cta_secondary", label: "Secondary Button Text", placeholder: "Explore Services" },
+      { key: "hero_badge", label: "Badge Text", placeholder: "Complete Business Solutions", defaultValue: "Complete Business Solutions" },
+      { key: "hero_headline", label: "Headline", placeholder: SITE_CONTENT_DEFAULTS.hero_headline, defaultValue: SITE_CONTENT_DEFAULTS.hero_headline },
+      { key: "hero_subheading", label: "Subheading", placeholder: SITE_CONTENT_DEFAULTS.hero_subheading, defaultValue: SITE_CONTENT_DEFAULTS.hero_subheading },
+      { key: "hero_cta_primary", label: "Primary Button Text", placeholder: "Talk To Expert", defaultValue: "Talk To Expert" },
+      { key: "hero_cta_secondary", label: "Secondary Button Text", placeholder: "Explore Services", defaultValue: "Explore Services" },
     ]
   },
   {
     label: "About Section",
     fields: [
-      { key: "about_title", label: "Title", placeholder: "Why Choose TaxFiling24?" },
-      { key: "about_description", label: "Description", placeholder: "We provide expert financial...", type: "textarea" },
-      { key: "about_features_json", label: "Features (JSON Array)", placeholder: '[{"title":"Accuracy","description":"100% Guaranteed"}]', type: "textarea" },
+      { key: "about_title", label: "Title", placeholder: SITE_CONTENT_DEFAULTS.about_title, defaultValue: SITE_CONTENT_DEFAULTS.about_title },
+      { key: "about_description", label: "Description", placeholder: SITE_CONTENT_DEFAULTS.about_description, defaultValue: SITE_CONTENT_DEFAULTS.about_description, type: "textarea" },
+      { 
+        key: "about_features_json", 
+        label: "Features List", 
+        type: "json_array", 
+        defaultValue: JSON.stringify(ABOUT_FEATURES),
+        itemFields: [
+          { key: "title", label: "Title", placeholder: "Accuracy" },
+          { key: "description", label: "Description", placeholder: "100% Guaranteed", type: "textarea" },
+        ]
+      },
     ]
   },
   {
     label: "Stats (Numbers)",
     fields: [
-      { key: "stats_clients", label: "Happy Clients", placeholder: "2000+" },
-      { key: "stats_experience", label: "Years Experience", placeholder: "15+" },
-      { key: "stats_services", label: "Services Offered", placeholder: "50+" },
-      { key: "stats_satisfaction", label: "Satisfaction Rate", placeholder: "99%" },
+      { key: "stats_clients", label: "Happy Clients", placeholder: SITE_CONTENT_DEFAULTS.stats_clients, defaultValue: SITE_CONTENT_DEFAULTS.stats_clients },
+      { key: "stats_experience", label: "Years Experience", placeholder: SITE_CONTENT_DEFAULTS.stats_experience, defaultValue: SITE_CONTENT_DEFAULTS.stats_experience },
+      { key: "stats_services", label: "Services Offered", placeholder: "50+", defaultValue: "50+" },
+      { key: "stats_satisfaction", label: "Satisfaction Rate", placeholder: "99%", defaultValue: "99%" },
     ]
   },
   {
     label: "CTA Section",
     fields: [
-      { key: "cta_headline", label: "Headline", placeholder: "Ready to Get Started?" },
-      { key: "cta_subtext", label: "Subtext", placeholder: "Book a free consultation..." },
-      { key: "cta_button_text", label: "Button Text", placeholder: "Schedule Consultation" },
+      { key: "cta_headline", label: "Headline", placeholder: "Ready to Get Started?", defaultValue: "Ready to Get Started?" },
+      { key: "cta_subtext", label: "Subtext", placeholder: "Book a free consultation...", defaultValue: "Book a free consultation..." },
+      { key: "cta_button_text", label: "Button Text", placeholder: "Schedule Consultation", defaultValue: "Schedule Consultation" },
     ]
   },
   {
     label: "Contact Info",
     fields: [
-      { key: "contact_phone", label: "Phone", placeholder: "+91 7011246157" },
-      { key: "contact_email", label: "Email", placeholder: "support@taxfiling24.com" },
-      { key: "contact_address", label: "Address", placeholder: "E-244/G First Floor...", type: "textarea" },
-      { key: "contact_whatsapp", label: "WhatsApp Number", placeholder: "917011246157" },
+      { key: "contact_phone", label: "Phone", placeholder: "+91 7011246157", defaultValue: "+91 7011246157" },
+      { key: "contact_email", label: "Email", placeholder: "support@taxfiling24.com", defaultValue: "support@taxfiling24.com" },
+      { key: "contact_address", label: "Address", placeholder: "E-244/G First Floor...", defaultValue: "E-244/G First Floor Shaheen Bagh, Okhla New Delhi 110025", type: "textarea" },
+      { key: "contact_whatsapp", label: "WhatsApp Number", placeholder: "917011246157", defaultValue: "917011246157" },
     ]
   },
   {
     label: "Social Links",
     fields: [
-      { key: "social_facebook", label: "Facebook URL", placeholder: "https://facebook.com/..." },
-      { key: "social_linkedin", label: "LinkedIn URL", placeholder: "https://linkedin.com/..." },
-      { key: "social_twitter", label: "Twitter / X URL", placeholder: "https://x.com/..." },
-      { key: "social_instagram", label: "Instagram URL", placeholder: "https://instagram.com/..." },
+      { key: "social_facebook", label: "Facebook URL", placeholder: "https://facebook.com/...", defaultValue: "" },
+      { key: "social_linkedin", label: "LinkedIn URL", placeholder: "https://linkedin.com/...", defaultValue: "" },
+      { key: "social_twitter", label: "Twitter / X URL", placeholder: "https://x.com/...", defaultValue: "" },
+      { key: "social_instagram", label: "Instagram URL", placeholder: "https://instagram.com/...", defaultValue: "" },
     ]
   },
   {
     label: "Footer",
     fields: [
-      { key: "footer_tagline", label: "Footer Tagline", placeholder: "Taxfiling24 makes tax and compliance simple..." },
-      { key: "footer_copyright", label: "Copyright Text", placeholder: "© 2025 TaxFiling24. All rights reserved." },
+      { key: "footer_tagline", label: "Footer Tagline", placeholder: "Taxfiling24 makes tax and compliance simple...", defaultValue: "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business." },
+      { key: "footer_copyright", label: "Copyright Text", placeholder: "© 2025 TaxFiling24. All rights reserved.", defaultValue: `© ${new Date().getFullYear()} TaxFiling24. All rights reserved.` },
     ]
   },
   {
     label: "Pricing Plans",
     fields: [
-      { key: "pricing_plans", label: "Plans (JSON Array)", placeholder: '[{"name":"Basic","price":"₹999","description":"...","features":["..."],"highlighted":false}]', type: "textarea" },
+      { 
+        key: "pricing_plans", 
+        label: "Plans Configuration", 
+        type: "json_array", 
+        defaultValue: "[]",
+        itemFields: [
+          { key: "name", label: "Plan Name", placeholder: "Standard" },
+          { key: "price", label: "Price Text", placeholder: "₹9,999" },
+          { key: "description", label: "Description", placeholder: "For growing businesses" },
+          { key: "features", label: "Features (Comma Separated)", placeholder: "Feature 1, Feature 2" },
+          { key: "highlighted", label: "Highlighted (true/false)", placeholder: "false" },
+        ]
+      },
     ]
   },
   {
     label: "Announcement Banner",
     fields: [
-      { key: "announcement_active", label: "Banner Active (true/false)", placeholder: "false" },
-      { key: "announcement_text", label: "Banner Text", placeholder: "ITR filing deadline extended!" },
-      { key: "announcement_link", label: "Banner Link (optional)", placeholder: "/services" },
-      { key: "announcement_bg", label: "Banner Color", placeholder: "#0F4C81" },
+      { key: "announcement_active", label: "Banner Active (true/false)", placeholder: "false", defaultValue: "false" },
+      { key: "announcement_text", label: "Banner Text", placeholder: "ITR filing deadline extended!", defaultValue: "" },
+      { key: "announcement_link", label: "Banner Link (optional)", placeholder: "/services", defaultValue: "" },
+      { key: "announcement_bg", label: "Banner Color", placeholder: "#0F4C81", defaultValue: "#0F4C81" },
     ]
   },
   {
     label: "Services Section",
     fields: [
-      { key: "services_title", label: "Title", placeholder: "Services We Offer" },
-      { key: "services_subtext", label: "Subtext", placeholder: "Explore our comprehensive tax and legal services." },
+      { key: "services_title", label: "Title", placeholder: "Services We Offer", defaultValue: "Services We Offer" },
+      { key: "services_subtext", label: "Subtext", placeholder: "Explore our comprehensive tax and legal services.", defaultValue: "Explore our comprehensive tax and legal services." },
     ]
   },
   {
     label: "Process Section",
     fields: [
-      { key: "process_badge", label: "Badge Text", placeholder: "How It Works" },
-      { key: "process_title", label: "Title", placeholder: "Our Strategic Operating Model" },
-      { key: "process_subtext", label: "Subtext", placeholder: "Our four-stage framework ensures absolute compliance..." },
+      { key: "process_badge", label: "Badge Text", placeholder: "How It Works", defaultValue: "How It Works" },
+      { key: "process_title", label: "Title", placeholder: "Our Strategic Operating Model", defaultValue: "Our Strategic Operating Model" },
+      { key: "process_subtext", label: "Subtext", placeholder: "Our four-stage framework ensures absolute compliance...", defaultValue: "Our four-stage framework ensures absolute compliance..." },
       { 
         key: "process_steps_json", 
         label: "Steps Configuration", 
         type: "json_array", 
+        defaultValue: JSON.stringify(PROCESS_STEPS),
         itemFields: [
           { key: "step", label: "Step Number", placeholder: "01" },
           { key: "title", label: "Title", placeholder: "Strategic Discovery" },
@@ -106,38 +129,55 @@ const CONTENT_SECTIONS = [
     ]
   },
   {
+    label: "Features Section",
+    fields: [
+      { key: "features_title", label: "Title", placeholder: SITE_CONTENT_DEFAULTS.features_title, defaultValue: SITE_CONTENT_DEFAULTS.features_title },
+      { key: "features_description", label: "Description", placeholder: SITE_CONTENT_DEFAULTS.features_description, defaultValue: SITE_CONTENT_DEFAULTS.features_description },
+      { 
+        key: "features_list", 
+        label: "Detailed Features", 
+        type: "json_array", 
+        defaultValue: JSON.stringify(FEATURES),
+        itemFields: [
+          { key: "title", label: "Title", placeholder: "Strategic Compliance" },
+          { key: "description", label: "Description", placeholder: "We go beyond periodic filings...", type: "textarea" },
+        ]
+      },
+    ]
+  },
+  {
     label: "Testimonials Section",
     fields: [
-      { key: "testimonials_title", label: "Title", placeholder: "What Our Clients Say" },
-      { key: "testimonials_subtext", label: "Subtext", placeholder: "Trusted by thousands of businesses across India." },
+      { key: "testimonials_title", label: "Title", placeholder: "What Our Clients Say", defaultValue: "What Our Clients Say" },
+      { key: "testimonials_subtext", label: "Subtext", placeholder: "Trusted by thousands of businesses across India.", defaultValue: "Trusted by thousands of businesses across India." },
     ]
   },
   {
     label: "Articles Section",
     fields: [
-      { key: "articles_title", label: "Title", placeholder: "Latest Insights" },
-      { key: "articles_subtext", label: "Subtext", placeholder: "Stay updated with the latest in tax, compliance, and corporate law." },
+      { key: "articles_title", label: "Title", placeholder: "Latest Insights", defaultValue: "Latest Insights" },
+      { key: "articles_subtext", label: "Subtext", placeholder: "Stay updated with the latest in tax, compliance, and corporate law.", defaultValue: "Stay updated with the latest in tax, compliance, and corporate law." },
     ]
   },
   {
     label: "Compliance Calendar",
     fields: [
-      { key: "calendar_title", label: "Title", placeholder: "Tax Compliance Calendar" },
-      { key: "calendar_subtext", label: "Subtext", placeholder: "Never miss a due date. Stay ahead with our monthly compliance tracker." },
+      { key: "calendar_title", label: "Title", placeholder: "Tax Compliance Calendar", defaultValue: "Tax Compliance Calendar" },
+      { key: "calendar_subtext", label: "Subtext", placeholder: "Never miss a due date. Stay ahead with our monthly compliance tracker.", defaultValue: "Never miss a due date. Stay ahead with our monthly compliance tracker." },
     ]
   },
   {
     label: "FAQ Section",
     fields: [
-      { key: "faq_title", label: "Title", placeholder: "Frequently Asked Questions" },
-      { key: "faq_subtext", label: "Subtext", placeholder: "Find answers to our most common queries regarding tax filing and incorporation." },
+      { key: "faq_title", label: "Title", placeholder: "Frequently Asked Questions", defaultValue: "Frequently Asked Questions" },
+      { key: "faq_subtext", label: "Subtext", placeholder: "Find answers to our most common queries regarding tax filing and incorporation.", defaultValue: "Find answers to our most common queries regarding tax filing and incorporation." },
     ]
   },
   {
     label: "Guidance Banner",
     fields: [
-      { key: "guidance_title", label: "Headline", placeholder: "Need Expert Guidance?" },
-      { key: "guidance_button", label: "Button Text", placeholder: "Request a Call Back" },
+      { key: "guidance_title", label: "Headline", placeholder: "Need Expert Guidance?", defaultValue: "Need Expert Guidance?" },
+      { key: "guidance_button", label: "Button Text", placeholder: "Request a Call Back", defaultValue: "Request a Call Back" },
     ]
   },
 ];
@@ -151,7 +191,13 @@ function JsonArrayEditor({
   onChange: (val: string) => void; 
   itemFields: any[] 
 }) {
-  const items = JSON.parse(value || "[]");
+  let items = [];
+  try {
+    items = JSON.parse(value || "[]");
+    if (!Array.isArray(items)) items = [];
+  } catch (e) {
+    items = [];
+  }
 
   const updateItem = (index: number, fieldKey: string, val: any) => {
     const newItems = [...items];
@@ -275,13 +321,13 @@ export default function ContentEditorPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">{field.label}</label>
                 {((field as any).type === "json_array") ? (
                   <JsonArrayEditor 
-                    value={values[field.key] || "[]"} 
+                    value={values[field.key] ?? (field as any).defaultValue ?? "[]"} 
                     onChange={val => setValues({ ...values, [field.key]: val })}
                     itemFields={(field as any).itemFields}
                   />
                 ) : (field as any).type === "textarea" ? (
                   <textarea
-                    value={values[field.key] || ""}
+                    value={values[field.key] ?? (field as any).defaultValue ?? ""}
                     onChange={e => setValues({ ...values, [field.key]: e.target.value })}
                     placeholder={field.placeholder}
                     rows={3}
@@ -290,7 +336,7 @@ export default function ContentEditorPage() {
                 ) : (
                   <input
                     type="text"
-                    value={values[field.key] || ""}
+                    value={values[field.key] ?? (field as any).defaultValue ?? ""}
                     onChange={e => setValues({ ...values, [field.key]: e.target.value })}
                     placeholder={field.placeholder}
                     className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"

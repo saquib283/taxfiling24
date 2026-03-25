@@ -5,8 +5,7 @@ import { motion } from "framer-motion";
 
 import Image from "next/image";
 import { Phone, Calendar } from "lucide-react";
-import { CONTACT } from "@/lib/constants";
-import { ABOUT_FEATURES } from "@/lib/constants";
+import { CONTACT, ABOUT_FEATURES, SITE_CONTENT_DEFAULTS } from "@/lib/constants";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
 import { CheckCircle, Award, IndianRupee, UserCheck } from "lucide-react";
@@ -17,10 +16,10 @@ const ICONS = [CheckCircle, Award, IndianRupee, UserCheck];
 export default function AboutSection({ settings = {} }: { settings?: Record<string, string> }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const clientsCount = settings.stats_clients || "2000+";
-  const yearsExp = settings.stats_experience || "15+";
-  const title = settings.about_title || "Your Trusted Partner for Business Success";
-  const desc = settings.about_description || "TaxFiling24 is a premier financial and legal advisory firm serving as a catalyst for growth for over 2,500+ businesses across India. Our team of senior CAs, CSs, and Legal experts leverages modern technology to simplify complex compliance, allowing you to focus on scaling your vision with peace of mind.";
+  const clientsCount = settings.stats_clients || SITE_CONTENT_DEFAULTS.stats_clients;
+  const yearsExp = settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience;
+  const title = settings.about_title || SITE_CONTENT_DEFAULTS.about_title;
+  const desc = settings.about_description || SITE_CONTENT_DEFAULTS.about_description;
 
   let parsedFeatures = ABOUT_FEATURES;
   if (settings.about_features_json) {

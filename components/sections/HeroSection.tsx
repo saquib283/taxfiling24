@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Phone, ArrowRight, Check } from "lucide-react";
-import { CONTACT } from "@/lib/constants";
+import { CONTACT, SITE_CONTENT_DEFAULTS } from "@/lib/constants";
 import { fadeUp, slideInRight } from "@/lib/animations";
 
 interface HeroProps {
@@ -12,8 +12,8 @@ interface HeroProps {
 
 export default function HeroSection({ settings = {} }: HeroProps) {
   const badge = settings.hero_badge || "Premium Corporate Advisory";
-  const headline = settings.hero_headline || "Strategic Financial & Compliance Solutions";
-  const subheading = settings.hero_subheading || "Empowering enterprises with technology-driven compliance and seamless business registrations. Your pan-India partner for sustainable growth and absolute regulatory precision.";
+  const headline = settings.hero_headline || SITE_CONTENT_DEFAULTS.hero_headline;
+  const subheading = settings.hero_subheading || SITE_CONTENT_DEFAULTS.hero_subheading;
   const ctaPrimary = settings.hero_cta_primary || "Talk To Expert";
   const ctaSecondary = settings.hero_cta_secondary || "Explore Services";
   const phoneRaw = settings.contact_whatsapp || CONTACT.phoneRaw;
@@ -107,17 +107,16 @@ export default function HeroSection({ settings = {} }: HeroProps) {
                 className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 rounded-2xl border border-white/20 px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
                 style={{ backgroundImage: "var(--gradient-primary)" }}
               >
-                <p className="text-2xl sm:text-3xl font-extrabold tracking-tight">2,000+</p>
+                <p className="text-2xl sm:text-3xl font-extrabold tracking-tight">{settings.stats_clients || SITE_CONTENT_DEFAULTS.stats_clients}</p>
                 <p className="text-xs sm:text-sm font-medium text-white/90">Happy Clients</p>
               </motion.div>
-
               <motion.div
                 animate={{ y: [0, 8, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute right-4 top-4 sm:right-5 sm:top-5 rounded-2xl border border-white/20 px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
                 style={{ background: "linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%)" }}
               >
-                <p className="text-xl sm:text-2xl font-extrabold tracking-tight">15+</p>
+                <p className="text-xl sm:text-2xl font-extrabold tracking-tight">{settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience}</p>
                 <p className="text-[10px] sm:text-xs font-medium text-white/90">Years of Experience</p>
               </motion.div>
             </div>
