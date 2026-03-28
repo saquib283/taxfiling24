@@ -5,11 +5,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator, Search, ChevronDown, Info, ArrowRight, ArrowLeftRight,
   Package, Percent, TrendingUp, CheckCircle2, AlertCircle, Building2,
-  Plus, Trash2, ShoppingCart, Tag, Receipt, Copy, Share2, Eye, Minus
+  Plus, Trash2, ShoppingCart, Tag, Receipt, Copy, Share2, Eye, Minus,
+  FileText, Download, Printer, Target, ShieldCheck, IndianRupee
 } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 
-// ── GST Rates in India (Next-Gen Reforms 2025-26) ───────────────────
+function InputWrapper({ label, children, icon }: { label: string; children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <div className="group rounded-xl border border-slate-200 bg-slate-50/30 p-5 transition-all focus-within:border-blue-600 focus-within:bg-white focus-within:shadow-sm">
+      <div className="mb-3 flex items-center gap-2.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-100 bg-white text-slate-400 group-focus-within:text-blue-600 shadow-sm">
+            {icon ? icon : <Percent className="h-3.5 w-3.5" />}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
+      </div>
+      <div className="relative">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 const GST_RATES = [0, 3, 5, 18, 40];
 
 const HSN_PRESETS = [
@@ -54,7 +70,7 @@ interface BillItem {
   quantity: number;
   gstRate: number;
   cessRate: number;
-  discount: number; // Percentage
+  discount: number;
 }
 
 export default function GSTCalculator() {
@@ -69,11 +85,8 @@ export default function GSTCalculator() {
   const [taxScheme, setTaxScheme] = useState<"regular" | "composition">("regular");
   const [inputPurchases, setInputPurchases] = useState<number>(0);
   const [inputGstRate, setInputGstRate] = useState<number>(18);
-
-  // Multi-item support
   const [items, setItems] = useState<BillItem[]>([]);
 
-  // Persistence
   useEffect(() => {
     const saved = localStorage.getItem("gst_items");
     if (saved) {
@@ -119,7 +132,6 @@ export default function GSTCalculator() {
   };
 
   const presets = activeTab === "goods" ? HSN_PRESETS : SAC_PRESETS;
-
   const filtered = useMemo(() =>
     presets.filter(h =>
       h.desc.toLowerCase().includes(hsnSearch.toLowerCase()) ||
@@ -140,8 +152,6 @@ export default function GSTCalculator() {
       if (showMarginMode) {
         price = price * (1 + margin / 100);
       }
-
-      // Apply per-item discount
       const discountVal = price * (item.discount / 100);
       const discountedPrice = price - discountVal;
       totalDiscount += discountVal;
@@ -166,13 +176,9 @@ export default function GSTCalculator() {
     });
 
     const grandTotal = subTotal + totalGst + totalCess;
-
-    // ITC Logic
     const itcAmount = inputPurchases * (inputGstRate / 100);
     const netGstPayable = Math.max(0, totalGst - itcAmount);
-
-    // Composition Logic
-    const compositionRate = activeTab === "goods" ? 1 : 6; // Simplified: 1% goods, 6% services
+    const compositionRate = activeTab === "goods" ? 1 : 6;
     const compositionTax = grandTotal * (compositionRate / 100);
 
     return {
@@ -195,16 +201,9 @@ export default function GSTCalculator() {
   const exportToCSV = () => {
     const headers = ["Item", "Unit Price", "Quantity", "Discount %", "GST %", "Base Total", "Tax Amount", "Grand Total"];
     const rows = results.items.map(i => [
-      i.name,
-      i.unitPrice,
-      i.quantity,
-      i.discount,
-      i.gstRate,
-      i.basePrice.toFixed(2),
-      i.gst.toFixed(2),
-      i.total.toFixed(2)
+      i.name, i.unitPrice, i.quantity, i.discount, i.gstRate,
+      i.basePrice.toFixed(2), i.gst.toFixed(2), i.total.toFixed(2)
     ]);
-    
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -218,534 +217,327 @@ export default function GSTCalculator() {
   };
 
   const fmt = (v: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v);
-
   return (
-    <section className="bg-transparent pt-12 pb-20 lg:pt-16 lg:pb-28" id="gst-calculator">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <AnimatedSection className="mb-16 text-center">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-6 py-2 text-sm font-bold tracking-wider text-emerald-600 uppercase">
-            <Calculator className="h-4 w-4" />
-            Advanced GST Engine
-          </span>
-          <h2 className="mb-5 text-4xl font-extrabold text-[var(--fg)] sm:text-5xl">
-            Professional GST <span className="text-emerald-600">Planner</span>
-          </h2>
-          <p className="mx-auto max-w-2xl text-lg text-[var(--fg-muted)]">
-            Create itemized tax invoices, compare inclusive/exclusive rates, and calculate margins with the most advanced GST tool in India.
-          </p>
+    <section className="relative bg-slate-50 py-16 lg:py-24" id="gst-calculator">
+      <div className="mx-auto px-4 max-w-3xl">
+        <AnimatedSection className="mb-12 text-center">
+            <h2 className="mb-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                GST & <span className="text-blue-600">Invoicing</span>
+            </h2>
+            <p className="mx-auto max-w-xl text-sm text-slate-500 leading-relaxed">
+                Professional itemized billing and tax calculations compliant with the latest GST regulations.
+            </p>
         </AnimatedSection>
 
-        {/* Mode Switcher */}
-        <div className="mb-12 flex flex-wrap justify-center gap-4">
-           <div className="inline-flex rounded-2xl bg-gray-100 p-1.5 shadow-inner">
-            <button
-              onClick={() => setCalcMode("exclusive")}
-              className={`flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold transition-all ${calcMode === "exclusive" ? "bg-white text-emerald-600 shadow-md" : "text-gray-500 hover:text-gray-700"}`}
+        {/* Action Bar */}
+        <div className="mb-10 flex flex-wrap items-center justify-center gap-4">
+           <div className="inline-flex h-10 items-center justify-center rounded-lg bg-white p-1 border border-slate-200 shadow-sm">
+            <button 
+              onClick={() => setCalcMode("exclusive")} 
+              className={`flex items-center h-full px-5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${calcMode === "exclusive" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <Plus className="h-4 w-4" />
-              Tax Exclusive
+              Exclusive
             </button>
-            <button
-              onClick={() => setCalcMode("inclusive")}
-              className={`flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold transition-all ${calcMode === "inclusive" ? "bg-white text-emerald-600 shadow-md" : "text-gray-500 hover:text-gray-700"}`}
+            <button 
+              onClick={() => setCalcMode("inclusive")} 
+              className={`flex items-center h-full px-5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${calcMode === "inclusive" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <ArrowLeftRight className="h-4 w-4" />
-              Tax Inclusive
+              Inclusive
             </button>
           </div>
 
-          <button
-            onClick={() => setShowMarginMode(!showMarginMode)}
-            className={`flex items-center gap-2 rounded-2xl px-8 py-3 text-sm font-bold transition-all border-2 ${showMarginMode ? "bg-emerald-600 border-emerald-600 text-white shadow-lg" : "bg-white border-gray-200 text-gray-500 hover:border-emerald-300"}`}
+          <button 
+            onClick={() => setShowMarginMode(!showMarginMode)} 
+            className={`flex h-10 items-center gap-2 rounded-lg px-4 text-[10px] font-bold uppercase tracking-wider transition-all border shadow-sm ${showMarginMode ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"}`}
           >
-            <TrendingUp className="h-4 w-4" />
-            Margin Mode
+            <TrendingUp className="h-3.5 w-3.5" /> Margin
           </button>
 
-          <div className="inline-flex rounded-2xl bg-amber-50 p-1.5 border border-amber-200">
-            <button
-                onClick={() => setTaxScheme("regular")}
-                className={`flex items-center gap-2 rounded-xl px-6 py-2.5 text-xs font-black uppercase tracking-wider transition-all ${taxScheme === "regular" ? "bg-amber-500 text-white shadow-md" : "text-amber-600/50"}`}
+          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-white p-1 border border-slate-200 shadow-sm">
+            <button 
+              onClick={() => setTaxScheme("regular")} 
+              className={`flex items-center h-full px-4 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all ${taxScheme === "regular" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-                <Building2 className="h-3.5 w-3.5" />
-                Regular
+              Regular
             </button>
-            <button
-                onClick={() => setTaxScheme("composition")}
-                className={`flex items-center gap-2 rounded-xl px-6 py-2.5 text-xs font-black uppercase tracking-wider transition-all ${taxScheme === "composition" ? "bg-amber-500 text-white shadow-md" : "text-amber-600/50"}`}
+            <button 
+              onClick={() => setTaxScheme("composition")} 
+              className={`flex items-center h-full px-4 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all ${taxScheme === "composition" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-                <Tag className="h-3.5 w-3.5" />
-                Composition
+              Composition
             </button>
           </div>
         </div>
 
-        <div className="grid gap-12 lg:gap-16 lg:grid-cols-12 max-w-7xl mx-auto">
-          {/* ── Left Panel: Inputs ── */}
-          <div className="lg:col-span-7">
-            <div className="space-y-8">
-              {/* Item Entry Panel */}
-              <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-md)]">
-                <div className="mb-6 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 text-xl font-bold text-[var(--fg)]">
-                        <ShoppingCart className="h-5 w-5 text-emerald-600" />
-                        Quick Add Item
-                    </h3>
-                    <div className="flex rounded-lg bg-gray-100 p-1">
-                        {(["goods", "services"] as const).map(t => (
-                            <button
-                                key={t}
-                                onClick={() => setActiveTab(t)}
-                                className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${activeTab === t ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400"}`}
-                            >
-                                {t}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="grid gap-6">
-                  {/* Search / HSN */}
-                  <div className="relative group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors">
-                        <Search className="h-5 w-5" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder={`Search ${activeTab === "goods" ? "HSN" : "SAC"}, product, or rate...`}
-                      value={hsnSearch}
-                      onChange={e => { setHsnSearch(e.target.value); setShowHsnPanel(true); }}
-                      onFocus={() => setShowHsnPanel(true)}
-                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-100 rounded-2xl bg-gray-50 focus:bg-white focus:border-emerald-500 focus:outline-none transition-all font-medium"
-                    />
-                    
-                    <AnimatePresence>
-                      {showHsnPanel && hsnSearch && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl"
-                        >
-                          {filtered.map((item) => (
-                            <button
-                              key={item.hsn}
-                              onClick={() => {
-                                setNewItem({ ...newItem, name: item.desc, gstRate: item.rate });
-                                setGstRateManually(item.rate);
-                                setHsnSearch(item.desc);
-                                setShowHsnPanel(false);
-                              }}
-                              className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left hover:bg-emerald-50 transition-colors"
-                            >
-                              <div>
-                                <span className="text-[10px] font-black text-gray-400 font-mono tracking-widest">{item.hsn}</span>
-                                <p className="text-sm font-bold text-gray-700">{item.desc}</p>
-                              </div>
-                              <span className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">{item.rate}%</span>
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+        <div className="space-y-8">
+          {/* Item Entry Section */}
+          <motion.div 
+            whileHover={{ y: -2 }}
+            className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md hover:border-slate-300"
+          >
+              <div className="mb-8 border-b border-slate-100 pb-5 flex items-center justify-between">
+                  <div>
+                      <h3 className="text-lg font-bold text-slate-900 tracking-tight">Add Item</h3>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">Goods or Services entry</p>
                   </div>
-
-                  <div className="grid gap-4 sm:grid-cols-5">
-                    <div className="sm:col-span-2 rounded-2xl border-2 border-gray-50 bg-gray-50/50 p-4 focus-within:border-emerald-500/30 focus-within:bg-white transition-all">
-                        <label className="mb-2 block text-[10px] font-black uppercase text-gray-400 tracking-widest">Unit Price</label>
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-400">₹</span>
-                            <input
-                                type="number"
-                                value={newItem.unitPrice || ""}
-                                placeholder="0.00"
-                                onChange={e => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })}
-                                className="w-full bg-transparent font-black text-emerald-600 outline-none"
-                            />
-                        </div>
-                    </div>
-                    <div className="rounded-2xl border-2 border-gray-50 bg-gray-50/50 p-4 focus-within:border-emerald-500/30 focus-within:bg-white transition-all">
-                        <label className="mb-2 block text-[10px] font-black uppercase text-gray-400 tracking-widest">Qty</label>
-                        <input
-                            type="number"
-                            value={newItem.quantity}
-                            onChange={e => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
-                            className="w-full bg-transparent font-black text-gray-700 outline-none"
-                        />
-                    </div>
-                    <div className="rounded-2xl border-2 border-gray-50 bg-gray-50/50 p-4 focus-within:border-emerald-500/30 focus-within:bg-white transition-all">
-                        <label className="mb-2 block text-[10px] font-black uppercase text-gray-400 tracking-widest">GST %</label>
-                        <select
-                            value={newItem.gstRate}
-                            onChange={e => setNewItem({ ...newItem, gstRate: Number(e.target.value) })}
-                            className="w-full bg-transparent font-black text-gray-700 outline-none cursor-pointer"
-                        >
-                            {GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
-                        </select>
-                    </div>
-                    <div className="rounded-2xl border-2 border-gray-50 bg-gray-50/50 p-4 focus-within:border-emerald-500/30 focus-within:bg-white transition-all">
-                        <label className="mb-2 block text-[10px] font-black uppercase text-gray-400 tracking-widest">Disc %</label>
-                        <input
-                            type="number"
-                            value={newItem.discount || ""}
-                            placeholder="0"
-                            onChange={e => setNewItem({ ...newItem, discount: Number(e.target.value) })}
-                            className="w-full bg-transparent font-black text-red-500 outline-none"
-                        />
-                    </div>
+                  <div className="flex h-10 rounded-xl bg-slate-100 p-1">
+                      {(["goods", "services"] as const).map(t => (
+                          <button key={t} onClick={() => setActiveTab(t)} className={`px-5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>{t}</button>
+                      ))}
                   </div>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={addItem}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--fg)] py-4 font-black tracking-widest text-white uppercase shadow-lg transition-all hover:bg-emerald-600"
-                  >
-                    <Plus className="h-5 w-5" />
-                    Add to Bill List
-                  </motion.button>
-                </div>
               </div>
 
-              {/* Bill List */}
-              <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-white overflow-hidden shadow-[var(--shadow-md)]">
-                <div className="bg-gray-50 px-8 py-4 border-b border-[var(--border)] flex items-center justify-between">
-                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400">Current Items ({items.length})</h3>
-                    <Receipt className="h-4 w-4 text-gray-300" />
-                </div>
-                <div className="divide-y divide-gray-100">
-                    <AnimatePresence mode="popLayout">
-                        {items.map((item) => (
-                            <motion.div
-                                layout
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                key={item.id}
-                                className="group p-6 hover:bg-gray-50 transition-colors"
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                                            <Package className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-gray-800">{item.name}</p>
-                                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{item.gstRate}% GST {item.cessRate > 0 && `+ ${item.cessRate}% Cess`}</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => removeItem(item.id)}
-                                        className="h-8 w-8 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pl-12">
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Unit Price</p>
-                                        <p className="font-black text-gray-700">{fmt(item.unitPrice)}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Quantity</p>
-                                        <div className="flex items-center gap-3">
-                                            <button onClick={() => updateItem(item.id, "quantity", Math.max(1, item.quantity - 1))} className="text-gray-400 hover:text-emerald-500"><Minus className="h-3 w-3" /></button>
-                                            <span className="font-black text-gray-700">{item.quantity}</span>
-                                            <button onClick={() => updateItem(item.id, "quantity", item.quantity + 1)} className="text-gray-400 hover:text-emerald-500"><Plus className="h-3 w-3" /></button>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Base Total</p>
-                                        <p className="font-black text-emerald-600">{fmt(item.unitPrice * item.quantity)}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Tax Amount</p>
-                                        <p className="font-black text-gray-700">{fmt((item.unitPrice * item.quantity) * (item.gstRate / 100))}</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                    {items.length === 0 && (
-                        <div className="p-12 text-center">
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 text-gray-200">
-                                <Receipt className="h-8 w-8" />
+              <div className="space-y-6">
+                <div className="relative group/search">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-blue-500 transition-colors">
+                      <Search className="h-5 w-5" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={`Search ${activeTab === "goods" ? "HSN" : "SAC"} presets...`}
+                    value={hsnSearch}
+                    onChange={e => { setHsnSearch(e.target.value); setShowHsnPanel(true); }}
+                    onFocus={() => setShowHsnPanel(true)}
+                    className="w-full pl-12 pr-4 py-4 border border-slate-100 rounded-2xl bg-slate-50/50 focus:bg-white focus:border-blue-200 focus:outline-none transition-all text-sm font-semibold shadow-inner"
+                  />
+                  <AnimatePresence>
+                    {showHsnPanel && hsnSearch && (
+                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 right-0 top-full z-10 mt-3 max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl animate-in fade-in zoom-in-95">
+                        {filtered.map((item) => (
+                          <button key={`${item.hsn}-${item.desc}`} onClick={() => { setNewItem({ ...newItem, name: item.desc, gstRate: item.rate }); setHsnSearch(item.desc); setShowHsnPanel(false); }} className="flex w-full items-center justify-between rounded-xl px-5 py-4 text-left hover:bg-slate-50 transition-colors group/item">
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.hsn} • {item.category}</span>
+                              <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600 transition-colors">{item.desc}</p>
                             </div>
-                            <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No items added to the bill</p>
-                        </div>
+                            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-600 border border-blue-100">{item.rate}% GST</span>
+                          </button>
+                        ))}
+                      </motion.div>
                     )}
+                  </AnimatePresence>
+                </div>
+
+                <div className="grid gap-6 sm:grid-cols-2">
+                   <InputWrapper label="Unit Price" icon={<IndianRupee className="h-5 w-5 text-blue-500" />}>
+                      <input type="number" value={newItem.unitPrice || ""} placeholder="0.00" onChange={e => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none placeholder:text-slate-300" />
+                   </InputWrapper>
+                   <div className="grid grid-cols-2 gap-4">
+                      <InputWrapper label="Qty" icon={<Package className="h-4 w-4 text-slate-400" />}><input type="number" value={newItem.quantity} onChange={e => setNewItem({ ...newItem, quantity: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
+                      <InputWrapper label="GST %" icon={<Percent className="h-4 w-4 text-slate-400" />}>
+                          <select value={newItem.gstRate} onChange={e => setNewItem({ ...newItem, gstRate: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none cursor-pointer appearance-none">
+                              {GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
+                          </select>
+                      </InputWrapper>
+                   </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-6 items-center">
+                  <div className="grid grid-cols-2 gap-4 flex-1 w-full">
+                       <InputWrapper label="Discount %" icon={<Tag className="h-4 w-4 text-emerald-500" />}><input type="number" value={newItem.discount || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, discount: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
+                       <InputWrapper label="Cess %" icon={<ShieldCheck className="h-4 w-4 text-amber-500" />}><input type="number" value={newItem.cessRate || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, cessRate: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
+                  </div>
+                  <button onClick={addItem} className="flex h-[72px] w-full sm:w-44 items-center justify-center gap-2 rounded-[24px] bg-slate-900 text-sm font-bold uppercase tracking-wider text-white shadow-xl hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all">
+                      <Plus className="h-4 w-4" /> Add Item
+                  </button>
                 </div>
               </div>
+          </motion.div>
 
-              {/* Pro Settings */}
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-6 shadow-sm">
-                    <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-                        <Building2 className="h-4 w-4" />
-                        Place of Supply
-                    </h4>
-                    <div className="flex rounded-xl bg-gray-100 p-1">
-                        <button
-                            onClick={() => setPlaceOfSupply("intra")}
-                            className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${placeOfSupply === "intra" ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400"}`}
-                        >
-                            Intra-State
-                        </button>
-                        <button
-                            onClick={() => setPlaceOfSupply("inter")}
-                            className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${placeOfSupply === "inter" ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400"}`}
-                        >
-                            Inter-State
-                        </button>
-                    </div>
-                </div>
-
-                <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-6 shadow-sm">
-                    <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-                        <AlertCircle className="h-4 w-4" />
-                        Reverse Charge (RCM)
-                    </h4>
-                    <button
-                        onClick={() => setIsRcm(!isRcm)}
-                        className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 transition-all ${isRcm ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-gray-100 bg-gray-50 text-gray-400"}`}
-                    >
-                        <span className="text-xs font-black uppercase tracking-widest">{isRcm ? "Active" : "Disabled"}</span>
-                        <div className={`h-5 w-10 rounded-full p-1 transition-all ${isRcm ? "bg-emerald-500" : "bg-gray-300"}`}>
-                            <div className={`h-3 w-3 rounded-full bg-white transition-all ${isRcm ? "translate-x-5" : ""}`}></div>
-                        </div>
-                    </button>
-                </div>
-              </div>
-
-              {/* Margin Settings */}
-              {showMarginMode && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="rounded-[var(--radius-xl)] border-2 border-emerald-500/20 bg-emerald-50/30 p-8 shadow-sm"
-                >
-                    <h4 className="mb-6 flex items-center gap-2 font-black uppercase tracking-[0.2em] text-emerald-700">
-                        <TrendingUp className="h-5 w-5" />
-                        Margin Controls
-                    </h4>
-                    <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                        <div className="flex-1">
-                            <div className="mb-2 flex justify-between">
-                                <label className="text-xs font-bold text-emerald-600">PROFIT MARGIN ON COST</label>
-                                <span className="font-black text-emerald-700 text-xl">{margin}%</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="0"
-                                max="200"
-                                step="1"
-                                value={margin}
-                                onChange={e => setMargin(Number(e.target.value))}
-                                className="h-2 w-full appearance-none rounded-lg bg-emerald-200 accent-emerald-600"
-                            />
-                        </div>
-                        <div className="rounded-2xl bg-white p-4 shadow-sm border border-emerald-100 flex-none sm:w-48 text-center">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Margin Multiplier</p>
-                            <p className="text-2xl font-black text-emerald-600">x{(1 + margin/100).toFixed(2)}</p>
-                        </div>
-                    </div>
-                </motion.div>
-              )}
-            </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+              <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+                  <h4 className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400"><Building2 className="h-4 w-4 text-blue-500" /> Place of Supply</h4>
+                  <div className="flex rounded-xl bg-slate-50 p-1 border border-slate-100">
+                      <button onClick={() => setPlaceOfSupply("intra")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "intra" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>Intra-State</button>
+                      <button onClick={() => setPlaceOfSupply("inter")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "inter" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>Inter-State</button>
+                  </div>
+              </motion.div>
+              <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm flex items-center justify-between transition-all hover:shadow-md hover:border-slate-300">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Reverse Charge</h4>
+                    <p className="text-[10px] font-bold text-slate-300 uppercase mt-1">Tax paid by recipient</p>
+                  </div>
+                  <button onClick={() => setIsRcm(!isRcm)} className={`flex h-8 w-13 items-center rounded-full p-1 transition-all ${isRcm ? "bg-blue-600" : "bg-slate-200"}`}><div className={`h-6 w-6 rounded-full bg-white shadow-sm transition-all ${isRcm ? "translate-x-5" : "translate-x-0"}`} /></button>
+              </motion.div>
           </div>
 
-          {/* ── Right Panel: Results ── */}
-          <div className="lg:col-span-5">
-            <div className="sticky top-28 space-y-8">
-              <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--fg)] p-10 text-white shadow-[var(--shadow-xl)] relative overflow-hidden">
-                {/* Visual Decoration */}
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-500 opacity-10 blur-[80px]"></div>
-                <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-600 opacity-10 blur-[80px]"></div>
-
-                <div className="relative z-10">
-                  <div className="mb-10 flex items-center justify-between border-b border-white/5 pb-8">
+          {/* ITC Input Section */}
+          <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+              <details className="group">
+                  <summary className="list-none cursor-pointer flex items-center justify-between">
                     <div>
-                        <h3 className="text-3xl font-black">Calculation</h3>
-                        <p className="text-sm text-white/50">{calcMode === "exclusive" ? "Tax Exclusive Mode" : "Tax Inclusive Mode"}</p>
+                        <h3 className="text-lg font-bold text-slate-900 tracking-tight">Purchase Inputs (ITC)</h3>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">Offset your tax liability</p>
                     </div>
-                    <div className="h-14 w-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                        <Percent className="h-7 w-7" />
+                    <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-open:bg-blue-50 transition-colors">
+                      <Plus className="h-4 w-4 text-slate-400 group-open:rotate-45 transition-all" />
                     </div>
+                  </summary>
+                  <div className="grid gap-6 sm:grid-cols-2 pt-8 animate-in fade-in slide-in-from-top-2">
+                      <InputWrapper label="Total Purchases" icon={<ShoppingCart className="h-4 w-4 text-blue-500" />}><input type="number" value={inputPurchases || ""} placeholder="0.00" onChange={e => setInputPurchases(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
+                      <InputWrapper label="Input GST %" icon={<Percent className="h-4 w-4 text-slate-400" />}><input type="number" value={inputGstRate} onChange={e => setInputGstRate(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
                   </div>
+              </details>
+          </motion.div>
 
-                  <div className="grid gap-8">
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between text-white/40 font-bold uppercase tracking-widest text-xs">
-                            <span>{taxScheme === "regular" ? "Total Output Tax" : "Estimated Turnover"}</span>
-                            <span>{fmt(taxScheme === "regular" ? results.totalGst : results.grandTotal)}</span>
-                        </div>
-                        {taxScheme === "regular" && results.itcAmount > 0 && (
-                            <div className="flex items-center justify-between text-emerald-400 font-bold uppercase tracking-widest text-xs">
-                                <span>Input Tax Credit (ITC)</span>
-                                <span>- {fmt(results.itcAmount)}</span>
-                            </div>
-                        )}
-                        {taxScheme === "composition" && (
-                            <div className="flex items-center justify-between text-amber-400 font-bold uppercase tracking-widest text-xs">
-                                <span>Composition Tax ({results.compositionRate}%)</span>
-                                <span>{fmt(results.compositionTax)}</span>
-                            </div>
-                        )}
+          {/* Item List Section */}
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="mb-8 flex items-center justify-between border-b border-slate-100 pb-5">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Transaction Entries</h3>
+                <span className="rounded-full bg-slate-50 px-3.5 py-1.5 text-[10px] font-bold text-slate-500 border border-slate-200">{items.length} Items</span>
+              </div>
+
+              <div className="space-y-4">
+                {items.length === 0 ? (
+                  <div className="py-16 text-center bg-slate-50/50 rounded-[24px] border border-dashed border-slate-200">
+                      <Package className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-300">No items added yet</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-50 overflow-hidden rounded-[24px] border border-slate-100 shadow-sm">
+                    <div className="bg-slate-50/80 px-6 py-3.5 flex text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+                       <span className="flex-1">Description</span>
+                       <span className="w-20 text-right">Qty/Rate</span>
+                       <span className="w-24 text-right">Total Net</span>
+                       <span className="w-10"></span>
                     </div>
-
-                    <div className="relative mt-2">
-                       <div className="absolute inset-0 rounded-[2.5rem] bg-emerald-600 blur-lg opacity-40"></div>
-                       <div className="relative rounded-[2.5rem] bg-emerald-600 p-8 text-center border border-white/10 shadow-inner">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-2">
-                           {taxScheme === "regular" ? "Net GST Cash Payable" : "Total Tax Liability"}
-                        </p>
-                        <p className="text-5xl font-black tracking-tight">
-                            {fmt(taxScheme === "regular" ? results.netGstPayable : results.compositionTax)}
-                        </p>
-                        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-white/80">
-                            {taxScheme === "regular" ? `${items.length} Packages Mapped` : "Composition Scheme"}
+                    {items.map((item) => (
+                      <div key={item.id} className="group px-6 py-5 flex items-center bg-white hover:bg-slate-50/50 transition-all">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-900 truncate uppercase tracking-tight">{item.name}</p>
+                            <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider">{item.gstRate}% Tax {item.cessRate > 0 && `| ${item.cessRate}% Cess`} | {item.discount}% Disc</p>
+                        </div>
+                        <div className="w-20 text-right">
+                            <p className="text-xs font-bold text-slate-500">{item.quantity} × {fmt(item.unitPrice)}</p>
+                        </div>
+                        <div className="w-24 text-right">
+                            <p className="text-sm font-bold text-slate-900">{fmt(results.items.find(i => i.id === item.id)?.total || 0)}</p>
+                        </div>
+                        <div className="w-10 flex justify-end">
+                            <button onClick={() => removeItem(item.id)} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-200 hover:text-red-500 hover:bg-red-50 transition-all"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+          </div>
+
+          {/* Invoice Summary Report */}
+          <div className="overflow-hidden rounded-[40px] border border-slate-900 bg-slate-900 text-white shadow-2xl">
+              <div className="p-10">
+                <div className="mb-10 flex items-center justify-between border-b border-white/10 pb-8">
+                    <div>
+                        <h3 className="text-xl font-bold tracking-tight">Invoice Summary</h3>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-white/30 mt-1.5">Live Computation</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+                        <Receipt className="h-6 w-6 text-blue-400" />
+                    </div>
+                </div>
+                
+                <div className="space-y-10">
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/20 mb-4">Total Amount Payable</p>
+                    <p className="text-6xl font-black tracking-tighter text-white">{fmt(results.grandTotal)}</p>
+                    <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-white/30">Inclusive of all taxes & cess</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6 border-y border-white/5 py-10">
+                    <div className="text-center group cursor-default">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400/50 mb-3 group-hover:text-blue-400 transition-colors">
+                          {placeOfSupply === "intra" ? "CGST + SGST (50/50)" : "IGST (100%)"}
+                        </p>
+                        <p className="text-3xl font-bold text-blue-400">{fmt(results.totalGst)}</p>
+                    </div>
+                    <div className="text-center border-l border-white/5 group cursor-default">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/20 mb-3 group-hover:text-white/40 transition-colors">Net Taxable Base</p>
+                        <p className="text-3xl font-bold text-white">{fmt(results.subTotal)}</p>
                     </div>
                   </div>
 
-                  {/* Tax Breakdown */}
-                  <div className="mt-12 space-y-6">
-                     <h4 className="flex items-center gap-3 text-xs font-black text-white/40 uppercase tracking-[0.2em]">
-                      <span className="h-[1px] flex-1 bg-white/10"></span>
-                      {taxScheme === "regular" ? "GST Breakdown" : "Scheme Breakdown"}
-                      <span className="h-[1px] flex-1 bg-white/10"></span>
-                    </h4>
-                    <div className="grid gap-4">
-                        {taxScheme === "regular" ? (
-                            placeOfSupply === "intra" ? (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="rounded-3xl bg-white/5 p-5 border border-white/5 hover:bg-white/10 transition-colors">
-                                        <p className="text-[10px] font-black text-white/40 uppercase mb-1">Central Tax</p>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-white/60 font-bold">CGST:</span>
-                                            <span className="font-black text-emerald-400">{fmt(results.cgst)}</span>
-                                        </div>
-                                    </div>
-                                    <div className="rounded-3xl bg-white/5 p-5 border border-white/5 hover:bg-white/10 transition-colors">
-                                        <p className="text-[10px] font-black text-white/40 uppercase mb-1">State Tax</p>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-white/60 font-bold">SGST:</span>
-                                            <span className="font-black text-emerald-400">{fmt(results.sgst)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="rounded-3xl bg-white/5 p-10 border border-white/5 hover:bg-white/10 transition-colors text-center">
-                                    <p className="text-[10px] font-black text-white/40 uppercase mb-2">Integrated Tax</p>
-                                    <div className="flex justify-center items-baseline gap-2">
-                                        <span className="text-white/60 font-bold text-lg">IGST:</span>
-                                        <span className="text-3xl font-black text-blue-400">{fmt(results.igst)}</span>
-                                    </div>
-                                </div>
-                            )
+                  <div className="space-y-5 px-6">
+                    <div className="flex justify-between items-center opacity-30 hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Discounts Applied</span>
+                      <span className="text-sm font-black text-red-400">-{fmt(results.totalDiscount)}</span>
+                    </div>
+
+                    <div className="space-y-4 pt-6 border-t border-white/5">
+                        {placeOfSupply === "intra" ? (
+                          <>
+                            <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
+                              <span className="text-[11px] font-bold uppercase tracking-widest">CGST Breakdown</span>
+                              <span className="text-sm font-bold">{fmt(results.cgst)}</span>
+                            </div>
+                            <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
+                              <span className="text-[11px] font-bold uppercase tracking-widest">SGST Breakdown</span>
+                              <span className="text-sm font-bold">{fmt(results.sgst)}</span>
+                            </div>
+                          </>
                         ) : (
-                           <div className="rounded-3xl bg-amber-500/10 p-6 border border-amber-500/20 text-center">
-                                <p className="text-xs font-bold text-amber-400 mb-2">Composition Scheme</p>
-                                <p className="text-sm text-white/60 leading-relaxed">
-                                    Output Tax is calculated at <strong>{results.compositionRate}%</strong> of aggregate turnover. 
-                                    Input Tax Credit is not applicable.
-                                </p>
-                           </div>
+                          <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
+                            <span className="text-[11px] font-bold uppercase tracking-widest">Integrated GST (IGST)</span>
+                            <span className="text-sm font-bold">{fmt(results.igst)}</span>
+                          </div>
+                        )}
+                        {results.totalCess > 0 && (
+                          <div className="flex justify-between items-center opacity-50 hover:opacity-100 transition-opacity">
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500">Compensation Cess</span>
+                            <span className="text-sm font-bold text-amber-400">{fmt(results.totalCess)}</span>
+                          </div>
+                        )}
+                        {results.itcAmount > 0 && (
+                          <motion.div initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex justify-between items-center bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20">
+                            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">ITC Claimed Offset</span>
+                            <span className="text-lg font-black text-emerald-400">-{fmt(results.itcAmount)}</span>
+                          </motion.div>
                         )}
                     </div>
                   </div>
 
-                  <div className="mt-10 grid grid-cols-2 gap-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={exportToCSV}
-                      className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 py-5 text-sm font-black text-white uppercase tracking-widest transition-all hover:bg-white/20"
-                    >
-                      <Receipt className="h-4 w-4" />
-                      Export
-                    </motion.button>
-                     <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => window.print()}
-                      className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-5 text-sm font-black text-white uppercase tracking-widest transition-all hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Print Bill
-                    </motion.button>
+                  <div className="mt-6 rounded-[24px] bg-white/[0.03] p-8 border border-white/10 shadow-inner">
+                      <div className="flex justify-between items-center">
+                         <div>
+                            <span className="text-xs font-bold uppercase tracking-widest text-white/30">Net GST Cash Payable</span>
+                            <p className="text-[9px] font-bold text-white/10 mt-1 uppercase tracking-wider">{taxScheme === "composition" ? "Composition Scheme Rate" : (results.itcAmount > 0 ? "Utilizing Input Credits" : "Standard Liability")}</p>
+                         </div>
+                         <span className="text-4xl font-black text-white">{fmt(taxScheme === "composition" ? results.compositionTax : (isRcm ? 0 : results.netGstPayable))}</span>
+                      </div>
+                  </div>
+
+                  {showMarginMode && (
+                    <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="rounded-[24px] bg-emerald-500/5 p-8 border border-emerald-500/10 mt-8">
+                       <div className="mb-6 flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400/50">Profit Margin Analysis</span>
+                          <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                             <Target className="h-4 w-4 text-emerald-400" />
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-10">
+                          <div className="flex-1">
+                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">Expected Margin %</p>
+                            <input type="number" value={margin} onChange={e => setMargin(Number(e.target.value))} className="w-full bg-transparent text-3xl font-black text-white outline-none border-b border-white/5 pb-2 focus:border-emerald-500/50 transition-colors" />
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">Estimated Profit</p>
+                            <p className="text-3xl font-black text-emerald-400">{fmt(results.subTotal * (margin / 100))}</p>
+                          </div>
+                       </div>
+                    </motion.div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 pt-6">
+                    <button onClick={exportToCSV} className="flex items-center justify-center gap-2 rounded-[20px] border border-white/10 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-white/5 active:scale-95 transition-all">
+                      <Download className="h-4 w-4" /> Export Data
+                    </button>
+                    <button onClick={() => window.print()} className="flex items-center justify-center gap-2 rounded-[20px] bg-blue-600 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-blue-500 hover:shadow-xl hover:shadow-blue-600/20 active:scale-95 transition-all">
+                      <Printer className="h-4 w-4" /> Print Invoice
+                    </button>
                   </div>
                 </div>
               </div>
-
-              {/* ITC Input Panel */}
-              {taxScheme === "regular" && (
-                <div className="rounded-[var(--radius-xl)] border-2 border-emerald-500/10 bg-emerald-50/20 p-8 shadow-sm">
-                    <div className="mb-6 flex items-center justify-between">
-                        <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.2em] text-emerald-800">
-                            <ShoppingCart className="h-4 w-4" />
-                            Input Tax Credit (ITC)
-                        </h4>
-                        <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">{inputGstRate}% Purchase Rate</span>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="group rounded-2xl bg-white p-4 border border-emerald-100 shadow-sm focus-within:border-emerald-500 transition-all">
-                            <label className="mb-1 block text-[10px] font-bold text-gray-400 uppercase">Total Purchases (Excl. Tax)</label>
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-emerald-600">₹</span>
-                                <input
-                                    type="number"
-                                    value={inputPurchases || ""}
-                                    placeholder="0.00"
-                                    onChange={e => setInputPurchases(Number(e.target.value))}
-                                    className="w-full bg-transparent font-black text-emerald-700 outline-none"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between px-2">
-                            <span className="text-xs font-bold text-gray-400 uppercase">Available Credit:</span>
-                            <span className="font-black text-emerald-600">+{fmt(results.itcAmount)}</span>
-                        </div>
-                    </div>
-                </div>
-              )}
-
-              {/* Summary Note */}
-              <div className="rounded-[var(--radius-xl)] border-2 border-emerald-500/10 bg-white p-8 shadow-sm">
-                <h4 className="mb-4 flex items-center gap-2 font-bold text-[var(--fg)]">
-                  <Info className="h-5 w-5 text-emerald-600" />
-                   {taxScheme === "regular" ? "ITC Optimization" : "Composition Rules"}
-                </h4>
-                <div className="text-xs text-[var(--fg-muted)] space-y-4">
-                  {taxScheme === "regular" ? (
-                    <p className="leading-relaxed">
-                        Input Tax Credit (ITC) allows you to reduce the tax you have already paid on inputs (purchases) from your output tax liability.
-                        Current Offset: <strong>{fmt(results.itcAmount)}</strong>.
-                    </p>
-                  ) : (
-                    <p className="leading-relaxed">
-                        Dealers under the composition scheme pay a flat tax of <strong>{results.compositionRate}%</strong> on their total turnover. 
-                        <strong>Note:</strong> ITC cannot be claimed, and GST cannot be collected from customers.
-                    </p>
-                  )}
-                  <ul className="space-y-3">
-                    <li className="flex gap-3">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Calculations reflect 2025 GST compliance standards.</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
-
-function setGstRateManually(rate: number) {
-    // This helper is used to keep consistency in the UI if needed
 }

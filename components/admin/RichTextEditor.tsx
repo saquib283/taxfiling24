@@ -159,10 +159,11 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         const data = await res.json();
         editor.chain().focus().setImage({ src: data.url }).run();
       } else {
-        alert("Failed to upload image");
+        const data = await res.json();
+        alert(data.error || "Failed to upload image");
       }
-    } catch {
-      alert("Something went wrong uploading file");
+    } catch (err: any) {
+      alert(`Upload error: ${err.message}`);
     }
   }, [editor]);
 

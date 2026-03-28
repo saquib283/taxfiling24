@@ -51,6 +51,21 @@
   --font-sans: var(--font-outfit);
 }
 
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+  width: 100%;
+  max-width: 80rem; /* 1280px - matching max-w-7xl */
+  
+  @media (min-width: 640px) {
+    padding-inline: 1.5rem;
+  }
+  
+  @media (min-width: 1024px) {
+    padding-inline: 2rem;
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }

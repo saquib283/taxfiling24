@@ -41,13 +41,33 @@ export async function POST(request: Request) {
     
     const uploadDir = join(process.cwd(), "public", "uploads");
     
+    // Debug logging for production diagnosis
+    console.log(`[Upload API] Attempting to upload to: ${uploadDir}`);
+
     // Ensure upload directory exists
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
+    try {
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true });
+        console.log(`[Upload API] Created directory: ${uploadDir}`);
+      }
+    } catch (mkdirError: any) {
+      console.error(`[Upload API] Failed to create directory: ${mkdirError.message}`);
+      return NextResponse.json({ 
+        error: `Storage error: Failed to create upload directory. ${mkdirError.message}` 
+      }, { status: 500 });
     }
 
     const path = join(uploadDir, filename);
-    await writeFile(path, buffer);
+    
+    try {
+      await writeFile(path, buffer);
+      console.log(`[Upload API] Successfully wrote file: ${path}`);
+    } catch (writeError: any) {
+      console.error(`[Upload API] Failed to write file: ${writeError.message}`);
+      return NextResponse.json({ 
+        error: `Storage error: Failed to write file to disk. ${writeError.message}. This usually happens on serverless platforms (like Vercel) where the filesystem is read-only.` 
+      }, { status: 500 });
+    }
     
     // Return the URL for the client to use
     return NextResponse.json({ 
@@ -57,6 +77,7 @@ export async function POST(request: Request) {
       type: file.type,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error(`[Upload API] Unexpected error: ${error.message}`);
+    return NextResponse.json({ error: `Server error: ${error.message}` }, { status: 500 });
   }
 }

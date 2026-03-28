@@ -6,7 +6,7 @@ import {
   Calculator, Info, CheckCircle2, AlertCircle, HelpCircle, 
   TrendingUp, Home, Briefcase, Wallet, PieChart, ArrowRight,
   User, ShieldCheck, Landmark, Plus, Minus,
-  Smartphone, Users, Glasses
+  Smartphone, Users, Glasses, Target, Download, Printer, Search
 } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
@@ -272,6 +272,28 @@ export default function TaxCalculator() {
     calculateTax();
   }, [salary, rentalIncome, otherIncome, professionalIncome, businessExpenses, deduction80C, deduction80D, deduction80D_Parents, deductionNPS, homeLoanInterest, deduction80G, deduction80E, deduction80TTA, hra, otherDeductions, ageGroup, financialYear, showHraAssistant, basicSalary, hraReceived, rentPaid, isMetro, stcgEquity, ltcgEquity, stcgOther, ltcgOther, monthsDelay234A, monthsDelay234B, taxPaid]);
 
+  const exportToCSV = () => {
+    const headers = ["Category", "Old Regime", "New Regime"];
+    const rows = [
+      ["Gross Total Income", formatCurrency(results.grossTotalIncome), formatCurrency(results.grossTotalIncome)],
+      ["Surcharge", formatCurrency(results.surchargeOld), formatCurrency(results.surchargeNew)],
+      ["Taxable Income", formatCurrency(results.taxableOld), formatCurrency(results.taxableNew)],
+      ["Final Tax Payable", formatCurrency(results.oldTax), formatCurrency(results.newTax)],
+      ["Net Savings", "", formatCurrency(results.savings)],
+      ["Recommended", "", results.better]
+    ];
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tax_report_${financialYear}_${Date.now()}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -281,519 +303,282 @@ export default function TaxCalculator() {
   };
 
   return (
-    <section id="calculator" className="bg-white pt-12 pb-20 lg:pt-16 lg:pb-28">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <AnimatedSection className="mb-16 text-center">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--primary)]/10 px-6 py-2 text-sm font-bold tracking-wider text-[var(--primary)] uppercase">
-            <Calculator className="h-4 w-4" />
-            Advanced Tax Planner
-          </span>
-          <h2 className="mb-5 text-4xl font-extrabold text-[var(--fg)] sm:text-5xl">
-            India Income Tax Calculator <span className="text-[var(--primary)]">2024-25</span>
-          </h2>
-          <p className="mx-auto max-w-2xl text-lg text-[var(--fg-muted)]">
-            Plan your taxes smart. Compare Old vs New regimes with granular inputs for all sections of the Income Tax Act. Updated for current Budget slabs.
-          </p>
+    <section className="relative bg-slate-50 py-16 lg:py-24" id="tax-calculator">
+      <div className="mx-auto px-4 max-w-3xl">
+        <AnimatedSection className="mb-12 text-center">
+            <h2 className="mb-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Tax Calculator <span className="text-blue-600">FY 2025-26</span>
+            </h2>
+            <p className="mx-auto max-w-xl text-sm text-slate-500 leading-relaxed">
+                A professional assessment of the Old vs New tax regimes tailored for the latest financial regulations.
+            </p>
         </AnimatedSection>
 
-        <div className="mb-12 flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
-          <div className="inline-flex rounded-2xl bg-[var(--bg-muted)] p-1.5 shadow-inner">
+        {/* Global Controls */}
+        <div className="mb-10 flex flex-col items-center justify-center gap-4">
+          <div className="inline-flex h-11 items-center justify-center rounded-xl bg-white p-1 border border-slate-200 shadow-sm">
             <button
-              onClick={() => setActiveTab("standard")}
-              className={`flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold transition-all ${activeTab === "standard" ? "bg-white text-[var(--primary)] shadow-md" : "text-[var(--fg-soft)] hover:text-[var(--fg)]"}`}
+              onClick={() => setAgeGroup("citizen")}
+              className={`flex items-center h-full px-6 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${ageGroup === "citizen" ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <User className="h-4 w-4" />
-              Standard Mode
+              General
             </button>
             <button
-              onClick={() => setActiveTab("expert")}
-              className={`flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold transition-all ${activeTab === "expert" ? "bg-white text-[var(--primary)] shadow-md" : "text-[var(--fg-soft)] hover:text-[var(--fg)]"}`}
+              onClick={() => setAgeGroup("senior")}
+              className={`flex items-center h-full px-6 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${ageGroup === "senior" ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <Briefcase className="h-4 w-4" />
-              Expert Mode
+              Senior
             </button>
-          </div>
-
-          <div className="inline-flex rounded-2xl bg-blue-50 p-1.5 border border-blue-100">
-             {[ "2024-25", "2025-26" ].map((fy) => (
-                <button
-                  key={fy}
-                  onClick={() => setFinancialYear(fy as any)}
-                  className={`rounded-xl px-6 py-2.5 text-xs font-black transition-all ${financialYear === fy ? "bg-blue-600 text-white shadow-lg" : "text-blue-600/50 hover:text-blue-600"}`}
-                >
-                  FY {fy}
-                </button>
-             ))}
+            <button
+              onClick={() => setAgeGroup("super-senior")}
+              className={`flex items-center h-full px-6 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${ageGroup === "super-senior" ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:text-slate-600"}`}
+            >
+              Super Senior
+            </button>
           </div>
         </div>
 
-        <div className="grid gap-12 lg:gap-20 lg:grid-cols-12 max-w-7xl mx-auto">
-          {/* Inputs Panel */}
-          <div className="lg:col-span-7">
-            <div className="space-y-8">
-              {/* Age Group Selector */}
-              <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-md)]">
-                <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-[var(--fg)]">
-                  <ShieldCheck className="h-5 w-5 text-[var(--primary)]" />
-                  Taxpayer Profile
-                </h3>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                  {[
-                    { id: "citizen", label: "Normal", desc: "Under 60 years", icon: <User className="h-6 w-6" /> },
-                    { id: "senior", label: "Senior", desc: "60 - 80 years", icon: <Users className="h-6 w-6" /> },
-                    { id: "super-senior", label: "Super Senior", desc: "80+ years", icon: <Glasses className="h-6 w-6" /> }
-                  ].map((group) => (
-                    <button
-                      key={group.id}
-                      onClick={() => setAgeGroup(group.id as AgeGroup)}
-                      className={`group flex flex-col items-center justify-center text-center rounded-3xl border-2 p-6 transition-all ${ageGroup === group.id ? "border-[var(--primary)] bg-[var(--primary)]/5 shadow-sm" : "border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-gray-50"}`}
+        <div className="space-y-8">
+          {/* Income Panel */}
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+              <div className="mb-8 border-b border-slate-100 pb-5">
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Income Sources</h3>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">Primary sources of earnings</p>
+              </div>
+
+              <div className="space-y-6">
+                <InputWrapper label="Base Salary" icon={<Briefcase className="h-4 w-4" />}>
+                  <input
+                    type="number"
+                    value={salary || ""}
+                    placeholder="0"
+                    onChange={(e) => setSalary(Number(e.target.value))}
+                    className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none placeholder:text-slate-300"
+                  />
+                </InputWrapper>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <InputWrapper label="Rental Income" icon={<Home className="h-4 w-4" />}>
+                    <input
+                      type="number"
+                      value={rentalIncome || ""}
+                      placeholder="0"
+                      onChange={(e) => setRentalIncome(Number(e.target.value))}
+                      className="w-full bg-transparent text-base font-bold text-slate-900 outline-none placeholder:text-slate-300"
+                    />
+                  </InputWrapper>
+                  <InputWrapper label="Other Income" icon={<HelpCircle className="h-4 w-4" />}>
+                    <input
+                      type="number"
+                      value={otherIncome || ""}
+                      placeholder="0"
+                      onChange={(e) => setOtherIncome(Number(e.target.value))}
+                      className="w-full bg-transparent text-base font-bold text-slate-900 outline-none placeholder:text-slate-300"
+                    />
+                  </InputWrapper>
+                </div>
+
+                <div className="pt-2">
+                    <button 
+                      onClick={() => setProfessionalIncome(professionalIncome === 0 ? 500000 : 0)} 
+                      className="text-xs font-bold text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors inline-flex items-center gap-2 group"
                     >
-                      <div className={`mb-3 flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${ageGroup === group.id ? "bg-[var(--primary)] text-white" : "bg-[var(--bg-muted)] text-[var(--fg-muted)] group-hover:bg-[var(--primary)]/10 group-hover:text-[var(--primary)]"}`}>
-                        {group.icon}
+                      <div className="h-5 w-5 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                        {professionalIncome > 0 ? <Minus className="h-3 w-3" /> : <Plus className="h-3 w-3" />} 
                       </div>
-                      <span className={`text-lg font-bold ${ageGroup === group.id ? "text-[var(--primary)]" : "text-[var(--fg)]"}`}>{group.label}</span>
-                      <span className="mt-1 text-xs text-[var(--fg-muted)]">{group.desc}</span>
+                      Professional / Business Income
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Income Sources Panel */}
-              <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-md)]">
-                <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-[var(--fg)]">
-                  <Landmark className="h-5 w-5 text-[var(--primary)]" />
-                  Income Details
-                </h3>
-                <div className="space-y-6">
-                  <div className="rounded-3xl bg-[var(--bg-muted)]/50 p-6 lg:p-8">
-                    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <label className="text-sm font-bold text-[var(--fg-muted)] uppercase tracking-wider">Salary (Annual)</label>
-                        <p className="text-xs text-[var(--fg-soft)]">Total CTC or Gross Annual Salary</p>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-[var(--fg-muted)]">₹</span>
-                        <input
-                          type="number"
-                          value={salary}
-                          onChange={(e) => setSalary(Number(e.target.value))}
-                          className="w-full rounded-2xl border border-[var(--border)] bg-white py-3 pl-10 pr-4 font-black text-[var(--primary)] outline-none transition-all focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 sm:w-48"
-                        />
-                      </div>
-                    </div>
-                    <div className="relative px-2">
-                       <input
-                        type="range"
-                        min="0"
-                        max="10000000"
-                        step="50000"
-                        value={salary}
-                        onChange={(e) => setSalary(Number(e.target.value))}
-                        className="h-3 w-full appearance-none rounded-full bg-white transition-all accent-[var(--primary)] cursor-pointer shadow-inner border border-[var(--border)]"
-                      />
-                      <div className="mt-4 flex justify-between text-[10px] font-bold text-[var(--fg-soft)] uppercase tracking-widest">
-                        <span>Min ₹0</span>
-                        <span>₹50L</span>
-                        <span>Max ₹1Cr+</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <AnimatePresence>
-                    {activeTab === "expert" && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-6 overflow-hidden pt-4 border-t border-[var(--border)]"
-                      >
-                        <div className="grid gap-6 sm:grid-cols-2">
-                          <InputWrapper label="Rental Income" icon={<Home className="h-4 w-4" />}>
-                            <input
-                              type="number"
-                              value={rentalIncome}
-                              onChange={(e) => setRentalIncome(Number(e.target.value))}
-                              className="w-full bg-transparent font-bold outline-none"
-                            />
-                          </InputWrapper>
-                          <InputWrapper label="Other Sources" icon={<Wallet className="h-4 w-4" />}>
-                            <input
-                              type="number"
-                              value={otherIncome}
-                              onChange={(e) => setOtherIncome(Number(e.target.value))}
-                              className="w-full bg-transparent font-bold outline-none"
-                            />
-                          </InputWrapper>
-                        </div>
-                        <div className="grid gap-6 sm:grid-cols-2">
-                           <InputWrapper label="Professional Income" icon={<Briefcase className="h-4 w-4" />}>
-                            <input
-                              type="number"
-                              value={professionalIncome}
-                              onChange={(e) => setProfessionalIncome(Number(e.target.value))}
-                              className="w-full bg-transparent font-bold outline-none"
-                            />
-                          </InputWrapper>
-                          <InputWrapper label="Business Expenses" icon={<TrendingUp className="h-4 w-4" />}>
-                            <input
-                              type="number"
-                              value={businessExpenses}
-                              onChange={(e) => setBusinessExpenses(Number(e.target.value))}
-                              className="w-full bg-transparent font-bold outline-none"
-                            />
-                          </InputWrapper>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {/* Deductions Panel */}
-              <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-md)]">
-                <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-[var(--fg)]">
-                  <ShieldCheck className="h-5 w-5 text-[var(--primary)]" />
-                  Tax Saving Deductions (Old Regime)
-                </h3>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <InputWrapper label="Section 80C (Max 1.5L)" sub="PPF, LIC, ELSS...">
-                    <input
-                      type="number"
-                      value={deduction80C}
-                      onChange={(e) => setDeduction80C(Number(e.target.value))}
-                      className="w-full bg-transparent font-bold outline-none"
-                    />
-                  </InputWrapper>
-                  <InputWrapper label="Section 80D (Health Insurance)">
-                    <input
-                      type="number"
-                      value={deduction80D}
-                      onChange={(e) => setDeduction80D(Number(e.target.value))}
-                      className="w-full bg-transparent font-bold outline-none"
-                    />
-                  </InputWrapper>
-
-                  <AnimatePresence>
-                    {activeTab === "expert" && (
-                      <>
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="space-y-12 pt-8 border-t border-[var(--border)]"
-                        >
-                        {/* Capital Gains & Deductions */}
-                        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                          <div className="sm:col-span-2 lg:col-span-3">
-                             <h4 className="flex items-center gap-2 text-lg font-black uppercase text-blue-600 mb-6 font-display">
-                                <TrendingUp className="h-5 w-5" />
-                                Capital Gains (CA Pro)
-                             </h4>
-                             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                                <InputWrapper label="STCG (Equity)" icon={<TrendingUp className="h-4 w-4" />}>
-                                    <input type="number" value={stcgEquity} onChange={e => setStcgEquity(Number(e.target.value))} className="w-full bg-transparent font-bold outline-none" />
-                                </InputWrapper>
-                                <InputWrapper label="LTCG (Equity)" icon={<TrendingUp className="h-4 w-4" />}>
-                                    <input type="number" value={ltcgEquity} onChange={e => setLtcgEquity(Number(e.target.value))} className="w-full bg-transparent font-bold outline-none" />
-                                </InputWrapper>
-                                <InputWrapper label="STCG (Others)" icon={<TrendingUp className="h-4 w-4" />}>
-                                    <input type="number" value={stcgOther} onChange={e => setStcgOther(Number(e.target.value))} className="w-full bg-transparent font-bold outline-none" />
-                                </InputWrapper>
-                                <InputWrapper label="LTCG (Others)" icon={<TrendingUp className="h-4 w-4" />}>
-                                    <input type="number" value={ltcgOther} onChange={e => setLtcgOther(Number(e.target.value))} className="w-full bg-transparent font-bold outline-none" />
-                                </InputWrapper>
-                             </div>
-                             <p className="mt-4 text-[10px] text-[var(--fg-muted)] font-medium">
-                                * Equity LTCG: 12.5% taxation after 1.25L exemption. STCG: 20%. Other rates apply as per Budget 2024.
-                             </p>
-                          </div>
-
-                          <div className="sm:col-span-2 lg:col-span-3">
-                             <h4 className="flex items-center gap-2 text-lg font-black uppercase text-purple-600 mb-6 mt-4 font-display">
-                                <Calculator className="h-5 w-5" />
-                                Additional Deductions
-                             </h4>
-                             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <InputWrapper label="80G (Donations)" icon={<Plus className="h-4 w-4" />}>
-                                    <input type="number" value={deduction80G} onChange={e => setDeduction80G(Number(e.target.value))} className="w-full bg-transparent font-bold outline-none" />
-                                </InputWrapper>
-                                <InputWrapper label="80E (Edu Loan)" icon={<Plus className="h-4 w-4" />}>
-                                    <input type="number" value={deduction80E} onChange={e => setDeduction80E(Number(e.target.value))} className="w-full bg-transparent font-bold outline-none" />
-                                </InputWrapper>
-                                <InputWrapper label="80TTA (Interest)" icon={<Plus className="h-4 w-4" />}>
-                                    <input type="number" value={deduction80TTA} onChange={e => setDeduction80TTA(Number(e.target.value))} className="w-full bg-transparent font-bold outline-none" />
-                                </InputWrapper>
-                             </div>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-8 sm:grid-cols-2 border-t border-[var(--border)] pt-8">
-                          <InputWrapper label="80CCD(1B) NPS (Max 50K)">
-                            <input
-                              type="number"
-                              value={deductionNPS}
-                              onChange={(e) => setDeductionNPS(Number(e.target.value))}
-                              className="w-full bg-transparent font-bold outline-none"
-                            />
-                          </InputWrapper>
-                           <InputWrapper label="80D (Parents Insurance)">
-                            <input
-                              type="number"
-                              value={deduction80D_Parents}
-                              onChange={(e) => setDeduction80D_Parents(Number(e.target.value))}
-                              className="w-full bg-transparent font-bold outline-none"
-                            />
-                          </InputWrapper>
-                        </div>
-                        
-                        <div className="grid gap-8 sm:grid-cols-2">
-                          <InputWrapper label="Home Loan Int. (Section 24)">
-                            <input
-                              type="number"
-                              value={homeLoanInterest}
-                              onChange={(e) => setHomeLoanInterest(Number(e.target.value))}
-                              className="w-full bg-transparent font-bold outline-none"
-                            />
-                          </InputWrapper>
-                          <div className="sm:col-span-1">
-                             <div className="flex items-center justify-between mb-4 px-2">
-                                <label className="text-sm font-black text-[var(--fg-muted)] uppercase tracking-widest">HRA Exemption</label>
-                                <button 
-                                    onClick={() => setShowHraAssistant(!showHraAssistant)}
-                                    className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-black uppercase transition-all ${showHraAssistant ? "bg-emerald-500 text-white shadow-lg" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-                                >
-                                    {showHraAssistant ? "Assistant Active" : "Use Assistant"}
-                                </button>
-                             </div>
-                             
-                             {showHraAssistant ? (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="grid gap-4 rounded-[2rem] bg-emerald-50/50 p-6 border-2 border-emerald-100"
-                                >
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="rounded-2xl bg-white p-4 border border-emerald-100">
-                                            <span className="text-[10px] font-bold text-emerald-800 uppercase block mb-1">Basic Salary</span>
-                                            <input type="number" value={basicSalary} onChange={e => setBasicSalary(Number(e.target.value))} className="w-full bg-transparent font-black text-emerald-600 outline-none" />
-                                        </div>
-                                        <div className="rounded-2xl bg-white p-4 border border-emerald-100">
-                                            <span className="text-[10px] font-bold text-emerald-800 uppercase block mb-1">HRA Received</span>
-                                            <input type="number" value={hraReceived} onChange={e => setHraReceived(Number(e.target.value))} className="w-full bg-transparent font-black text-emerald-600 outline-none" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="rounded-2xl bg-white p-4 border border-emerald-100">
-                                            <span className="text-[10px] font-bold text-emerald-800 uppercase block mb-1">Rent Paid</span>
-                                            <input type="number" value={rentPaid} onChange={e => setRentPaid(Number(e.target.value))} className="w-full bg-transparent font-black text-emerald-600 outline-none" />
-                                        </div>
-                                        <button 
-                                            onClick={() => setIsMetro(!isMetro)}
-                                            className={`rounded-2xl flex items-center justify-center font-black text-[10px] uppercase transition-all ${isMetro ? "bg-emerald-600 text-white shadow-md" : "bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50"}`}
-                                        >
-                                            {isMetro ? "Metro City" : "Non-Metro"}
-                                        </button>
-                                    </div>
-                                </motion.div>
-                             ) : (
-                                <InputWrapper label="HRA / Rent Allowance">
-                                    <input
-                                    type="number"
-                                    value={hra}
-                                    onChange={(e) => setHra(Number(e.target.value))}
-                                    className="w-full bg-transparent font-bold outline-none"
-                                    />
-                                </InputWrapper>
-                             )}
-                          </div>
-                      </div>
-                    </motion.div>
                     
-                    {/* Compliance Section (CA Pro) */}
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-3xl bg-red-50/50 p-6 border border-red-100"
-                    >
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="rounded-lg bg-red-100 p-2 text-red-600">
-                          <AlertCircle className="h-5 w-5" />
-                        </div>
-                        <h4 className="text-lg font-bold text-gray-900">Late Filing/Payment Interest (Sec 234)</h4>
-                      </div>
-                      
-                      <div className="grid gap-6 sm:grid-cols-3">
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-700">TDS/TCS/Tax Already Paid</label>
-                          <input
-                            type="number"
-                            value={taxPaid || ""}
-                            onChange={(e) => setTaxPaid(Number(e.target.value))}
-                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 focus:border-[var(--primary)] focus:outline-none"
-                            placeholder="₹0"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-700">Delay in ITR (234A Months)</label>
-                          <input
-                            type="number"
-                            value={monthsDelay234A || ""}
-                            onChange={(e) => setMonthsDelay234A(Number(e.target.value))}
-                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 focus:border-[var(--primary)] focus:outline-none"
-                            placeholder="0"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-700">Default Adv. Tax (234B Months)</label>
-                          <input
-                            type="number"
-                            value={monthsDelay234B || ""}
-                            onChange={(e) => setMonthsDelay234B(Number(e.target.value))}
-                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 focus:border-[var(--primary)] focus:outline-none"
-                            placeholder="0"
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
+                    <AnimatePresence>
+                      {professionalIncome > 0 && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-4">
+                           <div className="grid gap-4 sm:grid-cols-2">
+                              <InputWrapper label="Gross Receipts" icon={<Users className="h-4 w-4" />}>
+                                <input type="number" value={professionalIncome || ""} onChange={(e) => setProfessionalIncome(Number(e.target.value))} className="w-full bg-transparent text-base font-bold text-slate-900 outline-none" />
+                              </InputWrapper>
+                              <InputWrapper label="Net Expenses" icon={<PieChart className="h-4 w-4" />}>
+                                <input type="number" value={businessExpenses || ""} onChange={(e) => setBusinessExpenses(Number(e.target.value))} className="w-full bg-transparent text-base font-bold text-slate-900 outline-none" />
+                              </InputWrapper>
+                           </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                </div>
+              </div>
           </div>
-        </div>
-      </div>
 
-          {/* Results Analytics Panel */}
-          <div className="lg:col-span-5">
-            <div className="sticky top-28 space-y-8">
-              <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--fg)] p-10 text-white shadow-[var(--shadow-xl)] relative overflow-hidden">
-                {/* Visual Decoration */}
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[var(--primary)] opacity-10 blur-[80px]"></div>
-                <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-600 opacity-10 blur-[80px]"></div>
-                
-                <div className="relative z-10">
-                  <div className="mb-10 flex items-center justify-between">
+          {/* Deductions Panel */}
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+              <div className="mb-8 border-b border-slate-100 pb-5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Tax Deductions</h3>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">Old Regime Exemptions</p>
+                </div>
+                <button 
+                  onClick={() => setShowHraAssistant(!showHraAssistant)} 
+                  className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border flex items-center gap-2 ${showHraAssistant ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  HRA Guide
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <AnimatePresence>
+                  {showHraAssistant && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-blue-50/30 rounded-2xl p-6 border border-blue-100/50 mb-6">
+                        <div className="flex items-center gap-2 mb-5">
+                           <Landmark className="h-4 w-4 text-blue-500" />
+                           <p className="text-xs font-bold uppercase text-blue-600 tracking-widest">HRA Calculator Assistant</p>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 mb-4">
+                           <InputWrapper label="Basic Salary" icon={<Smartphone className="h-3.5 w-3.5" />}><input type="number" value={basicSalary} onChange={e => setBasicSalary(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                           <InputWrapper label="HRA Received" icon={<Briefcase className="h-3.5 w-3.5" />}><input type="number" value={hraReceived} onChange={e => setHraReceived(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                           <InputWrapper label="Rent Paid" icon={<Home className="h-3.5 w-3.5" />}><input type="number" value={rentPaid} onChange={e => setRentPaid(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                           <div className="flex items-center justify-between px-5 bg-white rounded-2xl border border-slate-100 h-[72px]">
+                              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Metro City?</span>
+                              <button onClick={() => setIsMetro(!isMetro)} className={`flex h-8 w-13 items-center rounded-full p-1 transition-all ${isMetro ? "bg-blue-600" : "bg-slate-200"}`}><div className={`h-6 w-6 rounded-full bg-white shadow-sm transition-all ${isMetro ? "translate-x-5" : "translate-x-0"}`} /></button>
+                           </div>
+                        </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <InputWrapper label="Sec 80C (Max 1.5L)" sub="PPF, LIC, ELSS..." icon={<Target className="h-4 w-4" />}>
+                    <input type="number" value={deduction80C} onChange={(e) => setDeduction80C(Number(e.target.value))} className="w-full bg-transparent text-base font-bold text-slate-900 outline-none" />
+                  </InputWrapper>
+                  <InputWrapper label="Sec 80D (Self)" icon={<ShieldCheck className="h-4 w-4" />}>
+                    <input type="number" value={deduction80D} onChange={(e) => setDeduction80D(Number(e.target.value))} className="w-full bg-transparent text-base font-bold text-slate-900 outline-none" />
+                  </InputWrapper>
+                </div>
+
+                <div className="pt-2">
+                    <details className="group border-t border-slate-100">
+                        <summary className="list-none py-5 cursor-pointer flex items-center justify-between group">
+                           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Advanced Deductions & Equity</span>
+                           <div className="h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 transition-all">
+                              <Plus className="h-3.5 w-3.5 text-slate-400 group-open:rotate-45 transition-all" />
+                           </div>
+                        </summary>
+                        <div className="space-y-6 pb-6">
+                           <div className="grid gap-4 sm:grid-cols-2">
+                              <InputWrapper label="80D Parents" icon={<Users className="h-3.5 w-3.5" />}><input type="number" value={deduction80D_Parents} onChange={e => setDeduction80D_Parents(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                              <InputWrapper label="NPS 80CCD(1B)" icon={<Glasses className="h-3.5 w-3.5" />}><input type="number" value={deductionNPS} onChange={e => setDeductionNPS(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                              <InputWrapper label="Home Loan Int." icon={<Landmark className="h-3.5 w-3.5" />}><input type="number" value={homeLoanInterest} onChange={e => setHomeLoanInterest(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                              <InputWrapper label="Other 80G/E..." icon={<HelpCircle className="h-3.5 w-3.5" />}><input type="number" value={otherDeductions} onChange={e => setOtherDeductions(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                           </div>
+                           
+                           <div className="rounded-xl border border-slate-100 bg-slate-50 p-5 mt-6">
+                              <p className="text-[9px] font-bold uppercase text-slate-400 mb-4 tracking-widest flex items-center gap-2 rounded-lg"><TrendingUp className="h-3.5 w-3.5" /> Capital Gains (Equity Only)</p>
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                 <InputWrapper label="STCG (Short Term)" icon={<Briefcase className="h-3.5 w-3.5" />}><input type="number" value={stcgEquity} onChange={e => setStcgEquity(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                                 <InputWrapper label="LTCG (Long Term)" icon={<Wallet className="h-3.5 w-3.5" />}><input type="number" value={ltcgEquity} onChange={e => setLtcgEquity(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                              </div>
+                           </div>
+                        </div>
+                    </details>
+                </div>
+              </div>
+          </div>
+
+          {/* Compliance & Advance Tax */}
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+             <div className="mb-8 border-b border-slate-100 pb-5">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight">Payments & Compliance</h3>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">TDS, Advance tax, and delay interests</p>
+             </div>
+             <div className="grid gap-4 sm:grid-cols-2">
+                <InputWrapper label="TDS / Advance Tax Paid" icon={<Target className="h-4 w-4" />}>
+                   <input type="number" value={taxPaid} onChange={e => setTaxPaid(Number(e.target.value))} className="w-full bg-transparent text-base font-bold text-slate-900 outline-none" />
+                </InputWrapper>
+                <div className="grid grid-cols-2 gap-4">
+                  <InputWrapper label="234A Delay" sub="Months" icon={<AlertCircle className="h-3.5 w-3.5" />}><input type="number" value={monthsDelay234A} onChange={e => setMonthsDelay234A(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                  <InputWrapper label="234B Delay" sub="Months" icon={<AlertCircle className="h-3.5 w-3.5" />}><input type="number" value={monthsDelay234B} onChange={e => setMonthsDelay234B(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none" /></InputWrapper>
+                </div>
+             </div>
+          </div>
+
+          {/* Results Analysis Panel */}
+          <div className="overflow-hidden rounded-2xl border border-slate-900 bg-slate-900 text-white shadow-xl">
+              <div className="p-8 pb-10">
+                <div className="mb-8 flex items-center justify-between border-b border-white/10 pb-6">
                     <div>
-                        <h3 className="text-3xl font-black">Plan Summary</h3>
-                        <p className="text-sm text-white/50">Detailed tax estimation</p>
+                        <h3 className="text-lg font-bold tracking-tight">Tax Report</h3>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1">AY {financialYear === "2024-25" ? "2025-26" : "2026-27"}</p>
                     </div>
-                    <div className="relative h-20 w-20">
-                        {/* Simple SVG Donut Chart */}
-                        <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                            <circle cx="18" cy="18" r="16" fill="none" className="stroke-white/10" strokeWidth="4" />
-                            <circle 
-                                cx="18" cy="18" r="16" fill="none" 
-                                className="stroke-[var(--primary)] transition-all duration-1000" 
-                                strokeWidth="4" 
-                                strokeDasharray={`${Math.min(100, (results.better === "New Regime" ? results.newTax : results.oldTax) / results.grossTotalIncome * 100)} 100`}
-                                strokeLinecap="round"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-[10px] font-black">
-                            <span>{Math.round((results.better === "New Regime" ? results.newTax : results.oldTax) / results.grossTotalIncome * 100)}%</span>
-                            <span className="text-[6px] opacity-40">TAX</span>
-                        </div>
+                    <Landmark className="h-5 w-5 text-blue-400" />
+                </div>
+
+                <div className="space-y-8">
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/30 mb-4">Recommended Strategy</p>
+                    <div className="rounded-full bg-gradient-to-r from-blue-600/20 to-indigo-600/20 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10">
+                        {results.better} SAVES YOU MOST
+                    </div>
+                    <p className="mt-8 text-6xl font-black tracking-tighter text-white">{formatCurrency(results.savings)}</p>
+                    <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-white/40">Total Net Savings Estimate</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-y border-white/5 py-8">
+                    <div className="text-center">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/20 mb-1">Old Regime</p>
+                        <p className="text-xl font-bold text-white/60">{formatCurrency(results.oldTax)}</p>
+                    </div>
+                    <div className="text-center border-l border-white/5">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/20 mb-1">New Regime</p>
+                        <p className="text-xl font-bold text-white">{formatCurrency(results.newTax)}</p>
                     </div>
                   </div>
-  
-                  <div className="grid gap-8">
-                    <div className="flex items-center justify-between rounded-3xl bg-white/5 p-6 border border-white/5">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1">Gross Total Income</p>
-                        <p className="text-3xl font-black">{formatCurrency(results.grossTotalIncome)}</p>
-                      </div>
-                      <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
-                        <Landmark className="h-6 w-6 text-white/60" />
-                      </div>
+
+                  <div className="space-y-4 px-4 pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Taxable Income</span>
+                      <span className="text-sm font-bold">{formatCurrency(results.better === "New Regime" ? results.taxableNew : results.taxableOld)}</span>
                     </div>
-  
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className={`rounded-3xl border p-6 transition-all ${results.better === "Old Regime" ? "border-[var(--success)] bg-[var(--success)]/10 ring-4 ring-[var(--success)]/10" : "border-white/10 bg-white/5"}`}>
-                        <div className="mb-4 flex items-center gap-2">
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/50">Old Regime</p>
-                            {results.better === "Old Regime" && <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />}
-                        </div>
-                        <p className="text-2xl font-black">{formatCurrency(results.oldTax)}</p>
-                        {results.better === "Old Regime" && <span className="mt-2 inline-flex rounded-full bg-[var(--success)]/20 px-3 py-1 text-[9px] font-bold text-[var(--success)] uppercase tracking-wider">Recommended</span>}
-                      </div>
-                      <div className={`rounded-3xl border p-6 transition-all ${results.better === "New Regime" ? "border-[var(--success)] bg-[var(--success)]/10 ring-4 ring-[var(--success)]/10" : "border-white/10 bg-white/5"}`}>
-                        <div className="mb-4 flex items-center gap-2">
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/50">New Regime</p>
-                            {results.better === "New Regime" && <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />}
-                        </div>
-                        <p className="text-2xl font-black">{formatCurrency(results.newTax)}</p>
-                        {results.better === "New Regime" && <span className="mt-2 inline-flex rounded-full bg-[var(--success)]/20 px-3 py-1 text-[9px] font-bold text-[var(--success)] uppercase tracking-wider">Recommended</span>}
-                      </div>
-                    </div>
-  
-                        <div className="flex items-center justify-between text-white/40 font-bold uppercase tracking-widest text-xs">
-                            <span>Assessment Year</span>
-                            <span className="text-white">{financialYear === "2024-25" ? "2025-26" : "2026-27"}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-white/40 font-bold uppercase tracking-widest text-xs">
-                            <span>Total Take-Home (Est.)</span>
-                            <span className="text-emerald-400">{formatCurrency(results.grossTotalIncome - (results.better === "New Regime" ? results.newTax : results.oldTax))}</span>
-                        </div>
-                  </div>
-  
-                  {/* Tax Breakdown */}
-                  <div className="mt-12 space-y-6">
-                     <h4 className="flex items-center gap-3 text-xs font-black text-white/40 uppercase tracking-[0.2em]">
-                      <span className="h-[1px] flex-1 bg-white/10"></span>
-                      Tax Breakdown
-                      <span className="h-[1px] flex-1 bg-white/10"></span>
-                    </h4>
-                    <div className="space-y-4 rounded-3xl bg-white/5 p-6 border border-white/5">
+
+                    {(results.interest234A > 0 || results.interest234B > 0) && (
+                       <div className="flex justify-between items-center border-y border-white/5 py-3">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Delay Interest (234A/B)</span>
+                          <span className="text-sm font-bold text-red-400">{formatCurrency(results.interest234A + results.interest234B)}</span>
+                       </div>
+                    )}
+                    
+                    <div className="space-y-2 border-t border-white/5 pt-4">
                       {(results.better === "New Regime" ? results.breakdownNew : results.breakdownOld).map((b: { slab: string; tax: number }, i: number) => (
-                        <div key={i} className="flex justify-between text-sm items-center">
-                          <span className="text-white/40 font-medium">{b.slab}</span>
-                          <span className="font-bold text-white/90">{formatCurrency(b.tax)}</span>
+                        <div key={i} className="flex justify-between items-center opacity-60">
+                          <span className="text-[10px] font-medium uppercase tracking-wider">{b.slab}</span>
+                          <span className="text-xs font-bold">{formatCurrency(b.tax)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between border-t border-white/10 pt-4 text-sm font-black">
-                        <span className="text-white/60">Cess (4%)</span>
-                        <span className="text-[var(--primary-soft)]">{formatCurrency((results.better === "New Regime" ? results.newTax : results.oldTax) * 0.04 / 1.04)}</span>
-                      </div>
                     </div>
                   </div>
-  
-                  <motion.button
-                    whileHover={{ scale: 1.02, backgroundColor: "var(--primary)" }}
-                    whileTap={{ scale: 0.98 }}
-                    className="mt-10 flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-5 text-lg font-black text-[var(--fg)] transition-all"
-                  >
-                    Expert Consultation
-                    <ArrowRight className="h-5 w-5" />
-                  </motion.button>
+
+                  {results.totalPayable !== (results.better === "New Regime" ? results.newTax : results.oldTax) && (
+                     <div className="mt-6 rounded-xl bg-white/5 p-5 border border-white/10">
+                        <div className="flex justify-between items-center">
+                           <span className="text-sm font-bold uppercase tracking-widest text-white/50">Total Final Payable</span>
+                           <span className="text-2xl font-bold text-blue-400">{formatCurrency(results.totalPayable)}</span>
+                        </div>
+                     </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 pt-4">
+                    <button 
+                      onClick={exportToCSV}
+                      className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-white/5 active:scale-95 transition-all"
+                    >
+                      <Download className="h-4 w-4" /> Download Statement
+                    </button>
+                    <button 
+                      onClick={() => window.print()}
+                      className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-blue-500 hover:shadow-xl hover:shadow-blue-600/20 active:scale-95 transition-all"
+                    >
+                      <Printer className="h-4 w-4" /> Print Summary
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Planning Tips */}
-              <div className="rounded-[var(--radius-xl)] border border-[var(--primary)]/20 bg-[var(--accent-soft)]/30 p-8 shadow-sm">
-                <h4 className="mb-4 flex items-center gap-2 font-bold text-[var(--fg)]">
-                  <Info className="h-5 w-5 text-[var(--primary)]" />
-                  Tax Optimization Tips
-                </h4>
-                <ul className="space-y-4 text-sm text-[var(--fg-muted)]">
-                  {deduction80C < 150000 && (
-                    <li className="flex gap-2">
-                      <Plus className="h-4 w-4 shrink-0 text-[var(--success)]" />
-                      <span>Invest <strong>{formatCurrency(150000 - deduction80C)}</strong> more in 80C to save tax in Old Regime.</span>
-                    </li>
-                  )}
-                  {deductionNPS < 50000 && (
-                    <li className="flex gap-2">
-                      <Plus className="h-4 w-4 shrink-0 text-[var(--success)]" />
-                      <span>Contribution to NPS (80CCD) can save you an additional <strong>{formatCurrency(50000 - deductionNPS)}</strong>.</span>
-                    </li>
-                  )}
-                  <li className="flex gap-2">
-                    <ArrowRight className="h-4 w-4 shrink-0 text-[var(--primary)]" />
-                    <span>Always keep your Rent Receipts and Form 16 ready for verification.</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -803,16 +588,18 @@ export default function TaxCalculator() {
 
 function InputWrapper({ label, children, sub, icon }: { label: string; children: React.ReactNode; sub?: string; icon?: React.ReactNode }) {
   return (
-    <div className="group rounded-3xl border border-[var(--border)] bg-gray-50/50 p-6 transition-all focus-within:border-[var(--primary)] focus-within:bg-white focus-within:shadow-xl focus-within:shadow-[var(--primary)]/5">
-      <div className="mb-3 flex items-center gap-2 text-xs font-black text-[var(--fg-muted)] uppercase tracking-[0.1em]">
-        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-white shadow-sm border border-[var(--border)] group-focus-within:bg-[var(--primary)] group-focus-within:text-white transition-colors">
-            {icon ? icon : <Plus className="h-3 w-3" />}
+    <div className="group rounded-[24px] border border-slate-100 bg-slate-50/30 p-5 transition-all focus-within:border-blue-200 focus-within:bg-white focus-within:shadow-md">
+      <div className="mb-3.5 flex items-center gap-3.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-100 bg-white text-slate-300 group-focus-within:text-blue-500 shadow-sm transition-all group-focus-within:shadow-blue-100">
+            {icon ? icon : <Landmark className="h-4 w-4" />}
         </div>
-        {label}
+        <div>
+          <span className="block text-xs font-bold uppercase tracking-widest text-slate-400">{label}</span>
+          {sub && <p className="text-[9px] font-bold uppercase text-slate-300 tracking-wider leading-tight">{sub}</p>}
+        </div>
       </div>
-      <div className="relative pl-8">
+      <div className="relative">
         {children}
-        {sub && <p className="mt-2 text-[10px] font-medium text-[var(--fg-soft)]">{sub}</p>}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, Search } from "lucide-react";
 import { FileCheck } from "lucide-react";
  
 interface NavItem {
@@ -17,10 +17,17 @@ interface NavItem {
   }[];
 }
 
-export default function Navbar({ settings = {} }: { settings?: Record<string, string> }) {
+export default function Navbar({ 
+  settings = {}, 
+  dynamicServices = [] 
+}: { 
+  settings?: Record<string, string>,
+  dynamicServices?: { title: string; slug: string }[]
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const hardcodedNavItems: NavItem[] = [
     { href: "/", label: "Home", visible: true },
@@ -52,17 +59,39 @@ export default function Navbar({ settings = {} }: { settings?: Record<string, st
   const [navItems, setNavItems] = useState(hardcodedNavItems);
 
   useEffect(() => {
+    let baseItems = [...hardcodedNavItems];
+    
+    if (dynamicServices && dynamicServices.length > 0) {
+      const servicesIndex = baseItems.findIndex(item => item.label === "Services");
+      if (servicesIndex !== -1) {
+        baseItems[servicesIndex] = {
+          ...baseItems[servicesIndex],
+          children: [
+            { href: "/services", label: "All Services", visible: true },
+            ...dynamicServices.map(s => ({
+              href: `/services/${s.slug}`,
+              label: s.title,
+              visible: true
+            }))
+          ]
+        };
+      }
+    }
+
     if (settings.NAVBAR_CONFIG) {
       try {
         const config = JSON.parse(settings.NAVBAR_CONFIG);
         if (Array.isArray(config) && config.length > 0) {
           setNavItems(config);
+          return;
         }
       } catch (err) {
         console.error("Failed to parse NAVBAR_CONFIG:", err);
       }
     }
-  }, [settings.NAVBAR_CONFIG]);
+    
+    setNavItems(baseItems);
+  }, [settings.NAVBAR_CONFIG, dynamicServices]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -109,16 +138,45 @@ export default function Navbar({ settings = {} }: { settings?: Record<string, st
                     {item.label}
                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
                   </button>
-                  <div className="absolute top-full left-0 mt-1 w-52 bg-white border border-[var(--border)] rounded-xl shadow-[var(--shadow-md)] py-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 overflow-hidden">
-                    {item.children.map((child: any) => (
-                      <Link 
-                        key={child.href} 
-                        href={child.href}
-                        className="block px-4 py-2.5 text-sm text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] transition-colors"
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-[var(--border)] rounded-xl shadow-[var(--shadow-md)] overflow-hidden hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2">
+                    <div className="p-2 border-b border-[var(--border)] sticky top-0 bg-white z-10">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search services..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto py-1">
+                      {(() => {
+                        const filtered = item.children.filter((child: any) => 
+                          child.label.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+                        
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="px-4 py-3 text-sm text-slate-500 text-center italic">
+                              No services found
+                            </div>
+                          );
+                        }
+                        
+                        return filtered.map((child: any) => (
+                          <Link 
+                            key={child.href} 
+                            href={child.href}
+                            className="block px-4 py-2.5 text-sm text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] transition-colors"
+                          >
+                            {child.label}
+                          </Link>
+                        ));
+                      })()}
+                    </div>
                   </div>
                 </div>
               );
@@ -182,18 +240,50 @@ export default function Navbar({ settings = {} }: { settings?: Record<string, st
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
-                              className="pl-4 space-y-1 bg-gray-50/50 rounded-lg mt-1 mb-1"
+                              className="pl-4 space-y-1 bg-gray-50/50 rounded-lg mt-1 mb-1 overflow-hidden"
                             >
-                              {item.children?.map((child: any) => (
-                                <Link
-                                  key={child.href}
-                                  href={child.href}
-                                  onClick={() => setMobileMenuOpen(false)}
-                                  className="block py-2 px-3 text-xs font-medium text-[var(--fg-muted)] hover:text-[var(--primary)] transition-colors"
-                                >
-                                  {child.label}
-                                </Link>
-                              ))}
+                              <div className="p-2 border-b border-gray-100">
+                                <div className="relative">
+                                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                  <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs focus:outline-none transition-all"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              </div>
+                              <div className="max-h-60 overflow-y-auto py-1">
+                                {(() => {
+                                  const filtered = item.children?.filter((child: any) => 
+                                    child.label.toLowerCase().includes(searchQuery.toLowerCase())
+                                  );
+                                  
+                                  if (filtered?.length === 0) {
+                                    return (
+                                      <div className="px-3 py-2 text-[10px] text-slate-500 italic">
+                                        No results
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  return filtered?.map((child: any) => (
+                                    <Link
+                                      key={child.href}
+                                      href={child.href}
+                                      onClick={() => {
+                                        setMobileMenuOpen(false);
+                                        setSearchQuery("");
+                                      }}
+                                      className="block py-2 px-3 text-xs font-medium text-[var(--fg-muted)] hover:text-[var(--primary)] transition-colors"
+                                    >
+                                      {child.label}
+                                    </Link>
+                                  ));
+                                })()}
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>

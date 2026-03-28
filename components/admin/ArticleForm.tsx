@@ -129,10 +129,11 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
         const data = await res.json();
         setFormData(p => ({ ...p, thumbnailUrl: data.url }));
       } else {
-        setToast({ message: "Failed to upload thumbnail", type: "error" });
+        const data = await res.json();
+        setToast({ message: data.error || "Failed to upload thumbnail", type: "error" });
       }
-    } catch (err) {
-      setToast({ message: "Something went wrong uploading thumbnail", type: "error" });
+    } catch (err: any) {
+      setToast({ message: `Upload error: ${err.message}`, type: "error" });
     }
   };
 
