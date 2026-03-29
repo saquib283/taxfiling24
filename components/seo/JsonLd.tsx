@@ -1,3 +1,5 @@
+import { getSiteContact } from "@/lib/site-contact";
+
 interface JsonLdProps {
   data: Record<string, any> | Record<string, any>[];
 }
@@ -20,8 +22,10 @@ export default function JsonLd({ data }: JsonLdProps) {
 // ─── Schema Generators ───────────────────────────────────────────────
 
 const BASE_URL = "https://taxfiling24.com";
+type SiteSettings = Record<string, string>;
 
-export function organizationSchema() {
+export function organizationSchema(settings: SiteSettings = {}) {
+  const { phone, address, whatsapp } = getSiteContact(settings);
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -33,22 +37,17 @@ export function organizationSchema() {
     foundingDate: "2020",
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: "+91-7011246157",
+      telephone: phone,
       contactType: "customer service",
       areaServed: "IN",
       availableLanguage: ["English", "Hindi"],
     },
     address: {
       "@type": "PostalAddress",
-      streetAddress: "E-244/G First Floor Shaheen Bagh, Okhla",
-      addressLocality: "New Delhi",
-      addressRegion: "Delhi",
-      postalCode: "110025",
+      streetAddress: address,
       addressCountry: "IN",
     },
-    sameAs: [
-      "https://wa.me/917011246157",
-    ],
+    sameAs: [whatsapp],
   };
 }
 
@@ -69,22 +68,20 @@ export function webSiteSchema() {
   };
 }
 
-export function localBusinessSchema() {
+export function localBusinessSchema(settings: SiteSettings = {}) {
+  const { phone, email, address } = getSiteContact(settings);
   return {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
     name: "TaxFiling24",
     url: BASE_URL,
     image: `${BASE_URL}/logo.png`,
-    telephone: "+91-7011246157",
-    email: "support@taxfiling24.com",
+    telephone: phone,
+    email,
     priceRange: "₹₹",
     address: {
       "@type": "PostalAddress",
-      streetAddress: "E-244/G First Floor Shaheen Bagh, Okhla",
-      addressLocality: "New Delhi",
-      addressRegion: "Delhi",
-      postalCode: "110025",
+      streetAddress: address,
       addressCountry: "IN",
     },
     geo: {

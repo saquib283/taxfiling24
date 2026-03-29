@@ -2,12 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Phone, Mail } from "lucide-react";
-import { CONTACT } from "@/lib/constants";
+import { getSiteContact } from "@/lib/site-contact";
 
 export default function PreHeaderBar({ settings = {} }: { settings?: Record<string, string> }) {
-  const phone = settings.contact_phone || CONTACT.phone;
-  const phoneRaw = phone.replace(/\D/g, "");
-  const email = settings.contact_email || CONTACT.email;
+  const { phone, phoneRaw, email } = getSiteContact(settings);
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}

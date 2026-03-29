@@ -8,7 +8,17 @@ import {
 
 export type SettingsMap = Record<string, string>;
 
-export type ManagedPageKey = "home" | "about" | "contact" | "services" | "articles";
+export type ManagedPageKey =
+  | "home"
+  | "about"
+  | "contact"
+  | "services"
+  | "articles"
+  | "global"
+  | "serviceDetail"
+  | "articleDetail"
+  | "taxCalculator"
+  | "gstCalculator";
 export type FieldType = "text" | "textarea" | "url" | "repeater";
 
 export interface ManagedItem {
@@ -184,6 +194,10 @@ const homeTemplates: SectionTemplate[] = [
       textareaField("subheading", "Subheading", SITE_CONTENT_DEFAULTS.hero_subheading),
       textField("primaryCtaLabel", "Primary Button", "Talk To Expert"),
       textField("secondaryCtaLabel", "Secondary Button", "Explore Services"),
+      textField("clientsLabel", "Clients Label", "Happy Clients"),
+      textField("experienceLabel", "Experience Label", "Years of Experience"),
+      textField("expertsTitle", "Expert Card Title", "Certified Experts"),
+      textField("expertsDescription", "Expert Card Description", "CA, CS & Legal Pros"),
       repeaterField(
         "highlights",
         "Trust Highlights",
@@ -204,6 +218,10 @@ const homeTemplates: SectionTemplate[] = [
         subheading: settings.hero_subheading || SITE_CONTENT_DEFAULTS.hero_subheading,
         primaryCtaLabel: settings.hero_cta_primary || "Talk To Expert",
         secondaryCtaLabel: settings.hero_cta_secondary || "Explore Services",
+        clientsLabel: "Happy Clients",
+        experienceLabel: "Years of Experience",
+        expertsTitle: "Certified Experts",
+        expertsDescription: "CA, CS & Legal Pros",
         highlights: [
           { id: "home-hero-highlight-1", text: "No Hidden Charges", isVisible: true },
           { id: "home-hero-highlight-2", text: "Timely Compliance", isVisible: true },
@@ -246,10 +264,18 @@ const homeTemplates: SectionTemplate[] = [
     label: "About Preview",
     description: "Short intro block on the homepage.",
     fields: [
+      textField("introTitle", "Intro Heading", "About Taxfiling24"),
+      textareaField(
+        "introDescription",
+        "Intro Description",
+        "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business."
+      ),
       textField("title", "Title", SITE_CONTENT_DEFAULTS.about_title),
       textareaField("description", "Description", SITE_CONTENT_DEFAULTS.about_description),
       textField("primaryCtaLabel", "Primary Button", "Talk To Expert"),
       textField("secondaryCtaLabel", "Secondary Button", "Schedule Appointment"),
+      textField("clientsLabel", "Clients Label", "Happy Clients"),
+      textField("experienceLabel", "Experience Label", "Years of Experience"),
       repeaterField(
         "features",
         "Feature Cards",
@@ -273,10 +299,15 @@ const homeTemplates: SectionTemplate[] = [
         description: "Short intro block on the homepage.",
         isVisible: true,
         data: {
+          introTitle: "About Taxfiling24",
+          introDescription:
+            "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.",
           title: settings.about_title || SITE_CONTENT_DEFAULTS.about_title,
           description: settings.about_description || SITE_CONTENT_DEFAULTS.about_description,
           primaryCtaLabel: "Talk To Expert",
           secondaryCtaLabel: "Schedule Appointment",
+          clientsLabel: "Happy Clients",
+          experienceLabel: "Years of Experience",
           features: features.map((feature: { title: string; description: string }, index: number) => ({
             id: `home-about-feature-${index + 1}`,
             ...feature,
@@ -293,6 +324,7 @@ const homeTemplates: SectionTemplate[] = [
     fields: [
       textField("title", "Title", "Services We Offer"),
       textareaField("subtext", "Description", "Comprehensive solutions for all your business, tax, and compliance needs"),
+      textField("cardCtaLabel", "Card CTA", "Explore Service"),
     ],
     createSection: (settings = {}) => ({
       id: "home-services",
@@ -303,6 +335,7 @@ const homeTemplates: SectionTemplate[] = [
       data: {
         title: settings.services_title || "Services We Offer",
         subtext: settings.services_subtext || "Comprehensive solutions for all your business, tax, and compliance needs",
+        cardCtaLabel: "Explore Service",
       },
     }),
   },
@@ -829,6 +862,16 @@ const contactTemplates: SectionTemplate[] = [
       textField("title", "Title", "Send us a Message"),
       textareaField("description", "Description", "We typically respond within 24 hours on business days."),
       textField("submitButtonText", "Submit Button", "Submit Application"),
+      textField("fullNameLabel", "Full Name Label", "Full Name"),
+      textField("fullNamePlaceholder", "Full Name Placeholder", "John Doe"),
+      textField("phoneLabel", "Phone Label", "Phone Number"),
+      textField("phonePlaceholder", "Phone Placeholder", "+91 98765 43210"),
+      textField("emailLabel", "Email Label", "Email Address"),
+      textField("emailPlaceholder", "Email Placeholder", "john@example.com"),
+      textField("serviceLabel", "Service Label", "Select Service"),
+      textField("servicePlaceholder", "Service Placeholder", "Choose service"),
+      textField("messageLabel", "Message Label", "Message"),
+      textField("messagePlaceholder", "Message Placeholder", "How can we help you?"),
     ],
     createSection: () => ({
       id: "contact-form",
@@ -840,6 +883,16 @@ const contactTemplates: SectionTemplate[] = [
         title: "Send us a Message",
         description: "We typically respond within 24 hours on business days.",
         submitButtonText: "Submit Application",
+        fullNameLabel: "Full Name",
+        fullNamePlaceholder: "John Doe",
+        phoneLabel: "Phone Number",
+        phonePlaceholder: "+91 98765 43210",
+        emailLabel: "Email Address",
+        emailPlaceholder: "john@example.com",
+        serviceLabel: "Select Service",
+        servicePlaceholder: "Choose service",
+        messageLabel: "Message",
+        messagePlaceholder: "How can we help you?",
       },
     }),
   },
@@ -850,6 +903,7 @@ const contactTemplates: SectionTemplate[] = [
     fields: [
       textField("title", "Title", "Visit Our Headquarters"),
       textareaField("description", "Description", "We are centrally located in New Delhi."),
+      textField("directContactLabel", "Direct Contact Label", "Direct contact:"),
     ],
     createSection: () => ({
       id: "contact-map",
@@ -860,6 +914,7 @@ const contactTemplates: SectionTemplate[] = [
       data: {
         title: "Visit Our Headquarters",
         description: "We are centrally located in New Delhi. Drop by for a coffee and a strategic consultation regarding your corporate compliance.",
+        directContactLabel: "Direct contact:",
       },
     }),
   },
@@ -897,6 +952,43 @@ const servicesTemplates: SectionTemplate[] = [
           { id: "services-hero-stat-2", label: "Speed", value: "24h", isVisible: true },
           { id: "services-hero-stat-3", label: "Accuracy", value: "100%", isVisible: true },
         ],
+      },
+    }),
+  },
+  {
+    type: "services.directory",
+    label: "Directory Labels",
+    description: "Search, filter, and empty-state copy for the services listing.",
+    fields: [
+      textField("allServicesLabel", "All Services Label", "All Services"),
+      textField("searchPlaceholder", "Search Placeholder", "Search services..."),
+      textField("messagePlaceholder", "WhatsApp Message Placeholder", "Your message..."),
+      textField("exploreButtonText", "Card Button", "Explore Full Service"),
+      textField("defaultCategoryLabel", "Default Category Label", "Consultancy"),
+      textField("noResultsTitle", "Empty State Title", "Service Not Found"),
+      textareaField(
+        "noResultsDescription",
+        "Empty State Description",
+        "We're expanding our portfolio. Try another keyword or reach out for custom requirements."
+      ),
+      textField("clearFiltersText", "Clear Filters Label", "Clear all filters"),
+    ],
+    createSection: () => ({
+      id: "services-directory",
+      type: "services.directory",
+      label: "Directory Labels",
+      description: "Search, filter, and empty-state copy for the services listing.",
+      isVisible: true,
+      data: {
+        allServicesLabel: "All Services",
+        searchPlaceholder: "Search services...",
+        messagePlaceholder: "Your message...",
+        exploreButtonText: "Explore Full Service",
+        defaultCategoryLabel: "Consultancy",
+        noResultsTitle: "Service Not Found",
+        noResultsDescription:
+          "We're expanding our portfolio. Try another keyword or reach out for custom requirements.",
+        clearFiltersText: "Clear all filters",
       },
     }),
   },
@@ -957,6 +1049,825 @@ const articlesTemplates: SectionTemplate[] = [
   },
 ];
 
+const globalTemplates: SectionTemplate[] = [
+  {
+    type: "global.navbar",
+    label: "Navbar",
+    description: "Branding and shared navbar labels.",
+    fields: [
+      textField("brandPrefix", "Brand Prefix", "TaxFiling"),
+      textField("brandHighlight", "Brand Highlight", "24"),
+      textField("contactButtonLabel", "Contact Button", "Contact"),
+      textField("searchPlaceholder", "Desktop Search Placeholder", "Search services..."),
+      textField("mobileSearchPlaceholder", "Mobile Search Placeholder", "Search..."),
+      textField("noResultsText", "No Results Text", "No services found"),
+    ],
+    createSection: () => ({
+      id: "global-navbar",
+      type: "global.navbar",
+      label: "Navbar",
+      description: "Branding and shared navbar labels.",
+      isVisible: true,
+      data: {
+        brandPrefix: "TaxFiling",
+        brandHighlight: "24",
+        contactButtonLabel: "Contact",
+        searchPlaceholder: "Search services...",
+        mobileSearchPlaceholder: "Search...",
+        noResultsText: "No services found",
+      },
+    }),
+  },
+  {
+    type: "global.footer",
+    label: "Footer",
+    description: "Footer branding, links, newsletter copy, and credits.",
+    fields: [
+      textareaField(
+        "tagline",
+        "Tagline",
+        "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business."
+      ),
+      textField("newsletterTitle", "Newsletter Title", "Stay Informed"),
+      textareaField(
+        "newsletterDescription",
+        "Newsletter Description",
+        "Subscribe to our newsletter for the latest compliance alerts and tax updates."
+      ),
+      textField("newsletterPlaceholder", "Newsletter Placeholder", "Enter your email"),
+      textField("newsletterButtonText", "Newsletter Button", "Subscribe"),
+      textField("exploreHeading", "Explore Heading", "Explore"),
+      textField("contactHeading", "Contact Heading", "Get in Touch"),
+      repeaterField(
+        "quickLinks",
+        "Quick Links",
+        "Add quick link",
+        [textField("label", "Label", "Home"), urlField("href", "URL", "/")],
+        () => ({ id: "quick-link", isVisible: true, label: "", href: "" })
+      ),
+      repeaterField(
+        "legalLinks",
+        "Legal Links",
+        "Add legal link",
+        [textField("label", "Label", "Privacy Policy"), urlField("href", "URL", "/privacy")],
+        () => ({ id: "legal-link", isVisible: true, label: "", href: "" })
+      ),
+      repeaterField(
+        "socialLinks",
+        "Social Links",
+        "Add social link",
+        [textField("label", "Label", "LinkedIn"), urlField("href", "URL", "#")],
+        () => ({ id: "social-link", isVisible: true, label: "", href: "" })
+      ),
+      textField("copyright", "Copyright", `Copyright ${new Date().getFullYear()} TaxFiling24. All rights reserved.`),
+      textField("developerPrefix", "Developer Prefix", "Developed by"),
+      textField("developerName", "Developer Name", "Md Rehan Saquib"),
+      urlField("developerUrl", "Developer URL", "https://mdrehansaquib.in"),
+    ],
+    createSection: () => ({
+      id: "global-footer",
+      type: "global.footer",
+      label: "Footer",
+      description: "Footer branding, links, newsletter copy, and credits.",
+      isVisible: true,
+      data: {
+        tagline:
+          "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.",
+        newsletterTitle: "Stay Informed",
+        newsletterDescription:
+          "Subscribe to our newsletter for the latest compliance alerts and tax updates.",
+        newsletterPlaceholder: "Enter your email",
+        newsletterButtonText: "Subscribe",
+        exploreHeading: "Explore",
+        contactHeading: "Get in Touch",
+        quickLinks: [
+          { id: "footer-link-1", label: "Home", href: "/", isVisible: true },
+          { id: "footer-link-2", label: "About Us", href: "/about", isVisible: true },
+          { id: "footer-link-3", label: "Services", href: "/services", isVisible: true },
+          { id: "footer-link-4", label: "GST & Tax Tools", href: "/tools/gst-calculator", isVisible: true },
+          { id: "footer-link-5", label: "Contact", href: "/contact", isVisible: true },
+        ],
+        legalLinks: [
+          { id: "legal-link-1", label: "Privacy Policy", href: "/privacy", isVisible: true },
+          { id: "legal-link-2", label: "Terms of Service", href: "/terms", isVisible: true },
+        ],
+        socialLinks: [
+          { id: "social-link-1", label: "Twitter", href: "#", isVisible: true },
+          { id: "social-link-2", label: "Facebook", href: "#", isVisible: true },
+          { id: "social-link-3", label: "LinkedIn", href: "#", isVisible: true },
+          { id: "social-link-4", label: "Instagram", href: "#", isVisible: true },
+        ],
+        copyright: `Copyright ${new Date().getFullYear()} TaxFiling24. All rights reserved.`,
+        developerPrefix: "Developed by",
+        developerName: "Md Rehan Saquib",
+        developerUrl: "https://mdrehansaquib.in",
+      },
+    }),
+  },
+  {
+    type: "global.chatbot",
+    label: "Chatbot",
+    description: "Site-wide chatbot labels, intro copy, and fallback messages.",
+    fields: [
+      textField("whatsappLabel", "WhatsApp Label", "WhatsApp"),
+      textField("assistantLabel", "Assistant Label", "AI Assistant"),
+      textField("headerTitle", "Header Title", "TaxFiling24 Assistant"),
+      textareaField(
+        "welcomeMessage",
+        "Welcome Message",
+        "Hello! I am your TaxFiling24 assistant. How can I help you today?"
+      ),
+      textField("inputPlaceholder", "Input Placeholder", "Ask your question here..."),
+      textField("typingLabel", "Typing Label", "Typing..."),
+      textField("errorPrefix", "Error Prefix", "Error:"),
+      textareaField(
+        "connectionErrorMessage",
+        "Connection Error Message",
+        "Something went wrong. Please check your connection."
+      ),
+    ],
+    createSection: () => ({
+      id: "global-chatbot",
+      type: "global.chatbot",
+      label: "Chatbot",
+      description: "Site-wide chatbot labels, intro copy, and fallback messages.",
+      isVisible: true,
+      data: {
+        whatsappLabel: "WhatsApp",
+        assistantLabel: "AI Assistant",
+        headerTitle: "TaxFiling24 Assistant",
+        welcomeMessage: "Hello! I am your TaxFiling24 assistant. How can I help you today?",
+        inputPlaceholder: "Ask your question here...",
+        typingLabel: "Typing...",
+        errorPrefix: "Error:",
+        connectionErrorMessage: "Something went wrong. Please check your connection.",
+      },
+    }),
+  },
+];
+
+const serviceDetailTemplates: SectionTemplate[] = [
+  {
+    type: "service-detail.hero",
+    label: "Hero",
+    description: "Shared hero copy for all service detail pages.",
+    fields: [
+      textField("backLabel", "Back Label", "Back to Services"),
+      textField("quoteButtonText", "Quote Button", "Request a Quote"),
+      repeaterField(
+        "stats",
+        "Hero Stats",
+        "Add stat",
+        [textField("label", "Label", "Clients Served"), textField("value", "Value", "500+")],
+        () => ({ id: "service-stat", isVisible: true, label: "", value: "" })
+      ),
+    ],
+    createSection: () => ({
+      id: "service-detail-hero",
+      type: "service-detail.hero",
+      label: "Hero",
+      description: "Shared hero copy for all service detail pages.",
+      isVisible: true,
+      data: {
+        backLabel: "Back to Services",
+        quoteButtonText: "Request a Quote",
+        stats: [
+          { id: "service-detail-stat-1", label: "Clients Served", value: "500+", isVisible: true },
+          { id: "service-detail-stat-2", label: "Expert CAs", value: "15+", isVisible: true },
+          { id: "service-detail-stat-3", label: "Compliance Rate", value: "99%", isVisible: true },
+          { id: "service-detail-stat-4", label: "Support", value: "24/7", isVisible: true },
+        ],
+      },
+    }),
+  },
+  {
+    type: "service-detail.overview",
+    label: "Overview",
+    description: "Overview and benefits section labels.",
+    fields: [
+      textField("badge", "Badge", "Service Overview"),
+      textField("title", "Title", "Transparent & Secure Professional Guidance"),
+      textField("benefitsTitle", "Benefits Title", "Key Benefits & Guarantees"),
+    ],
+    createSection: () => ({
+      id: "service-detail-overview",
+      type: "service-detail.overview",
+      label: "Overview",
+      description: "Overview and benefits section labels.",
+      isVisible: true,
+      data: {
+        badge: "Service Overview",
+        title: "Transparent & Secure Professional Guidance",
+        benefitsTitle: "Key Benefits & Guarantees",
+      },
+    }),
+  },
+  {
+    type: "service-detail.subservices",
+    label: "Sub-Services",
+    description: "Sub-service section heading copy.",
+    fields: [
+      textField("title", "Title", "Comprehensive Service Deliverable"),
+      textareaField(
+        "description",
+        "Description",
+        "Explore the structured services and technical inclusions packed in this solution."
+      ),
+    ],
+    createSection: () => ({
+      id: "service-detail-subservices",
+      type: "service-detail.subservices",
+      label: "Sub-Services",
+      description: "Sub-service section heading copy.",
+      isVisible: true,
+      data: {
+        title: "Comprehensive Service Deliverable",
+        description:
+          "Explore the structured services and technical inclusions packed in this solution.",
+      },
+    }),
+  },
+  {
+    type: "service-detail.process",
+    label: "Process",
+    description: "Execution roadmap heading.",
+    fields: [textField("title", "Title", "Standard Execution Roadmap")],
+    createSection: () => ({
+      id: "service-detail-process",
+      type: "service-detail.process",
+      label: "Process",
+      description: "Execution roadmap heading.",
+      isVisible: true,
+      data: {
+        title: "Standard Execution Roadmap",
+      },
+    }),
+  },
+  {
+    type: "service-detail.documents",
+    label: "Documents",
+    description: "Required documents card copy.",
+    fields: [
+      textField("title", "Title", "Required Documents"),
+      textareaField("description", "Description", "Pre-requisites for submitting on the portal"),
+    ],
+    createSection: () => ({
+      id: "service-detail-documents",
+      type: "service-detail.documents",
+      label: "Documents",
+      description: "Required documents card copy.",
+      isVisible: true,
+      data: {
+        title: "Required Documents",
+        description: "Pre-requisites for submitting on the portal",
+      },
+    }),
+  },
+  {
+    type: "service-detail.faq",
+    label: "FAQ",
+    description: "FAQ section title.",
+    fields: [textField("title", "Title", "Frequently Asked Questions")],
+    createSection: () => ({
+      id: "service-detail-faq",
+      type: "service-detail.faq",
+      label: "FAQ",
+      description: "FAQ section title.",
+      isVisible: true,
+      data: {
+        title: "Frequently Asked Questions",
+      },
+    }),
+  },
+  {
+    type: "service-detail.cta",
+    label: "Bottom CTA",
+    description: "Closing CTA block.",
+    fields: [
+      textField("title", "Title", "Require End-to-End Assistance?"),
+      textareaField(
+        "description",
+        "Description",
+        "Get corporate advice. No spam. Simply reliable support backed by certified knowledge."
+      ),
+      textField("primaryButtonText", "Primary Button", "Chat with CA on WhatsApp"),
+      textField("secondaryButtonText", "Secondary Button", "Book a Callback"),
+    ],
+    createSection: () => ({
+      id: "service-detail-cta",
+      type: "service-detail.cta",
+      label: "Bottom CTA",
+      description: "Closing CTA block.",
+      isVisible: true,
+      data: {
+        title: "Require End-to-End Assistance?",
+        description:
+          "Get corporate advice. No spam. Simply reliable support backed by certified knowledge.",
+        primaryButtonText: "Chat with CA on WhatsApp",
+        secondaryButtonText: "Book a Callback",
+      },
+    }),
+  },
+];
+
+const articleDetailTemplates: SectionTemplate[] = [
+  {
+    type: "article-detail.template",
+    label: "Article Template",
+    description: "Shared article detail page labels.",
+    fields: [
+      textField("backLabel", "Back Label", "Back to Articles"),
+      textField("readTimeSuffix", "Read Time Suffix", "min read"),
+    ],
+    createSection: () => ({
+      id: "article-detail-template",
+      type: "article-detail.template",
+      label: "Article Template",
+      description: "Shared article detail page labels.",
+      isVisible: true,
+      data: {
+        backLabel: "Back to Articles",
+        readTimeSuffix: "min read",
+      },
+    }),
+  },
+];
+
+const taxCalculatorTemplates: SectionTemplate[] = [
+  {
+    type: "tax.hero",
+    label: "Hero",
+    description: "Tax calculator page heading.",
+    fields: [
+      textField("titlePrefix", "Title Prefix", "Tax Calculator"),
+      textField("titleHighlight", "Title Highlight", "FY 2025-26"),
+      textareaField(
+        "description",
+        "Description",
+        "A professional assessment of the Old vs New tax regimes tailored for the latest financial regulations."
+      ),
+    ],
+    createSection: () => ({
+      id: "tax-hero",
+      type: "tax.hero",
+      label: "Hero",
+      description: "Tax calculator page heading.",
+      isVisible: true,
+      data: {
+        titlePrefix: "Tax Calculator",
+        titleHighlight: "FY 2025-26",
+        description:
+          "A professional assessment of the Old vs New tax regimes tailored for the latest financial regulations.",
+      },
+    }),
+  },
+  {
+    type: "tax.income",
+    label: "Income Panel",
+    description: "Age group and income panel labels.",
+    fields: [
+      textField("citizenLabel", "General Label", "General"),
+      textField("seniorLabel", "Senior Label", "Senior"),
+      textField("superSeniorLabel", "Super Senior Label", "Super Senior"),
+      textField("panelTitle", "Panel Title", "Income Sources"),
+      textField("panelSubtitle", "Panel Subtitle", "Primary sources of earnings"),
+      textField("salaryLabel", "Salary Label", "Base Salary"),
+      textField("rentalLabel", "Rental Label", "Rental Income"),
+      textField("otherIncomeLabel", "Other Income Label", "Other Income"),
+      textField("businessToggleLabel", "Business Toggle Label", "Professional / Business Income"),
+      textField("grossReceiptsLabel", "Gross Receipts Label", "Gross Receipts"),
+      textField("netExpensesLabel", "Net Expenses Label", "Net Expenses"),
+    ],
+    createSection: () => ({
+      id: "tax-income",
+      type: "tax.income",
+      label: "Income Panel",
+      description: "Age group and income panel labels.",
+      isVisible: true,
+      data: {
+        citizenLabel: "General",
+        seniorLabel: "Senior",
+        superSeniorLabel: "Super Senior",
+        panelTitle: "Income Sources",
+        panelSubtitle: "Primary sources of earnings",
+        salaryLabel: "Base Salary",
+        rentalLabel: "Rental Income",
+        otherIncomeLabel: "Other Income",
+        businessToggleLabel: "Professional / Business Income",
+        grossReceiptsLabel: "Gross Receipts",
+        netExpensesLabel: "Net Expenses",
+      },
+    }),
+  },
+  {
+    type: "tax.deductions",
+    label: "Deductions Panel",
+    description: "Deductions and HRA helper labels.",
+    fields: [
+      textField("panelTitle", "Panel Title", "Tax Deductions"),
+      textField("panelSubtitle", "Panel Subtitle", "Old Regime Exemptions"),
+      textField("hraGuideLabel", "HRA Guide Button", "HRA Guide"),
+      textField("hraAssistantTitle", "HRA Assistant Title", "HRA Calculator Assistant"),
+      textField("basicSalaryLabel", "Basic Salary Label", "Basic Salary"),
+      textField("hraReceivedLabel", "HRA Received Label", "HRA Received"),
+      textField("rentPaidLabel", "Rent Paid Label", "Rent Paid"),
+      textField("metroLabel", "Metro Label", "Metro City?"),
+      textField("section80cLabel", "80C Label", "Sec 80C (Max 1.5L)"),
+      textField("section80cSubtext", "80C Subtext", "PPF, LIC, ELSS..."),
+      textField("section80dLabel", "80D Label", "Sec 80D (Self)"),
+      textField("advancedLabel", "Advanced Toggle Label", "Advanced Deductions & Equity"),
+      textField("parents80dLabel", "80D Parents Label", "80D Parents"),
+      textField("npsLabel", "NPS Label", "NPS 80CCD(1B)"),
+      textField("homeLoanLabel", "Home Loan Label", "Home Loan Int."),
+      textField("otherDeductionsLabel", "Other Deductions Label", "Other 80G/E..."),
+      textField("capitalGainsTitle", "Capital Gains Title", "Capital Gains (Equity Only)"),
+      textField("stcgLabel", "STCG Label", "STCG (Short Term)"),
+      textField("ltcgLabel", "LTCG Label", "LTCG (Long Term)"),
+    ],
+    createSection: () => ({
+      id: "tax-deductions",
+      type: "tax.deductions",
+      label: "Deductions Panel",
+      description: "Deductions and HRA helper labels.",
+      isVisible: true,
+      data: {
+        panelTitle: "Tax Deductions",
+        panelSubtitle: "Old Regime Exemptions",
+        hraGuideLabel: "HRA Guide",
+        hraAssistantTitle: "HRA Calculator Assistant",
+        basicSalaryLabel: "Basic Salary",
+        hraReceivedLabel: "HRA Received",
+        rentPaidLabel: "Rent Paid",
+        metroLabel: "Metro City?",
+        section80cLabel: "Sec 80C (Max 1.5L)",
+        section80cSubtext: "PPF, LIC, ELSS...",
+        section80dLabel: "Sec 80D (Self)",
+        advancedLabel: "Advanced Deductions & Equity",
+        parents80dLabel: "80D Parents",
+        npsLabel: "NPS 80CCD(1B)",
+        homeLoanLabel: "Home Loan Int.",
+        otherDeductionsLabel: "Other 80G/E...",
+        capitalGainsTitle: "Capital Gains (Equity Only)",
+        stcgLabel: "STCG (Short Term)",
+        ltcgLabel: "LTCG (Long Term)",
+      },
+    }),
+  },
+  {
+    type: "tax.compliance",
+    label: "Compliance Panel",
+    description: "Advance-tax and delay label copy.",
+    fields: [
+      textField("panelTitle", "Panel Title", "Payments & Compliance"),
+      textField("panelSubtitle", "Panel Subtitle", "TDS, Advance tax, and delay interests"),
+      textField("taxPaidLabel", "Tax Paid Label", "TDS / Advance Tax Paid"),
+      textField("delay234ALabel", "234A Label", "234A Delay"),
+      textField("delay234BLabel", "234B Label", "234B Delay"),
+      textField("monthsLabel", "Months Label", "Months"),
+    ],
+    createSection: () => ({
+      id: "tax-compliance",
+      type: "tax.compliance",
+      label: "Compliance Panel",
+      description: "Advance-tax and delay label copy.",
+      isVisible: true,
+      data: {
+        panelTitle: "Payments & Compliance",
+        panelSubtitle: "TDS, Advance tax, and delay interests",
+        taxPaidLabel: "TDS / Advance Tax Paid",
+        delay234ALabel: "234A Delay",
+        delay234BLabel: "234B Delay",
+        monthsLabel: "Months",
+      },
+    }),
+  },
+  {
+    type: "tax.results",
+    label: "Results Panel",
+    description: "Tax report summary labels and CTAs.",
+    fields: [
+      textField("panelTitle", "Panel Title", "Tax Report"),
+      textField("recommendedLabel", "Recommended Label", "Recommended Strategy"),
+      textField("strategySuffix", "Strategy Suffix", "SAVES YOU MOST"),
+      textField("savingsLabel", "Savings Label", "Total Net Savings Estimate"),
+      textField("oldRegimeLabel", "Old Regime Label", "Old Regime"),
+      textField("newRegimeLabel", "New Regime Label", "New Regime"),
+      textField("taxableIncomeLabel", "Taxable Income Label", "Taxable Income"),
+      textField("delayInterestLabel", "Delay Interest Label", "Delay Interest (234A/B)"),
+      textField("totalPayableLabel", "Total Payable Label", "Total Final Payable"),
+      textField("downloadLabel", "Download Button", "Download Statement"),
+      textField("printLabel", "Print Button", "Print Summary"),
+    ],
+    createSection: () => ({
+      id: "tax-results",
+      type: "tax.results",
+      label: "Results Panel",
+      description: "Tax report summary labels and CTAs.",
+      isVisible: true,
+      data: {
+        panelTitle: "Tax Report",
+        recommendedLabel: "Recommended Strategy",
+        strategySuffix: "SAVES YOU MOST",
+        savingsLabel: "Total Net Savings Estimate",
+        oldRegimeLabel: "Old Regime",
+        newRegimeLabel: "New Regime",
+        taxableIncomeLabel: "Taxable Income",
+        delayInterestLabel: "Delay Interest (234A/B)",
+        totalPayableLabel: "Total Final Payable",
+        downloadLabel: "Download Statement",
+        printLabel: "Print Summary",
+      },
+    }),
+  },
+];
+
+const gstCalculatorTemplates: SectionTemplate[] = [
+  {
+    type: "gst.hero",
+    label: "Hero",
+    description: "GST calculator page heading.",
+    fields: [
+      textField("titlePrefix", "Title Prefix", "GST &"),
+      textField("titleHighlight", "Title Highlight", "Invoicing"),
+      textareaField(
+        "description",
+        "Description",
+        "Professional itemized billing and tax calculations compliant with the latest GST regulations."
+      ),
+    ],
+    createSection: () => ({
+      id: "gst-hero",
+      type: "gst.hero",
+      label: "Hero",
+      description: "GST calculator page heading.",
+      isVisible: true,
+      data: {
+        titlePrefix: "GST &",
+        titleHighlight: "Invoicing",
+        description:
+          "Professional itemized billing and tax calculations compliant with the latest GST regulations.",
+      },
+    }),
+  },
+  {
+    type: "gst.controls",
+    label: "Controls",
+    description: "Top control labels.",
+    fields: [
+      textField("exclusiveLabel", "Exclusive Label", "Exclusive"),
+      textField("inclusiveLabel", "Inclusive Label", "Inclusive"),
+      textField("marginLabel", "Margin Label", "Margin"),
+      textField("regularLabel", "Regular Label", "Regular"),
+      textField("compositionLabel", "Composition Label", "Composition"),
+    ],
+    createSection: () => ({
+      id: "gst-controls",
+      type: "gst.controls",
+      label: "Controls",
+      description: "Top control labels.",
+      isVisible: true,
+      data: {
+        exclusiveLabel: "Exclusive",
+        inclusiveLabel: "Inclusive",
+        marginLabel: "Margin",
+        regularLabel: "Regular",
+        compositionLabel: "Composition",
+      },
+    }),
+  },
+  {
+    type: "gst.entry",
+    label: "Item Entry",
+    description: "Item entry form and preset search labels.",
+    fields: [
+      textField("panelTitle", "Panel Title", "Add Item"),
+      textField("panelSubtitle", "Panel Subtitle", "Goods or Services entry"),
+      textField("goodsLabel", "Goods Label", "goods"),
+      textField("servicesLabel", "Services Label", "services"),
+      textField("searchPlaceholderGoods", "Goods Search Placeholder", "Search HSN presets..."),
+      textField("searchPlaceholderServices", "Services Search Placeholder", "Search SAC presets..."),
+      textField("noPresetResultsText", "No Preset Results Text", "No matching presets found"),
+      textField("unitPriceLabel", "Unit Price Label", "Unit Price"),
+      textField("quantityLabel", "Quantity Label", "Qty"),
+      textField("gstRateLabel", "GST Rate Label", "GST %"),
+      textField("discountLabel", "Discount Label", "Discount %"),
+      textField("cessLabel", "Cess Label", "Cess %"),
+      textField("addItemLabel", "Add Item Button", "Add Item"),
+      textField("messagePlaceholder", "Item Name Placeholder", "Standard Product"),
+    ],
+    createSection: () => ({
+      id: "gst-entry",
+      type: "gst.entry",
+      label: "Item Entry",
+      description: "Item entry form and preset search labels.",
+      isVisible: true,
+      data: {
+        panelTitle: "Add Item",
+        panelSubtitle: "Goods or Services entry",
+        goodsLabel: "goods",
+        servicesLabel: "services",
+        searchPlaceholderGoods: "Search HSN presets...",
+        searchPlaceholderServices: "Search SAC presets...",
+        noPresetResultsText: "No matching presets found",
+        unitPriceLabel: "Unit Price",
+        quantityLabel: "Qty",
+        gstRateLabel: "GST %",
+        discountLabel: "Discount %",
+        cessLabel: "Cess %",
+        addItemLabel: "Add Item",
+        messagePlaceholder: "Standard Product",
+      },
+    }),
+  },
+  {
+    type: "gst.compliance",
+    label: "Compliance & ITC",
+    description: "Place-of-supply and ITC card labels.",
+    fields: [
+      textField("placeOfSupplyTitle", "Place of Supply Title", "Place of Supply"),
+      textField("intraLabel", "Intra-State Label", "Intra-State"),
+      textField("interLabel", "Inter-State Label", "Inter-State"),
+      textField("reverseChargeTitle", "Reverse Charge Title", "Reverse Charge"),
+      textField("reverseChargeDescription", "Reverse Charge Description", "Tax paid by recipient"),
+      textField("itcTitle", "ITC Title", "Purchase Inputs (ITC)"),
+      textField("itcSubtitle", "ITC Subtitle", "Offset your tax liability"),
+      textField("totalPurchasesLabel", "Total Purchases Label", "Total Purchases"),
+      textField("inputGstLabel", "Input GST Label", "Input GST %"),
+    ],
+    createSection: () => ({
+      id: "gst-compliance",
+      type: "gst.compliance",
+      label: "Compliance & ITC",
+      description: "Place-of-supply and ITC card labels.",
+      isVisible: true,
+      data: {
+        placeOfSupplyTitle: "Place of Supply",
+        intraLabel: "Intra-State",
+        interLabel: "Inter-State",
+        reverseChargeTitle: "Reverse Charge",
+        reverseChargeDescription: "Tax paid by recipient",
+        itcTitle: "Purchase Inputs (ITC)",
+        itcSubtitle: "Offset your tax liability",
+        totalPurchasesLabel: "Total Purchases",
+        inputGstLabel: "Input GST %",
+      },
+    }),
+  },
+  {
+    type: "gst.entries",
+    label: "Entries List",
+    description: "Transaction list labels and empty state.",
+    fields: [
+      textField("title", "Title", "Transaction Entries"),
+      textField("itemCountSuffix", "Item Count Suffix", "Items"),
+      textField("emptyStateText", "Empty State Text", "No items added yet"),
+      textField("descriptionColumn", "Description Column", "Description"),
+      textField("quantityColumn", "Quantity Column", "Qty/Rate"),
+      textField("totalColumn", "Total Column", "Total Net"),
+    ],
+    createSection: () => ({
+      id: "gst-entries",
+      type: "gst.entries",
+      label: "Entries List",
+      description: "Transaction list labels and empty state.",
+      isVisible: true,
+      data: {
+        title: "Transaction Entries",
+        itemCountSuffix: "Items",
+        emptyStateText: "No items added yet",
+        descriptionColumn: "Description",
+        quantityColumn: "Qty/Rate",
+        totalColumn: "Total Net",
+      },
+    }),
+  },
+  {
+    type: "gst.summary",
+    label: "Summary",
+    description: "Invoice summary labels and CTAs.",
+    fields: [
+      textField("panelTitle", "Panel Title", "Invoice Summary"),
+      textField("panelSubtitle", "Panel Subtitle", "Live Computation"),
+      textField("totalPayableLabel", "Total Payable Label", "Total Amount Payable"),
+      textField("totalPayableDescription", "Total Payable Description", "Inclusive of all taxes & cess"),
+      textField("taxableBaseLabel", "Taxable Base Label", "Net Taxable Base"),
+      textField("discountsLabel", "Discounts Label", "Discounts Applied"),
+      textField("cgstLabel", "CGST Label", "CGST Breakdown"),
+      textField("sgstLabel", "SGST Label", "SGST Breakdown"),
+      textField("igstLabel", "IGST Label", "Integrated GST (IGST)"),
+      textField("cessBreakdownLabel", "Cess Label", "Compensation Cess"),
+      textField("itcOffsetLabel", "ITC Offset Label", "ITC Claimed Offset"),
+      textField("netGstLabel", "Net GST Label", "Net GST Cash Payable"),
+      textField("standardDescription", "Standard Description", "Standard Liability"),
+      textField("creditDescription", "Credit Description", "Utilizing Input Credits"),
+      textField("compositionDescription", "Composition Description", "Composition Scheme Rate"),
+      textField("exportLabel", "Export Button", "Export Data"),
+      textField("printLabel", "Print Button", "Print Invoice"),
+      textField("marginAnalysisTitle", "Margin Analysis Title", "Profit Margin Analysis"),
+      textField("expectedMarginLabel", "Expected Margin Label", "Expected Margin %"),
+      textField("estimatedProfitLabel", "Estimated Profit Label", "Estimated Profit"),
+    ],
+    createSection: () => ({
+      id: "gst-summary",
+      type: "gst.summary",
+      label: "Summary",
+      description: "Invoice summary labels and CTAs.",
+      isVisible: true,
+      data: {
+        panelTitle: "Invoice Summary",
+        panelSubtitle: "Live Computation",
+        totalPayableLabel: "Total Amount Payable",
+        totalPayableDescription: "Inclusive of all taxes & cess",
+        taxableBaseLabel: "Net Taxable Base",
+        discountsLabel: "Discounts Applied",
+        cgstLabel: "CGST Breakdown",
+        sgstLabel: "SGST Breakdown",
+        igstLabel: "Integrated GST (IGST)",
+        cessBreakdownLabel: "Compensation Cess",
+        itcOffsetLabel: "ITC Claimed Offset",
+        netGstLabel: "Net GST Cash Payable",
+        standardDescription: "Standard Liability",
+        creditDescription: "Utilizing Input Credits",
+        compositionDescription: "Composition Scheme Rate",
+        exportLabel: "Export Data",
+        printLabel: "Print Invoice",
+        marginAnalysisTitle: "Profit Margin Analysis",
+        expectedMarginLabel: "Expected Margin %",
+        estimatedProfitLabel: "Estimated Profit",
+      },
+    }),
+  },
+  {
+    type: "gst.goods-presets",
+    label: "Goods Presets",
+    description: "Editable HSN preset rows.",
+    fields: [
+      repeaterField(
+        "items",
+        "Goods Presets",
+        "Add goods preset",
+        [
+          textField("hsn", "HSN", "8471"),
+          textField("desc", "Description", "Laptops / Computers"),
+          textField("rate", "Rate", "18"),
+          textField("category", "Category", "Electronics"),
+        ],
+        () => ({ id: "goods-preset", isVisible: true, hsn: "", desc: "", rate: "", category: "" })
+      ),
+    ],
+    createSection: () => ({
+      id: "gst-goods-presets",
+      type: "gst.goods-presets",
+      label: "Goods Presets",
+      description: "Editable HSN preset rows.",
+      isVisible: true,
+      data: {
+        items: [
+          { id: "goods-preset-1", hsn: "0101", desc: "Live Horses", rate: "0", category: "Agriculture", isVisible: true },
+          { id: "goods-preset-2", hsn: "2106", desc: "Food Preparations", rate: "18", category: "Food", isVisible: true },
+          { id: "goods-preset-3", hsn: "3004", desc: "Medicaments / Medicines", rate: "5", category: "Pharma", isVisible: true },
+          { id: "goods-preset-4", hsn: "8471", desc: "Laptops / Computers", rate: "18", category: "Electronics", isVisible: true },
+          { id: "goods-preset-5", hsn: "8517", desc: "Mobile Phones", rate: "18", category: "Electronics", isVisible: true },
+        ],
+      },
+    }),
+  },
+  {
+    type: "gst.service-presets",
+    label: "Service Presets",
+    description: "Editable SAC preset rows.",
+    fields: [
+      repeaterField(
+        "items",
+        "Service Presets",
+        "Add service preset",
+        [
+          textField("hsn", "SAC", "9993"),
+          textField("desc", "Description", "CA / Professional Services"),
+          textField("rate", "Rate", "18"),
+          textField("category", "Category", "Professional"),
+        ],
+        () => ({ id: "service-preset", isVisible: true, hsn: "", desc: "", rate: "", category: "" })
+      ),
+    ],
+    createSection: () => ({
+      id: "gst-service-presets",
+      type: "gst.service-presets",
+      label: "Service Presets",
+      description: "Editable SAC preset rows.",
+      isVisible: true,
+      data: {
+        items: [
+          { id: "service-preset-1", hsn: "9954", desc: "Construction Services", rate: "18", category: "Construction", isVisible: true },
+          { id: "service-preset-2", hsn: "9963", desc: "Hotel stays < Rs. 7,500/day", rate: "5", category: "Hospitality", isVisible: true },
+          { id: "service-preset-3", hsn: "9983", desc: "IT / Software Services", rate: "18", category: "IT", isVisible: true },
+          { id: "service-preset-4", hsn: "9993", desc: "CA / Professional Services", rate: "18", category: "Professional", isVisible: true },
+        ],
+      },
+    }),
+  },
+];
+
 function getPageTemplates(key: ManagedPageKey) {
   switch (key) {
     case "home":
@@ -969,6 +1880,16 @@ function getPageTemplates(key: ManagedPageKey) {
       return servicesTemplates;
     case "articles":
       return articlesTemplates;
+    case "global":
+      return globalTemplates;
+    case "serviceDetail":
+      return serviceDetailTemplates;
+    case "articleDetail":
+      return articleDetailTemplates;
+    case "taxCalculator":
+      return taxCalculatorTemplates;
+    case "gstCalculator":
+      return gstCalculatorTemplates;
   }
 }
 
@@ -1009,6 +1930,41 @@ export function getManagedPageDefinition(key: ManagedPageKey): ManagedPageDefini
       route: "/articles",
       settingKey: "page_content_articles",
     },
+    global: {
+      key: "global",
+      label: "Global Layout",
+      description: "Navbar and footer content used across the entire website.",
+      route: "All pages",
+      settingKey: "page_content_global",
+    },
+    serviceDetail: {
+      key: "serviceDetail",
+      label: "Service Detail Template",
+      description: "Shared copy for all individual service detail pages.",
+      route: "/services/[slug]",
+      settingKey: "page_content_service_detail",
+    },
+    articleDetail: {
+      key: "articleDetail",
+      label: "Article Detail Template",
+      description: "Shared copy for article detail pages.",
+      route: "/articles/[slug]",
+      settingKey: "page_content_article_detail",
+    },
+    taxCalculator: {
+      key: "taxCalculator",
+      label: "Tax Calculator",
+      description: "Income tax calculator page copy and labels.",
+      route: "/tools/tax-calculator",
+      settingKey: "page_content_tax_calculator",
+    },
+    gstCalculator: {
+      key: "gstCalculator",
+      label: "GST Calculator",
+      description: "GST calculator page copy, labels, and preset tables.",
+      route: "/tools/gst-calculator",
+      settingKey: "page_content_gst_calculator",
+    },
   };
 
   return {
@@ -1018,9 +1974,20 @@ export function getManagedPageDefinition(key: ManagedPageKey): ManagedPageDefini
 }
 
 export function getManagedPageDefinitions() {
-  return (["home", "about", "contact", "services", "articles"] as ManagedPageKey[]).map((key) =>
-    getManagedPageDefinition(key)
-  );
+  return (
+    [
+      "home",
+      "about",
+      "contact",
+      "services",
+      "articles",
+      "global",
+      "serviceDetail",
+      "articleDetail",
+      "taxCalculator",
+      "gstCalculator",
+    ] as ManagedPageKey[]
+  ).map((key) => getManagedPageDefinition(key));
 }
 
 function getDefaultSections(key: ManagedPageKey, settings: SettingsMap = {}) {

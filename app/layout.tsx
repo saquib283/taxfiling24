@@ -186,9 +186,9 @@ export default async function RootLayout({
         {/* Site-wide Structured Data */}
         <JsonLd
           data={[
-            organizationSchema(),
+            organizationSchema(theme),
             webSiteSchema(),
-            localBusinessSchema(),
+            localBusinessSchema(theme),
           ]}
         />
         {/* Ambient Background Glows */}

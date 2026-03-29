@@ -10,15 +10,24 @@ export default function SettingsPage() {
   const [message, setMessage] = useState({ text: "", type: "" });
   const [settings, setSettings] = useState<any>({
     GEMINI_API_KEY: "",
-    SUPPORT_EMAIL: "support@taxfiling24.com",
-    SUPPORT_PHONE: "+91 7011246157",
+    contact_email: "support@taxfiling24.com",
+    contact_phone: "+91 7011246157",
+    contact_address: "E-244/G First Floor Shaheen Bagh, Okhla New Delhi 110025",
+    contact_whatsapp: "https://wa.me/917011246157",
   });
 
   useEffect(() => {
     fetch("/api/admin/settings")
       .then(res => res.json())
       .then(data => {
-        setSettings((prev: any) => ({ ...prev, ...data }));
+        setSettings((prev: any) => ({
+          ...prev,
+          ...data,
+          contact_email: data.contact_email || data.SUPPORT_EMAIL || prev.contact_email,
+          contact_phone: data.contact_phone || data.SUPPORT_PHONE || prev.contact_phone,
+          contact_address: data.contact_address || prev.contact_address,
+          contact_whatsapp: data.contact_whatsapp || prev.contact_whatsapp,
+        }));
         setLoading(false);
       })
       .catch(() => {
@@ -109,8 +118,8 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Support Email</label>
               <input
                 type="email"
-                name="SUPPORT_EMAIL"
-                value={settings.SUPPORT_EMAIL || ""}
+                name="contact_email"
+                value={settings.contact_email || ""}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
               />
@@ -120,8 +129,30 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Support Phone/WhatsApp</label>
               <input
                 type="text"
-                name="SUPPORT_PHONE"
-                value={settings.SUPPORT_PHONE || ""}
+                name="contact_phone"
+                value={settings.contact_phone || ""}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Office Address</label>
+              <input
+                type="text"
+                name="contact_address"
+                value={settings.contact_address || ""}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Link</label>
+              <input
+                type="text"
+                name="contact_whatsapp"
+                value={settings.contact_whatsapp || ""}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
               />
@@ -157,7 +188,8 @@ export default function SettingsPage() {
                     "label": "Tools",
                     "visible": true,
                     "children": [
-                      { "href": "/tools/tax-calculator", "label": "Tax Calculator" }
+                      { "href": "/tools/tax-calculator", "label": "Tax Calculator" },
+                      { "href": "/tools/gst-calculator", "label": "GST Calculator" }
                     ]
                   },
                   { "href": "/articles", "label": "Articles", "visible": true },
@@ -183,8 +215,31 @@ export default function SettingsPage() {
                   setSettings((prev: any) => ({ ...prev, NAVBAR_CONFIG: JSON.stringify(newItems) }));
                 };
 
+                const updateChildItem = (index: number, childIndex: number, updates: any) => {
+                  const newItems = [...navItems];
+                  const children = Array.isArray(newItems[index].children) ? [...newItems[index].children] : [];
+                  children[childIndex] = { ...children[childIndex], ...updates };
+                  newItems[index] = { ...newItems[index], children };
+                  setSettings((prev: any) => ({ ...prev, NAVBAR_CONFIG: JSON.stringify(newItems) }));
+                };
+
                 const deleteNavItem = (index: number) => {
                   const newItems = navItems.filter((_, i) => i !== index);
+                  setSettings((prev: any) => ({ ...prev, NAVBAR_CONFIG: JSON.stringify(newItems) }));
+                };
+
+                const addChildItem = (index: number) => {
+                  const newItems = [...navItems];
+                  const children = Array.isArray(newItems[index].children) ? [...newItems[index].children] : [];
+                  children.push({ label: "New Submenu", href: "/", visible: true });
+                  newItems[index] = { ...newItems[index], children };
+                  setSettings((prev: any) => ({ ...prev, NAVBAR_CONFIG: JSON.stringify(newItems) }));
+                };
+
+                const deleteChildItem = (index: number, childIndex: number) => {
+                  const newItems = [...navItems];
+                  const children = Array.isArray(newItems[index].children) ? [...newItems[index].children] : [];
+                  newItems[index] = { ...newItems[index], children: children.filter((_, i) => i !== childIndex) };
                   setSettings((prev: any) => ({ ...prev, NAVBAR_CONFIG: JSON.stringify(newItems) }));
                 };
 
@@ -202,7 +257,8 @@ export default function SettingsPage() {
                       <div className="col-span-2 text-right">Action</div>
                     </div>
                     {navItems.map((item: any, idx: number) => (
-                      <div key={idx} className={`grid grid-cols-12 gap-3 items-center p-3 rounded-xl border transition-all ${item.visible ? 'bg-white border-gray-100 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+                      <div key={idx} className={`rounded-xl border p-3 transition-all ${item.visible ? 'bg-white border-gray-100 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+                        <div className="grid grid-cols-12 gap-3 items-center">
                         <div className="col-span-1 flex justify-center">
                           <input
                             type="checkbox"
@@ -235,6 +291,64 @@ export default function SettingsPage() {
                           >
                             <X className="h-4 w-4" />
                           </button>
+                        </div>
+                        </div>
+
+                        <div className="mt-3 rounded-lg bg-gray-50/70 p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Submenu Items</p>
+                            <button
+                              type="button"
+                              onClick={() => addChildItem(idx)}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                            >
+                              + Add submenu
+                            </button>
+                          </div>
+
+                          {Array.isArray(item.children) && item.children.length > 0 ? (
+                            <div className="space-y-2">
+                              {item.children.map((child: any, childIndex: number) => (
+                                <div key={`${idx}-${childIndex}`} className="grid grid-cols-12 gap-2 items-center">
+                                  <div className="col-span-1 flex justify-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={child.visible !== false}
+                                      onChange={(e) => updateChildItem(idx, childIndex, { visible: e.target.checked })}
+                                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                  </div>
+                                  <div className="col-span-4">
+                                    <input
+                                      type="text"
+                                      value={child.label || ""}
+                                      onChange={(e) => updateChildItem(idx, childIndex, { label: e.target.value })}
+                                      className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 outline-none"
+                                    />
+                                  </div>
+                                  <div className="col-span-6">
+                                    <input
+                                      type="text"
+                                      value={child.href || ""}
+                                      onChange={(e) => updateChildItem(idx, childIndex, { href: e.target.value })}
+                                      className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500/10 outline-none"
+                                    />
+                                  </div>
+                                  <div className="col-span-1 flex justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteChildItem(idx, childIndex)}
+                                      className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-400">No submenu items yet.</p>
+                          )}
                         </div>
                       </div>
                     ))}

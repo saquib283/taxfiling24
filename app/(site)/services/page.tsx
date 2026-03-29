@@ -1,8 +1,9 @@
 import ServicesDirectoryPage from "@/components/sections/ServicesDirectoryPage";
 import { SERVICES } from "@/lib/constants";
-import { getManagedPageSections } from "@/lib/managed-pages";
+import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
 import prisma from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { getSiteContact } from "@/lib/site-contact";
 
 interface ServiceCard {
   id?: string;
@@ -30,15 +31,19 @@ export default async function ServicesPage() {
   }
 
   const heroSection = sections.find((section) => section.type === "services.hero");
+  const directorySection = findManagedSection<Record<string, unknown>>(sections, "services.directory");
   const ctaSection = sections.find((section) => section.type === "services.cta");
+  const { whatsapp } = getSiteContact(settings);
 
   return (
     <ServicesDirectoryPage
       services={services}
       heroContent={heroSection?.data as ServicesPageProps["heroContent"]}
       showHero={heroSection?.isVisible ?? true}
+      directoryContent={directorySection?.data as ServicesPageProps["directoryContent"]}
       ctaContent={ctaSection?.data as ServicesPageProps["ctaContent"]}
       showCta={ctaSection?.isVisible ?? true}
+      whatsappUrl={whatsapp}
     />
   );
 }

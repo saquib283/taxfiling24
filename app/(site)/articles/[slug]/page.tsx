@@ -4,6 +4,8 @@ import { Calendar, User, Clock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import JsonLd, { articleSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
+import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
+import { getSettings } from "@/lib/settings";
 
 interface PageProps {
   params: Promise<{
@@ -85,6 +87,12 @@ export async function generateStaticParams() {
 
 export default async function ArticleDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const settings = await getSettings();
+  const template =
+    findManagedSection<Record<string, unknown>>(
+      getManagedPageSections("articleDetail", settings),
+      "article-detail.template"
+    )?.data || {};
   let article = null;
 
   try {
@@ -127,7 +135,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--primary)] hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Articles
+            {String(template.backLabel || "Back to Articles")}
           </Link>
         </AnimatedSection>
 
@@ -153,7 +161,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             {article.readTime && (
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                <span>{article.readTime} min read</span>
+                <span>
+                  {article.readTime} {String(template.readTimeSuffix || "min read")}
+                </span>
               </div>
             )}
           </div>

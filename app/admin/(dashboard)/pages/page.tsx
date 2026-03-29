@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { Save, Loader2, FileText } from "lucide-react";
 
 const PAGES = [
-  { key: "page_privacy", label: "Privacy Policy", description: "Legal privacy policy page" },
-  { key: "page_terms", label: "Terms of Service", description: "Terms and conditions" },
-  { key: "page_refund", label: "Refund Policy", description: "Refund and cancellation policy" },
+  { titleKey: "page_privacy_title", contentKey: "page_privacy", label: "Privacy Policy", description: "Legal privacy policy page" },
+  { titleKey: "page_terms_title", contentKey: "page_terms", label: "Terms of Service", description: "Terms and conditions" },
+  { titleKey: "page_refund_title", contentKey: "page_refund", label: "Refund Policy", description: "Refund and cancellation policy" },
 ];
 
 export default function PagesEditorPage() {
@@ -51,7 +51,7 @@ export default function PagesEditorPage() {
       <div className="flex gap-6">
         <div className="w-52 shrink-0 space-y-1">
           {PAGES.map((p, i) => (
-            <button key={p.key} onClick={() => setActiveTab(i)} className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === i ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"}`}>
+            <button key={p.titleKey} onClick={() => setActiveTab(i)} className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === i ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"}`}>
               <FileText className="h-4 w-4 inline mr-2" />{p.label}
             </button>
           ))}
@@ -60,9 +60,18 @@ export default function PagesEditorPage() {
         <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">{page.label}</h2>
           <p className="text-sm text-gray-500 mb-6">{page.description}</p>
+          <div className="mb-4">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Page Title</label>
+            <input
+              value={values[page.titleKey] || page.label}
+              onChange={e => setValues({ ...values, [page.titleKey]: e.target.value })}
+              placeholder={`Enter the title for ${page.label}`}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
           <textarea
-            value={values[page.key] || ""}
-            onChange={e => setValues({ ...values, [page.key]: e.target.value })}
+            value={values[page.contentKey] || ""}
+            onChange={e => setValues({ ...values, [page.contentKey]: e.target.value })}
             placeholder={`Enter your ${page.label} content here... (Supports HTML or plain text)`}
             rows={20}
             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"

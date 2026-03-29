@@ -2,11 +2,11 @@ import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import ContactSection from "@/components/sections/ContactSection";
 import ContactMap from "@/components/ui/ContactMap";
 import prisma from "@/lib/prisma";
-import { CONTACT } from "@/lib/constants";
 import { getSettings } from "@/lib/settings";
 import { getManagedPageSections } from "@/lib/managed-pages";
 import JsonLd, { webPageSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
 import type { Metadata } from "next";
+import { getSiteContact } from "@/lib/site-contact";
 
 interface ContactCardItem {
   id: string;
@@ -24,6 +24,17 @@ interface ContactSectionData {
   whatsappLabel?: string;
   items?: ContactCardItem[];
   submitButtonText?: string;
+  fullNameLabel?: string;
+  fullNamePlaceholder?: string;
+  phoneLabel?: string;
+  phonePlaceholder?: string;
+  emailLabel?: string;
+  emailPlaceholder?: string;
+  serviceLabel?: string;
+  servicePlaceholder?: string;
+  messageLabel?: string;
+  messagePlaceholder?: string;
+  directContactLabel?: string;
 }
 
 export const metadata: Metadata = {
@@ -56,11 +67,7 @@ export default async function ContactPage() {
     console.warn("[DB] Failed to fetch services for contact form:", error);
   }
 
-  const phone = settings.contact_phone || CONTACT.phone;
-  const phoneRaw = phone.replace(/\D/g, "");
-  const email = settings.contact_email || CONTACT.email;
-  const address = settings.contact_address || CONTACT.address;
-  const whatsapp = settings.contact_whatsapp || CONTACT.whatsapp;
+  const { phone, phoneRaw, email, address, whatsapp } = getSiteContact(settings);
 
   return (
     <div className="min-h-screen bg-slate-50/50 pt-24 pb-20">
@@ -185,7 +192,8 @@ export default async function ContactPage() {
         })}
 
       <div className="container mx-auto px-4 pt-8 text-center text-sm text-slate-500 sm:px-6 lg:px-8">
-        Direct contact: <a href={`tel:${phoneRaw}`} className="font-semibold text-[var(--primary)]">{phone}</a> {" | "}
+        {String((sections.find((section) => section.type === "contact.map")?.data as ContactSectionData | undefined)?.directContactLabel || "Direct contact:")}{" "}
+        <a href={`tel:${phoneRaw}`} className="font-semibold text-[var(--primary)]">{phone}</a> {" | "}
         <a href={`mailto:${email}`} className="font-semibold text-[var(--primary)]">{email}</a>
       </div>
     </div>

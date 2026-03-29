@@ -1,6 +1,8 @@
 import GSTCalculator from "@/components/sections/GSTCalculator";
 import type { Metadata } from "next";
 import JsonLd, { breadcrumbSchema, webPageSchema } from "@/components/seo/JsonLd";
+import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
+import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "GST Calculator | Online HSN & SAC GST Tax Calculator",
@@ -17,7 +19,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function GSTCalculatorPage() {
+export default async function GSTCalculatorPage() {
+  const settings = await getSettings();
+  const sections = getManagedPageSections("gstCalculator", settings);
+
   return (
     <div className="bg-[var(--bg)] min-h-screen pb-16 lg:pb-24 pt-0">
       <JsonLd
@@ -34,7 +39,20 @@ export default function GSTCalculatorPage() {
           }),
         ]}
       />
-      <GSTCalculator />
+      <GSTCalculator
+        content={{
+          hero: findManagedSection<Record<string, unknown>>(sections, "gst.hero")?.data as Record<string, string> | undefined,
+          controls: findManagedSection<Record<string, unknown>>(sections, "gst.controls")?.data as Record<string, string> | undefined,
+          entry: findManagedSection<Record<string, unknown>>(sections, "gst.entry")?.data as Record<string, string> | undefined,
+          compliance: findManagedSection<Record<string, unknown>>(sections, "gst.compliance")?.data as Record<string, string> | undefined,
+          entries: findManagedSection<Record<string, unknown>>(sections, "gst.entries")?.data as Record<string, string> | undefined,
+          summary: findManagedSection<Record<string, unknown>>(sections, "gst.summary")?.data as Record<string, string> | undefined,
+          goodsPresets: (findManagedSection<Record<string, unknown>>(sections, "gst.goods-presets")?.data
+            ?.items as Array<Record<string, string>>) || undefined,
+          servicePresets: (findManagedSection<Record<string, unknown>>(sections, "gst.service-presets")?.data
+            ?.items as Array<Record<string, string>>) || undefined,
+        }}
+      />
     </div>
   );
 }

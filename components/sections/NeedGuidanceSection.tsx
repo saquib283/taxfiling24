@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Phone } from "lucide-react";
-import { CONTACT } from "@/lib/constants";
+import { getSiteContact } from "@/lib/site-contact";
 
 export default function NeedGuidanceSection({
   settings = {},
@@ -15,8 +15,7 @@ export default function NeedGuidanceSection({
     buttonLabel?: string;
   };
 }) {
-  const phone = settings.contact_phone || CONTACT.phone;
-  const phoneRaw = phone.replace(/\D/g, "");
+  const { phoneRaw } = getSiteContact(settings);
   
   const sectionTitle = content?.title || settings.guidance_title || "Need Guidance?";
   const sectionDescription = content?.description || "Need Help? or Looking for any specific service?";

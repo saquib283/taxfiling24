@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown, Search } from "lucide-react";
-import { FileCheck } from "lucide-react";
  
 interface NavItem {
   label: string;
@@ -19,15 +18,30 @@ interface NavItem {
 
 export default function Navbar({ 
   settings = {}, 
-  dynamicServices = [] 
+  dynamicServices = [],
+  content,
 }: { 
   settings?: Record<string, string>,
-  dynamicServices?: { title: string; slug: string }[]
+  dynamicServices?: { title: string; slug: string }[],
+  content?: {
+    brandPrefix?: string;
+    brandHighlight?: string;
+    contactButtonLabel?: string;
+    searchPlaceholder?: string;
+    mobileSearchPlaceholder?: string;
+    noResultsText?: string;
+  }
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const brandPrefix = content?.brandPrefix || "TaxFiling";
+  const brandHighlight = content?.brandHighlight || "24";
+  const contactButtonLabel = content?.contactButtonLabel || "Contact";
+  const searchPlaceholder = content?.searchPlaceholder || "Search services...";
+  const mobileSearchPlaceholder = content?.mobileSearchPlaceholder || "Search...";
+  const noResultsText = content?.noResultsText || "No services found";
 
   const hardcodedNavItems: NavItem[] = [
     { href: "/", label: "Home", visible: true },
@@ -99,11 +113,6 @@ export default function Navbar({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-    setMobileMenuOpen(false);
-  };
-
   return (
     <header className="sticky top-4 z-50 transition-all duration-300 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className={`rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/75 shadow-[var(--shadow-lg)] backdrop-blur-md transition-all duration-200 ${scrolled ? "py-0" : "py-1"}`}>
@@ -119,12 +128,12 @@ export default function Navbar({
             alt="TaxFiling24 Logo" 
           />
           <span className="text-xl font-bold tracking-tight text-[var(--fg)]">
-            TaxFiling
+            {brandPrefix}
             <span
               className="bg-clip-text text-transparent"
               style={{ backgroundImage: "var(--gradient-primary)" }}
             >
-              24
+              {brandHighlight}
             </span>
           </span>
         </Link>
@@ -144,7 +153,7 @@ export default function Navbar({
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search services..."
+                          placeholder={searchPlaceholder}
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -154,14 +163,16 @@ export default function Navbar({
                     </div>
                     <div className="max-h-[300px] overflow-y-auto py-1">
                       {(() => {
-                        const filtered = item.children.filter((child: any) => 
-                          child.label.toLowerCase().includes(searchQuery.toLowerCase())
+                        const filtered = item.children.filter(
+                          (child: any) =>
+                            child.visible !== false &&
+                            child.label.toLowerCase().includes(searchQuery.toLowerCase())
                         );
                         
                         if (filtered.length === 0) {
                           return (
                             <div className="px-4 py-3 text-sm text-slate-500 text-center italic">
-                              No services found
+                              {noResultsText}
                             </div>
                           );
                         }
@@ -199,7 +210,7 @@ export default function Navbar({
             href="/contact"
             className="hidden md:block bg-[var(--primary)] px-6 py-2.5 rounded-xl font-bold text-sm text-[var(--bg-card)] shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-[var(--shadow-md)] transition-all duration-200"
           >
-            Contact
+            {contactButtonLabel}
           </Link>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -247,7 +258,7 @@ export default function Navbar({
                                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                                   <input
                                     type="text"
-                                    placeholder="Search..."
+                                    placeholder={mobileSearchPlaceholder}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs focus:outline-none transition-all"
@@ -257,14 +268,16 @@ export default function Navbar({
                               </div>
                               <div className="max-h-60 overflow-y-auto py-1">
                                 {(() => {
-                                  const filtered = item.children?.filter((child: any) => 
-                                    child.label.toLowerCase().includes(searchQuery.toLowerCase())
+                                  const filtered = item.children?.filter(
+                                    (child: any) =>
+                                      child.visible !== false &&
+                                      child.label.toLowerCase().includes(searchQuery.toLowerCase())
                                   );
                                   
                                   if (filtered?.length === 0) {
                                     return (
                                       <div className="px-3 py-2 text-[10px] text-slate-500 italic">
-                                        No results
+                                        {noResultsText}
                                       </div>
                                     );
                                   }
@@ -298,7 +311,7 @@ export default function Navbar({
                             : "text-[var(--fg)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)]"
                         }`}
                       >
-                        {item.label}
+                        {item.href === "/contact" ? contactButtonLabel : item.label}
                       </Link>
                     )}
                   </div>

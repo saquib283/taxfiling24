@@ -14,6 +14,7 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 import ServiceCard from "@/components/ui/ServiceCard";
 import { SERVICES } from "@/lib/constants";
 import { fadeUp } from "@/lib/animations";
+import { getSiteContact } from "@/lib/site-contact";
 
 const ICONS = [
   Building2,
@@ -38,14 +39,17 @@ interface ServicesProps {
   content?: {
     title?: string;
     subtext?: string;
+    cardCtaLabel?: string;
   };
 }
 
 export default function ServicesSection({ services = [], settings = {}, content }: ServicesProps) {
   const displayServices: any[] = services.length > 0 ? services : SERVICES.slice(0, 8);
+  const { whatsapp } = getSiteContact(settings);
   
   const sectionTitle = content?.title || settings.services_title || "Services We Offer";
   const sectionSubtext = content?.subtext || settings.services_subtext || "Comprehensive solutions for all your business, tax, and compliance needs";
+  const cardCtaLabel = content?.cardCtaLabel || "Explore Service";
 
   return (
     <section id="services" className="py-16 lg:py-24">
@@ -67,6 +71,8 @@ export default function ServicesSection({ services = [], settings = {}, content 
                   title={service.title}
                   href={href}
                   icon={ICONS[index % ICONS.length]}
+                  ctaLabel={cardCtaLabel}
+                  whatsappUrl={whatsapp}
                 />
               </AnimatedSection>
             );

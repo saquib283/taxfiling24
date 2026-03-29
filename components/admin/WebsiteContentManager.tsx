@@ -24,6 +24,10 @@ import {
 
 type PagesState = Record<ManagedPageKey, ManagedSection[]>;
 
+function createPagesState(keys: ManagedPageKey[]): PagesState {
+  return Object.fromEntries(keys.map((key) => [key, [] as ManagedSection[]])) as PagesState;
+}
+
 function moveItem<T>(items: T[], index: number, direction: "up" | "down") {
   const target = direction === "up" ? index - 1 : index + 1;
   if (target < 0 || target >= items.length) {
@@ -174,14 +178,9 @@ function RepeaterEditor({
 
 export default function WebsiteContentManager() {
   const definitions = useMemo(() => getManagedPageDefinitions(), []);
-  const [activePage, setActivePage] = useState<ManagedPageKey>("home");
-  const [pages, setPages] = useState<PagesState>({
-    home: [],
-    about: [],
-    contact: [],
-    services: [],
-    articles: [],
-  });
+  const pageKeys = useMemo(() => definitions.map((definition) => definition.key), [definitions]);
+  const [activePage, setActivePage] = useState<ManagedPageKey>(pageKeys[0] || "home");
+  const [pages, setPages] = useState<PagesState>(() => createPagesState(pageKeys));
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -198,26 +197,22 @@ export default function WebsiteContentManager() {
     fetch("/api/admin/settings")
       .then((response) => response.json())
       .then((data) => {
-        setPages({
-          home: getManagedPageSections("home", data),
-          about: getManagedPageSections("about", data),
-          contact: getManagedPageSections("contact", data),
-          services: getManagedPageSections("services", data),
-          articles: getManagedPageSections("articles", data),
-        });
+        setPages(
+          Object.fromEntries(
+            definitions.map((definition) => [definition.key, getManagedPageSections(definition.key, data)])
+          ) as PagesState
+        );
         setLoading(false);
       })
       .catch(() => {
-        setPages({
-          home: getManagedPageSections("home"),
-          about: getManagedPageSections("about"),
-          contact: getManagedPageSections("contact"),
-          services: getManagedPageSections("services"),
-          articles: getManagedPageSections("articles"),
-        });
+        setPages(
+          Object.fromEntries(
+            definitions.map((definition) => [definition.key, getManagedPageSections(definition.key)])
+          ) as PagesState
+        );
         setLoading(false);
       });
-  }, []);
+  }, [definitions]);
 
   useEffect(() => {
     if (!currentSections.length) {

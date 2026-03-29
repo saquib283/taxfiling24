@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Send, Phone, ShieldCheck } from "lucide-react";
-import { CONTACT } from "@/lib/constants";
+import { getSiteContact } from "@/lib/site-contact";
 
 interface CTASectionProps {
   settings?: Record<string, string>;
@@ -16,6 +16,7 @@ interface CTASectionProps {
 }
 
 export default function CTASection({ settings = {}, content }: CTASectionProps) {
+  const { phoneRaw } = getSiteContact(settings);
   const headline = content?.headline || settings.cta_headline || "Ready to Get Started with Your Business?";
   const subtext =
     content?.subtext ||
@@ -61,7 +62,7 @@ export default function CTASection({ settings = {}, content }: CTASectionProps) 
               {buttonText}
             </motion.a>
             <motion.a
-              href={`tel:${CONTACT.phoneRaw}`}
+              href={`tel:${phoneRaw}`}
               className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 bg-white/10 px-7 py-4 font-bold tracking-wide text-white backdrop-blur-md transition-all hover:-translate-y-1 hover:scale-105 hover:border-white/50 hover:bg-white/20"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

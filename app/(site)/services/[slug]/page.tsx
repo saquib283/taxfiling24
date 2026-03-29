@@ -11,6 +11,9 @@ import Link from "next/link";
 import JsonLd, { serviceSchema, faqSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
 import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
+import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
+import { getSettings } from "@/lib/settings";
+import { getSiteContact } from "@/lib/site-contact";
 
 interface PageProps {
   params: Promise<{
@@ -64,6 +67,18 @@ export async function generateStaticParams() {
 
 export default async function ServiceDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const settings = await getSettings();
+  const templateSections = getManagedPageSections("serviceDetail", settings);
+  const heroTemplate = findManagedSection<Record<string, unknown>>(templateSections, "service-detail.hero")?.data;
+  const overviewTemplate = findManagedSection<Record<string, unknown>>(templateSections, "service-detail.overview")?.data;
+  const subServicesTemplate =
+    findManagedSection<Record<string, unknown>>(templateSections, "service-detail.subservices")?.data;
+  const processTemplate = findManagedSection<Record<string, unknown>>(templateSections, "service-detail.process")?.data;
+  const documentsTemplate =
+    findManagedSection<Record<string, unknown>>(templateSections, "service-detail.documents")?.data;
+  const faqTemplate = findManagedSection<Record<string, unknown>>(templateSections, "service-detail.faq")?.data;
+  const ctaTemplate = findManagedSection<Record<string, unknown>>(templateSections, "service-detail.cta")?.data;
+  const { whatsapp } = getSiteContact(settings);
   
   let dbData = null;
   try {
@@ -132,7 +147,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-900 mb-6 text-xs font-semibold tracking-wide transition-all group shadow-sm"
               >
                 <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-                Back to Services
+                {String(heroTemplate?.backLabel || "Back to Services")}
               </Link>
 
               <h1 className="mb-5 text-4xl font-black sm:text-5xl lg:text-6xl tracking-tight leading-[1.1] text-slate-900">
@@ -144,12 +159,17 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 items-center">
-                <WhatsAppButton message={`Hi, I'm interested in: ${data.title}`} className="w-full sm:w-auto px-6 py-3.5 text-sm font-bold shadow-sm" />
+                <WhatsAppButton
+                  message={`Hi, I'm interested in: ${data.title}`}
+                  className="w-full sm:w-auto px-6 py-3.5 text-sm font-bold shadow-sm"
+                  whatsappUrl={whatsapp}
+                  label={String(ctaTemplate?.primaryButtonText || "Chat with CA on WhatsApp")}
+                />
                 <Link
                   href="/contact"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-slate-300 hover:border-slate-400 px-6 py-3.5 font-bold text-slate-700 hover:text-slate-900 hover:shadow-sm transition-all text-sm"
                 >
-                  Request a Quote
+                  {String(heroTemplate?.quoteButtonText || "Request a Quote")}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -157,12 +177,18 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             
             {/* Horizontal Grid for Stats to take up right align on lg screens if needed, otherwise stacked below */}
             <div className="lg:col-span-4 lg:border-l border-slate-200 lg:pl-10 grid grid-cols-2 gap-6">
-              {[
-                { label: "Clients Served", value: "500+" },
-                { label: "Expert CAs", value: "15+" },
-                { label: "Compliance Rate", value: "99%" },
-                { label: "Support", value: "24/7" },
-              ].map((stat, idx) => (
+              {(
+                Array.isArray(heroTemplate?.stats)
+                  ? (heroTemplate?.stats as Array<{ label?: string; value?: string; isVisible?: boolean }>)
+                  : [
+                      { label: "Clients Served", value: "500+", isVisible: true },
+                      { label: "Expert CAs", value: "15+", isVisible: true },
+                      { label: "Compliance Rate", value: "99%", isVisible: true },
+                      { label: "Support", value: "24/7", isVisible: true },
+                    ]
+              )
+                .filter((stat) => stat.isVisible !== false && stat.label && stat.value)
+                .map((stat, idx) => (
                 <div key={idx} className="flex flex-col gap-1">
                   <span className="text-3xl font-extrabold text-[var(--primary)] tracking-tight">{stat.value}</span>
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{stat.label}</span>
@@ -182,11 +208,11 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-2 mb-5">
                   <div className="h-1 w-6 bg-[var(--primary)] rounded-full" />
                   <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-widest">
-                    Service Overview
+                    {String(overviewTemplate?.badge || "Service Overview")}
                   </span>
                 </div>
                 <h2 className="text-3xl font-extrabold text-slate-900 mb-6 leading-tight">
-                  Transparent & Secure Professional Guidance
+                  {String(overviewTemplate?.title || "Transparent & Secure Professional Guidance")}
                 </h2>
                 <div className="prose prose-slate prose-lg max-w-none text-slate-600 leading-[1.8]">
                   <p>{overviewText}</p>
@@ -200,7 +226,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm scale-100 hover:shadow-md transition-shadow">
                     <h3 className="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2">
                       <Shield className="h-5 w-5 text-[var(--primary)]" /> 
-                      Key Benefits & Guarantees
+                      {String(overviewTemplate?.benefitsTitle || "Key Benefits & Guarantees")}
                     </h3>
                     <ul className="space-y-4">
                       {benefits.map((benefit: any, idx: number) => (
@@ -226,10 +252,13 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <AnimatedSection className="mb-14 text-center max-w-2xl mx-auto">
               <h2 className="text-3xl font-extrabold text-slate-900 mb-3 tracking-tight">
-                Comprehensive Service Deliverable
+                {String(subServicesTemplate?.title || "Comprehensive Service Deliverable")}
               </h2>
               <p className="text-slate-600 text-base">
-                Explore the structured services and technical inclusions packed in this solution.
+                {String(
+                  subServicesTemplate?.description ||
+                    "Explore the structured services and technical inclusions packed in this solution."
+                )}
               </p>
             </AnimatedSection>
 
@@ -264,7 +293,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 <AnimatedSection className="flex flex-col h-full">
                   <div className="flex items-center gap-3 mb-10 pb-6 border-b border-slate-200">
                     <Clock className="h-6 w-6 text-slate-500" />
-                    <h3 className="text-2xl font-bold text-slate-900">Standard Execution Roadmap</h3>
+                    <h3 className="text-2xl font-bold text-slate-900">
+                      {String(processTemplate?.title || "Standard Execution Roadmap")}
+                    </h3>
                   </div>
 
                   <div className="relative ml-4 pl-8 border-l-2 border-slate-200 space-y-12 flex-1">
@@ -289,8 +320,12 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                     <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-200">
                       <FileText className="h-6 w-6 text-slate-500" />
                       <div>
-                        <h3 className="text-2xl font-bold text-slate-900">Required Documents</h3>
-                        <p className="text-slate-500 text-xs mt-1">Pre-requisites for submitting on the portal</p>
+                        <h3 className="text-2xl font-bold text-slate-900">
+                          {String(documentsTemplate?.title || "Required Documents")}
+                        </h3>
+                        <p className="text-slate-500 text-xs mt-1">
+                          {String(documentsTemplate?.description || "Pre-requisites for submitting on the portal")}
+                        </p>
                       </div>
                     </div>
 
@@ -317,7 +352,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             <AnimatedSection className="text-center mb-12">
               <HelpCircle className="h-8 w-8 text-slate-400 mx-auto mb-3" />
               <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                Frequently Asked Questions
+                {String(faqTemplate?.title || "Frequently Asked Questions")}
               </h2>
             </AnimatedSection>
 
@@ -347,18 +382,26 @@ export default async function ServiceDetailPage({ params }: PageProps) {
         <div className="container mx-auto px-4 text-center">
           <AnimatedSection className="max-w-3xl mx-auto">
             <h2 className="text-3xl lg:text-4xl font-black mb-4 tracking-tight">
-              Require End-to-End Assistance?
+              {String(ctaTemplate?.title || "Require End-to-End Assistance?")}
             </h2>
             <p className="text-white/80 mx-auto mb-10 text-lg leading-relaxed font-normal">
-              Get corporate advice. No spam. Simply reliable support back by certified knowledge.
+              {String(
+                ctaTemplate?.description ||
+                  "Get corporate advice. No spam. Simply reliable support backed by certified knowledge."
+              )}
             </p>
             <div className="flex justify-center flex-col sm:flex-row gap-3">
-              <WhatsAppButton message={`Hi, I'm interested in getting started with: ${data.title}`} className="px-8 py-4 text-base font-bold" />
+              <WhatsAppButton
+                message={`Hi, I'm interested in getting started with: ${data.title}`}
+                className="px-8 py-4 text-base font-bold"
+                whatsappUrl={whatsapp}
+                label={String(ctaTemplate?.primaryButtonText || "Chat with CA on WhatsApp")}
+              />
               <Link
                 href="/contact"
                 className="inline-flex items-center justify-center gap-2 bg-white border border-transparent text-slate-900 px-8 py-4 rounded-xl font-bold hover:bg-slate-50 transition-all text-base shadow-sm"
               >
-                Book a Callback
+                {String(ctaTemplate?.secondaryButtonText || "Book a Callback")}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

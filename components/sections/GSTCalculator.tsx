@@ -3,10 +3,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Calculator, Search, ChevronDown, Info, ArrowRight, ArrowLeftRight,
-  Package, Percent, TrendingUp, CheckCircle2, AlertCircle, Building2,
-  Plus, Trash2, ShoppingCart, Tag, Receipt, Copy, Share2, Eye, Minus,
-  FileText, Download, Printer, Target, ShieldCheck, IndianRupee
+  Search,
+  Package, Percent, TrendingUp, Building2,
+  Plus, Trash2, ShoppingCart, Tag, Receipt,
+  Download, Printer, Target, ShieldCheck, IndianRupee
 } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 
@@ -73,7 +73,83 @@ interface BillItem {
   discount: number;
 }
 
-export default function GSTCalculator() {
+export default function GSTCalculator({
+  content,
+}: {
+  content?: {
+    hero?: {
+      titlePrefix?: string;
+      titleHighlight?: string;
+      description?: string;
+    };
+    controls?: {
+      exclusiveLabel?: string;
+      inclusiveLabel?: string;
+      marginLabel?: string;
+      regularLabel?: string;
+      compositionLabel?: string;
+    };
+    entry?: {
+      panelTitle?: string;
+      panelSubtitle?: string;
+      goodsLabel?: string;
+      servicesLabel?: string;
+      searchPlaceholderGoods?: string;
+      searchPlaceholderServices?: string;
+      noPresetResultsText?: string;
+      unitPriceLabel?: string;
+      quantityLabel?: string;
+      gstRateLabel?: string;
+      discountLabel?: string;
+      cessLabel?: string;
+      addItemLabel?: string;
+      messagePlaceholder?: string;
+    };
+    compliance?: {
+      placeOfSupplyTitle?: string;
+      intraLabel?: string;
+      interLabel?: string;
+      reverseChargeTitle?: string;
+      reverseChargeDescription?: string;
+      itcTitle?: string;
+      itcSubtitle?: string;
+      totalPurchasesLabel?: string;
+      inputGstLabel?: string;
+    };
+    entries?: {
+      title?: string;
+      itemCountSuffix?: string;
+      emptyStateText?: string;
+      descriptionColumn?: string;
+      quantityColumn?: string;
+      totalColumn?: string;
+    };
+    summary?: {
+      panelTitle?: string;
+      panelSubtitle?: string;
+      totalPayableLabel?: string;
+      totalPayableDescription?: string;
+      taxableBaseLabel?: string;
+      discountsLabel?: string;
+      cgstLabel?: string;
+      sgstLabel?: string;
+      igstLabel?: string;
+      cessBreakdownLabel?: string;
+      itcOffsetLabel?: string;
+      netGstLabel?: string;
+      standardDescription?: string;
+      creditDescription?: string;
+      compositionDescription?: string;
+      exportLabel?: string;
+      printLabel?: string;
+      marginAnalysisTitle?: string;
+      expectedMarginLabel?: string;
+      estimatedProfitLabel?: string;
+    };
+    goodsPresets?: Array<{ hsn?: string; desc?: string; rate?: string; category?: string; isVisible?: boolean }>;
+    servicePresets?: Array<{ hsn?: string; desc?: string; rate?: string; category?: string; isVisible?: boolean }>;
+  };
+}) {
   const [calcMode, setCalcMode] = useState<CalcMode>("exclusive");
   const [showMarginMode, setShowMarginMode] = useState(false);
   const [margin, setMargin] = useState<number>(20);
@@ -131,7 +207,32 @@ export default function GSTCalculator() {
     setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
   };
 
-  const presets = activeTab === "goods" ? HSN_PRESETS : SAC_PRESETS;
+  const heroCopy = content?.hero || {};
+  const controlsCopy = content?.controls || {};
+  const entryCopy = content?.entry || {};
+  const complianceCopy = content?.compliance || {};
+  const entriesCopy = content?.entries || {};
+  const summaryCopy = content?.summary || {};
+  const goodsPresets =
+    content?.goodsPresets
+      ?.filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
+      .map((item) => ({
+        hsn: item.hsn || "",
+        desc: item.desc || "",
+        rate: Number(item.rate || 0),
+        category: item.category || "",
+      })) || HSN_PRESETS;
+  const servicePresets =
+    content?.servicePresets
+      ?.filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
+      .map((item) => ({
+        hsn: item.hsn || "",
+        desc: item.desc || "",
+        rate: Number(item.rate || 0),
+        category: item.category || "",
+      })) || SAC_PRESETS;
+
+  const presets = activeTab === "goods" ? goodsPresets : servicePresets;
   const filtered = useMemo(() =>
     presets.filter(h =>
       h.desc.toLowerCase().includes(hsnSearch.toLowerCase()) ||
@@ -222,10 +323,11 @@ export default function GSTCalculator() {
       <div className="mx-auto px-4 max-w-3xl">
         <AnimatedSection className="mb-12 text-center">
             <h2 className="mb-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                GST & <span className="text-blue-600">Invoicing</span>
+                {heroCopy.titlePrefix || "GST &"} <span className="text-blue-600">{heroCopy.titleHighlight || "Invoicing"}</span>
             </h2>
             <p className="mx-auto max-w-xl text-sm text-slate-500 leading-relaxed">
-                Professional itemized billing and tax calculations compliant with the latest GST regulations.
+                {heroCopy.description ||
+                  "Professional itemized billing and tax calculations compliant with the latest GST regulations."}
             </p>
         </AnimatedSection>
 
@@ -236,13 +338,13 @@ export default function GSTCalculator() {
               onClick={() => setCalcMode("exclusive")} 
               className={`flex items-center h-full px-5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${calcMode === "exclusive" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-              Exclusive
+              {controlsCopy.exclusiveLabel || "Exclusive"}
             </button>
             <button 
               onClick={() => setCalcMode("inclusive")} 
               className={`flex items-center h-full px-5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${calcMode === "inclusive" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-              Inclusive
+              {controlsCopy.inclusiveLabel || "Inclusive"}
             </button>
           </div>
 
@@ -250,7 +352,7 @@ export default function GSTCalculator() {
             onClick={() => setShowMarginMode(!showMarginMode)} 
             className={`flex h-10 items-center gap-2 rounded-lg px-4 text-[10px] font-bold uppercase tracking-wider transition-all border shadow-sm ${showMarginMode ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"}`}
           >
-            <TrendingUp className="h-3.5 w-3.5" /> Margin
+            <TrendingUp className="h-3.5 w-3.5" /> {controlsCopy.marginLabel || "Margin"}
           </button>
 
           <div className="inline-flex h-10 items-center justify-center rounded-lg bg-white p-1 border border-slate-200 shadow-sm">
@@ -258,13 +360,13 @@ export default function GSTCalculator() {
               onClick={() => setTaxScheme("regular")} 
               className={`flex items-center h-full px-4 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all ${taxScheme === "regular" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-              Regular
+              {controlsCopy.regularLabel || "Regular"}
             </button>
             <button 
               onClick={() => setTaxScheme("composition")} 
               className={`flex items-center h-full px-4 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all ${taxScheme === "composition" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
             >
-              Composition
+              {controlsCopy.compositionLabel || "Composition"}
             </button>
           </div>
         </div>
@@ -277,12 +379,12 @@ export default function GSTCalculator() {
           >
               <div className="mb-8 border-b border-slate-100 pb-5 flex items-center justify-between">
                   <div>
-                      <h3 className="text-lg font-bold text-slate-900 tracking-tight">Add Item</h3>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">Goods or Services entry</p>
+                      <h3 className="text-lg font-bold text-slate-900 tracking-tight">{entryCopy.panelTitle || "Add Item"}</h3>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">{entryCopy.panelSubtitle || "Goods or Services entry"}</p>
                   </div>
                   <div className="flex h-10 rounded-xl bg-slate-100 p-1">
                       {(["goods", "services"] as const).map(t => (
-                          <button key={t} onClick={() => setActiveTab(t)} className={`px-5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>{t}</button>
+                          <button key={t} onClick={() => setActiveTab(t)} className={`px-5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>{t === "goods" ? (entryCopy.goodsLabel || "goods") : (entryCopy.servicesLabel || "services")}</button>
                       ))}
                   </div>
               </div>
@@ -294,7 +396,7 @@ export default function GSTCalculator() {
                   </div>
                   <input
                     type="text"
-                    placeholder={`Search ${activeTab === "goods" ? "HSN" : "SAC"} presets...`}
+                    placeholder={activeTab === "goods" ? (entryCopy.searchPlaceholderGoods || "Search HSN presets...") : (entryCopy.searchPlaceholderServices || "Search SAC presets...")}
                     value={hsnSearch}
                     onChange={e => { setHsnSearch(e.target.value); setShowHsnPanel(true); }}
                     onFocus={() => setShowHsnPanel(true)}
@@ -303,7 +405,9 @@ export default function GSTCalculator() {
                   <AnimatePresence>
                     {showHsnPanel && hsnSearch && (
                       <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 right-0 top-full z-10 mt-3 max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl animate-in fade-in zoom-in-95">
-                        {filtered.map((item) => (
+                        {filtered.length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-slate-500">{entryCopy.noPresetResultsText || "No matching presets found"}</div>
+                        ) : filtered.map((item) => (
                           <button key={`${item.hsn}-${item.desc}`} onClick={() => { setNewItem({ ...newItem, name: item.desc, gstRate: item.rate }); setHsnSearch(item.desc); setShowHsnPanel(false); }} className="flex w-full items-center justify-between rounded-xl px-5 py-4 text-left hover:bg-slate-50 transition-colors group/item">
                             <div>
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.hsn} • {item.category}</span>
@@ -318,12 +422,12 @@ export default function GSTCalculator() {
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2">
-                   <InputWrapper label="Unit Price" icon={<IndianRupee className="h-5 w-5 text-blue-500" />}>
+                   <InputWrapper label={entryCopy.unitPriceLabel || "Unit Price"} icon={<IndianRupee className="h-5 w-5 text-blue-500" />}>
                       <input type="number" value={newItem.unitPrice || ""} placeholder="0.00" onChange={e => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none placeholder:text-slate-300" />
                    </InputWrapper>
                    <div className="grid grid-cols-2 gap-4">
-                      <InputWrapper label="Qty" icon={<Package className="h-4 w-4 text-slate-400" />}><input type="number" value={newItem.quantity} onChange={e => setNewItem({ ...newItem, quantity: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
-                      <InputWrapper label="GST %" icon={<Percent className="h-4 w-4 text-slate-400" />}>
+                      <InputWrapper label={entryCopy.quantityLabel || "Qty"} icon={<Package className="h-4 w-4 text-slate-400" />}><input type="number" value={newItem.quantity} onChange={e => setNewItem({ ...newItem, quantity: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
+                      <InputWrapper label={entryCopy.gstRateLabel || "GST %"} icon={<Percent className="h-4 w-4 text-slate-400" />}>
                           <select value={newItem.gstRate} onChange={e => setNewItem({ ...newItem, gstRate: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none cursor-pointer appearance-none">
                               {GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
                           </select>
@@ -333,11 +437,11 @@ export default function GSTCalculator() {
 
                 <div className="flex flex-col sm:flex-row gap-6 items-center">
                   <div className="grid grid-cols-2 gap-4 flex-1 w-full">
-                       <InputWrapper label="Discount %" icon={<Tag className="h-4 w-4 text-emerald-500" />}><input type="number" value={newItem.discount || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, discount: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
-                       <InputWrapper label="Cess %" icon={<ShieldCheck className="h-4 w-4 text-amber-500" />}><input type="number" value={newItem.cessRate || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, cessRate: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
+                       <InputWrapper label={entryCopy.discountLabel || "Discount %"} icon={<Tag className="h-4 w-4 text-emerald-500" />}><input type="number" value={newItem.discount || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, discount: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
+                       <InputWrapper label={entryCopy.cessLabel || "Cess %"} icon={<ShieldCheck className="h-4 w-4 text-amber-500" />}><input type="number" value={newItem.cessRate || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, cessRate: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
                   </div>
                   <button onClick={addItem} className="flex h-[72px] w-full sm:w-44 items-center justify-center gap-2 rounded-[24px] bg-slate-900 text-sm font-bold uppercase tracking-wider text-white shadow-xl hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all">
-                      <Plus className="h-4 w-4" /> Add Item
+                      <Plus className="h-4 w-4" /> {entryCopy.addItemLabel || "Add Item"}
                   </button>
                 </div>
               </div>
@@ -345,16 +449,16 @@ export default function GSTCalculator() {
 
           <div className="grid gap-6 sm:grid-cols-2">
               <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
-                  <h4 className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400"><Building2 className="h-4 w-4 text-blue-500" /> Place of Supply</h4>
+                  <h4 className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400"><Building2 className="h-4 w-4 text-blue-500" /> {complianceCopy.placeOfSupplyTitle || "Place of Supply"}</h4>
                   <div className="flex rounded-xl bg-slate-50 p-1 border border-slate-100">
-                      <button onClick={() => setPlaceOfSupply("intra")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "intra" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>Intra-State</button>
-                      <button onClick={() => setPlaceOfSupply("inter")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "inter" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>Inter-State</button>
+                      <button onClick={() => setPlaceOfSupply("intra")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "intra" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>{complianceCopy.intraLabel || "Intra-State"}</button>
+                      <button onClick={() => setPlaceOfSupply("inter")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "inter" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>{complianceCopy.interLabel || "Inter-State"}</button>
                   </div>
               </motion.div>
               <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm flex items-center justify-between transition-all hover:shadow-md hover:border-slate-300">
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Reverse Charge</h4>
-                    <p className="text-[10px] font-bold text-slate-300 uppercase mt-1">Tax paid by recipient</p>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">{complianceCopy.reverseChargeTitle || "Reverse Charge"}</h4>
+                    <p className="text-[10px] font-bold text-slate-300 uppercase mt-1">{complianceCopy.reverseChargeDescription || "Tax paid by recipient"}</p>
                   </div>
                   <button onClick={() => setIsRcm(!isRcm)} className={`flex h-8 w-13 items-center rounded-full p-1 transition-all ${isRcm ? "bg-blue-600" : "bg-slate-200"}`}><div className={`h-6 w-6 rounded-full bg-white shadow-sm transition-all ${isRcm ? "translate-x-5" : "translate-x-0"}`} /></button>
               </motion.div>
@@ -365,16 +469,16 @@ export default function GSTCalculator() {
               <details className="group">
                   <summary className="list-none cursor-pointer flex items-center justify-between">
                     <div>
-                        <h3 className="text-lg font-bold text-slate-900 tracking-tight">Purchase Inputs (ITC)</h3>
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">Offset your tax liability</p>
+                        <h3 className="text-lg font-bold text-slate-900 tracking-tight">{complianceCopy.itcTitle || "Purchase Inputs (ITC)"}</h3>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">{complianceCopy.itcSubtitle || "Offset your tax liability"}</p>
                     </div>
                     <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-open:bg-blue-50 transition-colors">
                       <Plus className="h-4 w-4 text-slate-400 group-open:rotate-45 transition-all" />
                     </div>
                   </summary>
                   <div className="grid gap-6 sm:grid-cols-2 pt-8 animate-in fade-in slide-in-from-top-2">
-                      <InputWrapper label="Total Purchases" icon={<ShoppingCart className="h-4 w-4 text-blue-500" />}><input type="number" value={inputPurchases || ""} placeholder="0.00" onChange={e => setInputPurchases(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
-                      <InputWrapper label="Input GST %" icon={<Percent className="h-4 w-4 text-slate-400" />}><input type="number" value={inputGstRate} onChange={e => setInputGstRate(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
+                      <InputWrapper label={complianceCopy.totalPurchasesLabel || "Total Purchases"} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />}><input type="number" value={inputPurchases || ""} placeholder="0.00" onChange={e => setInputPurchases(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
+                      <InputWrapper label={complianceCopy.inputGstLabel || "Input GST %"} icon={<Percent className="h-4 w-4 text-slate-400" />}><input type="number" value={inputGstRate} onChange={e => setInputGstRate(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
                   </div>
               </details>
           </motion.div>
@@ -382,22 +486,22 @@ export default function GSTCalculator() {
           {/* Item List Section */}
           <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
               <div className="mb-8 flex items-center justify-between border-b border-slate-100 pb-5">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Transaction Entries</h3>
-                <span className="rounded-full bg-slate-50 px-3.5 py-1.5 text-[10px] font-bold text-slate-500 border border-slate-200">{items.length} Items</span>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">{entriesCopy.title || "Transaction Entries"}</h3>
+                <span className="rounded-full bg-slate-50 px-3.5 py-1.5 text-[10px] font-bold text-slate-500 border border-slate-200">{items.length} {entriesCopy.itemCountSuffix || "Items"}</span>
               </div>
 
               <div className="space-y-4">
                 {items.length === 0 ? (
                   <div className="py-16 text-center bg-slate-50/50 rounded-[24px] border border-dashed border-slate-200">
                       <Package className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-300">No items added yet</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-300">{entriesCopy.emptyStateText || "No items added yet"}</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-50 overflow-hidden rounded-[24px] border border-slate-100 shadow-sm">
                     <div className="bg-slate-50/80 px-6 py-3.5 flex text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">
-                       <span className="flex-1">Description</span>
-                       <span className="w-20 text-right">Qty/Rate</span>
-                       <span className="w-24 text-right">Total Net</span>
+                       <span className="flex-1">{entriesCopy.descriptionColumn || "Description"}</span>
+                       <span className="w-20 text-right">{entriesCopy.quantityColumn || "Qty/Rate"}</span>
+                       <span className="w-24 text-right">{entriesCopy.totalColumn || "Total Net"}</span>
                        <span className="w-10"></span>
                     </div>
                     {items.map((item) => (
@@ -427,8 +531,8 @@ export default function GSTCalculator() {
               <div className="p-10">
                 <div className="mb-10 flex items-center justify-between border-b border-white/10 pb-8">
                     <div>
-                        <h3 className="text-xl font-bold tracking-tight">Invoice Summary</h3>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-white/30 mt-1.5">Live Computation</p>
+                        <h3 className="text-xl font-bold tracking-tight">{summaryCopy.panelTitle || "Invoice Summary"}</h3>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-white/30 mt-1.5">{summaryCopy.panelSubtitle || "Live Computation"}</p>
                     </div>
                     <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
                         <Receipt className="h-6 w-6 text-blue-400" />
@@ -437,9 +541,9 @@ export default function GSTCalculator() {
                 
                 <div className="space-y-10">
                   <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/20 mb-4">Total Amount Payable</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/20 mb-4">{summaryCopy.totalPayableLabel || "Total Amount Payable"}</p>
                     <p className="text-6xl font-black tracking-tighter text-white">{fmt(results.grandTotal)}</p>
-                    <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-white/30">Inclusive of all taxes & cess</p>
+                    <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-white/30">{summaryCopy.totalPayableDescription || "Inclusive of all taxes & cess"}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-6 border-y border-white/5 py-10">
@@ -450,14 +554,14 @@ export default function GSTCalculator() {
                         <p className="text-3xl font-bold text-blue-400">{fmt(results.totalGst)}</p>
                     </div>
                     <div className="text-center border-l border-white/5 group cursor-default">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/20 mb-3 group-hover:text-white/40 transition-colors">Net Taxable Base</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/20 mb-3 group-hover:text-white/40 transition-colors">{summaryCopy.taxableBaseLabel || "Net Taxable Base"}</p>
                         <p className="text-3xl font-bold text-white">{fmt(results.subTotal)}</p>
                     </div>
                   </div>
 
                   <div className="space-y-5 px-6">
                     <div className="flex justify-between items-center opacity-30 hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Discounts Applied</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">{summaryCopy.discountsLabel || "Discounts Applied"}</span>
                       <span className="text-sm font-black text-red-400">-{fmt(results.totalDiscount)}</span>
                     </div>
 
@@ -465,29 +569,29 @@ export default function GSTCalculator() {
                         {placeOfSupply === "intra" ? (
                           <>
                             <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
-                              <span className="text-[11px] font-bold uppercase tracking-widest">CGST Breakdown</span>
+                              <span className="text-[11px] font-bold uppercase tracking-widest">{summaryCopy.cgstLabel || "CGST Breakdown"}</span>
                               <span className="text-sm font-bold">{fmt(results.cgst)}</span>
                             </div>
                             <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
-                              <span className="text-[11px] font-bold uppercase tracking-widest">SGST Breakdown</span>
+                              <span className="text-[11px] font-bold uppercase tracking-widest">{summaryCopy.sgstLabel || "SGST Breakdown"}</span>
                               <span className="text-sm font-bold">{fmt(results.sgst)}</span>
                             </div>
                           </>
                         ) : (
                           <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
-                            <span className="text-[11px] font-bold uppercase tracking-widest">Integrated GST (IGST)</span>
+                            <span className="text-[11px] font-bold uppercase tracking-widest">{summaryCopy.igstLabel || "Integrated GST (IGST)"}</span>
                             <span className="text-sm font-bold">{fmt(results.igst)}</span>
                           </div>
                         )}
                         {results.totalCess > 0 && (
                           <div className="flex justify-between items-center opacity-50 hover:opacity-100 transition-opacity">
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500">Compensation Cess</span>
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500">{summaryCopy.cessBreakdownLabel || "Compensation Cess"}</span>
                             <span className="text-sm font-bold text-amber-400">{fmt(results.totalCess)}</span>
                           </div>
                         )}
                         {results.itcAmount > 0 && (
                           <motion.div initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex justify-between items-center bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20">
-                            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">ITC Claimed Offset</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">{summaryCopy.itcOffsetLabel || "ITC Claimed Offset"}</span>
                             <span className="text-lg font-black text-emerald-400">-{fmt(results.itcAmount)}</span>
                           </motion.div>
                         )}
@@ -497,8 +601,8 @@ export default function GSTCalculator() {
                   <div className="mt-6 rounded-[24px] bg-white/[0.03] p-8 border border-white/10 shadow-inner">
                       <div className="flex justify-between items-center">
                          <div>
-                            <span className="text-xs font-bold uppercase tracking-widest text-white/30">Net GST Cash Payable</span>
-                            <p className="text-[9px] font-bold text-white/10 mt-1 uppercase tracking-wider">{taxScheme === "composition" ? "Composition Scheme Rate" : (results.itcAmount > 0 ? "Utilizing Input Credits" : "Standard Liability")}</p>
+                            <span className="text-xs font-bold uppercase tracking-widest text-white/30">{summaryCopy.netGstLabel || "Net GST Cash Payable"}</span>
+                            <p className="text-[9px] font-bold text-white/10 mt-1 uppercase tracking-wider">{taxScheme === "composition" ? (summaryCopy.compositionDescription || "Composition Scheme Rate") : (results.itcAmount > 0 ? (summaryCopy.creditDescription || "Utilizing Input Credits") : (summaryCopy.standardDescription || "Standard Liability"))}</p>
                          </div>
                          <span className="text-4xl font-black text-white">{fmt(taxScheme === "composition" ? results.compositionTax : (isRcm ? 0 : results.netGstPayable))}</span>
                       </div>
@@ -507,18 +611,18 @@ export default function GSTCalculator() {
                   {showMarginMode && (
                     <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="rounded-[24px] bg-emerald-500/5 p-8 border border-emerald-500/10 mt-8">
                        <div className="mb-6 flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400/50">Profit Margin Analysis</span>
+                          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400/50">{summaryCopy.marginAnalysisTitle || "Profit Margin Analysis"}</span>
                           <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
                              <Target className="h-4 w-4 text-emerald-400" />
                           </div>
                        </div>
                        <div className="flex items-center gap-10">
                           <div className="flex-1">
-                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">Expected Margin %</p>
+                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">{summaryCopy.expectedMarginLabel || "Expected Margin %"}</p>
                             <input type="number" value={margin} onChange={e => setMargin(Number(e.target.value))} className="w-full bg-transparent text-3xl font-black text-white outline-none border-b border-white/5 pb-2 focus:border-emerald-500/50 transition-colors" />
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">Estimated Profit</p>
+                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">{summaryCopy.estimatedProfitLabel || "Estimated Profit"}</p>
                             <p className="text-3xl font-black text-emerald-400">{fmt(results.subTotal * (margin / 100))}</p>
                           </div>
                        </div>
@@ -527,10 +631,10 @@ export default function GSTCalculator() {
 
                   <div className="grid grid-cols-2 gap-4 pt-6">
                     <button onClick={exportToCSV} className="flex items-center justify-center gap-2 rounded-[20px] border border-white/10 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-white/5 active:scale-95 transition-all">
-                      <Download className="h-4 w-4" /> Export Data
+                      <Download className="h-4 w-4" /> {summaryCopy.exportLabel || "Export Data"}
                     </button>
                     <button onClick={() => window.print()} className="flex items-center justify-center gap-2 rounded-[20px] bg-blue-600 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-blue-500 hover:shadow-xl hover:shadow-blue-600/20 active:scale-95 transition-all">
-                      <Printer className="h-4 w-4" /> Print Invoice
+                      <Printer className="h-4 w-4" /> {summaryCopy.printLabel || "Print Invoice"}
                     </button>
                   </div>
                 </div>

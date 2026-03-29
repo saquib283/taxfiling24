@@ -5,17 +5,22 @@ import { motion } from "framer-motion";
 
 import Image from "next/image";
 import { Phone, Calendar } from "lucide-react";
-import { CONTACT, ABOUT_FEATURES, SITE_CONTENT_DEFAULTS } from "@/lib/constants";
+import { ABOUT_FEATURES, SITE_CONTENT_DEFAULTS } from "@/lib/constants";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
 import { CheckCircle, Award, IndianRupee, UserCheck } from "lucide-react";
 import BookingModal from "@/components/ui/BookingModal";
+import { getSiteContact } from "@/lib/site-contact";
 
 type AboutPreviewContent = {
   title?: string;
   description?: string;
   primaryCtaLabel?: string;
   secondaryCtaLabel?: string;
+  introTitle?: string;
+  introDescription?: string;
+  clientsLabel?: string;
+  experienceLabel?: string;
   features?: Array<{ title?: string; description?: string; isVisible?: boolean }>;
 };
 
@@ -39,11 +44,18 @@ export function AboutSectionContent({
   content?: AboutPreviewContent;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { phoneRaw } = getSiteContact(settings);
 
   const clientsCount = settings.stats_clients || SITE_CONTENT_DEFAULTS.stats_clients;
   const yearsExp = settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience;
+  const introTitle = content?.introTitle || "About Taxfiling24";
+  const introDescription =
+    content?.introDescription ||
+    "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.";
   const title = content?.title || settings.about_title || SITE_CONTENT_DEFAULTS.about_title;
   const desc = content?.description || settings.about_description || SITE_CONTENT_DEFAULTS.about_description;
+  const clientsLabel = content?.clientsLabel || "Happy Clients";
+  const experienceLabel = content?.experienceLabel || "Years of Experience";
 
   let parsedFeatures = ABOUT_FEATURES;
   if (content?.features?.length) {
@@ -61,10 +73,10 @@ export function AboutSectionContent({
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <AnimatedSection className="mb-12 text-center">
           <h2 className="mb-3 text-2xl font-bold text-[var(--fg)] sm:text-3xl lg:text-4xl">
-            About Taxfiling24
+            {introTitle}
           </h2>
           <p className="mx-auto max-w-xl text-[var(--fg-muted)]">
-            Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.
+            {introDescription}
           </p>
         </AnimatedSection>
 
@@ -89,11 +101,11 @@ export function AboutSectionContent({
             </div>
             <div className="absolute bottom-5 left-5 rounded-xl bg-[var(--primary)] px-4 py-3 text-white shadow-[var(--shadow)]">
               <p className="text-2xl font-bold">{clientsCount}</p>
-              <p className="text-sm text-white/90">Happy Clients</p>
+              <p className="text-sm text-white/90">{clientsLabel}</p>
             </div>
             <div className="absolute right-5 top-5 rounded-xl bg-[var(--accent)] px-4 py-3 text-white shadow-[var(--shadow)]">
               <p className="text-xl font-bold">{yearsExp}</p>
-              <p className="text-xs text-white/90">Years of Experience</p>
+              <p className="text-xs text-white/90">{experienceLabel}</p>
             </div>
           </motion.div>
 
@@ -111,7 +123,7 @@ export function AboutSectionContent({
             </p>
             <div className="flex flex-wrap gap-4">
               <motion.a
-                href={`tel:${CONTACT.phoneRaw}`}
+                href={`tel:${phoneRaw}`}
                 className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 font-bold text-white shadow-[var(--shadow-md)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
                 style={{ backgroundImage: "var(--gradient-primary)" }}
                 whileHover={{ scale: 1.02 }}

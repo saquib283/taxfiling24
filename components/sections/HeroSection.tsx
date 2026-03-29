@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Phone, ArrowRight, Check } from "lucide-react";
-import { CONTACT, SITE_CONTENT_DEFAULTS } from "@/lib/constants";
+import { SITE_CONTENT_DEFAULTS } from "@/lib/constants";
 import { fadeUp, slideInRight } from "@/lib/animations";
+import { getSiteContact } from "@/lib/site-contact";
 
 interface HeroProps {
   settings?: Record<string, string>;
@@ -14,6 +15,10 @@ interface HeroProps {
     subheading?: string;
     primaryCtaLabel?: string;
     secondaryCtaLabel?: string;
+    clientsLabel?: string;
+    experienceLabel?: string;
+    expertsTitle?: string;
+    expertsDescription?: string;
     highlights?: Array<{ text?: string; isVisible?: boolean }>;
   };
 }
@@ -24,7 +29,11 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
   const subheading = content?.subheading || settings.hero_subheading || SITE_CONTENT_DEFAULTS.hero_subheading;
   const ctaPrimary = content?.primaryCtaLabel || settings.hero_cta_primary || "Talk To Expert";
   const ctaSecondary = content?.secondaryCtaLabel || settings.hero_cta_secondary || "Explore Services";
-  const phoneRaw = settings.contact_whatsapp || CONTACT.phoneRaw;
+  const { phoneRaw } = getSiteContact(settings);
+  const clientsLabel = content?.clientsLabel || "Happy Clients";
+  const experienceLabel = content?.experienceLabel || "Years of Experience";
+  const expertsTitle = content?.expertsTitle || "Certified Experts";
+  const expertsDescription = content?.expertsDescription || "CA, CS & Legal Pros";
   const highlights =
     content?.highlights?.filter((item) => item.isVisible !== false && item.text) ||
     [{ text: "No Hidden Charges" }, { text: "Timely Compliance" }, { text: "Expert Team" }];
@@ -119,7 +128,7 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                 style={{ backgroundImage: "var(--gradient-primary)" }}
               >
                 <p className="text-2xl sm:text-3xl font-extrabold tracking-tight">{settings.stats_clients || SITE_CONTENT_DEFAULTS.stats_clients}</p>
-                <p className="text-xs sm:text-sm font-medium text-white/90">Happy Clients</p>
+                <p className="text-xs sm:text-sm font-medium text-white/90">{clientsLabel}</p>
               </motion.div>
               <motion.div
                 animate={{ y: [0, 8, 0] }}
@@ -128,7 +137,7 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                 style={{ background: "linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%)" }}
               >
                 <p className="text-xl sm:text-2xl font-extrabold tracking-tight">{settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience}</p>
-                <p className="text-[10px] sm:text-xs font-medium text-white/90">Years of Experience</p>
+                <p className="text-[10px] sm:text-xs font-medium text-white/90">{experienceLabel}</p>
               </motion.div>
             </div>
             <motion.div
@@ -141,8 +150,8 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                   <Check className="h-6 w-6" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <p className="font-bold text-[var(--fg)]">Certified Experts</p>
-                  <p className="text-sm font-medium text-[var(--fg-soft)]">CA, CS & Legal Pros</p>
+                  <p className="font-bold text-[var(--fg)]">{expertsTitle}</p>
+                  <p className="text-sm font-medium text-[var(--fg-soft)]">{expertsDescription}</p>
                 </div>
               </div>
             </motion.div>

@@ -1,6 +1,8 @@
 import TaxCalculator from "@/components/sections/TaxCalculator";
 import type { Metadata } from "next";
 import JsonLd, { breadcrumbSchema, webPageSchema } from "@/components/seo/JsonLd";
+import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
+import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Income Tax Calculator",
@@ -17,7 +19,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function TaxCalculatorPage() {
+export default async function TaxCalculatorPage() {
+  const settings = await getSettings();
+  const sections = getManagedPageSections("taxCalculator", settings);
+
   return (
     <div className="bg-[var(--bg)] min-h-screen pb-16 lg:pb-24 pt-0">
       <JsonLd
@@ -34,7 +39,15 @@ export default function TaxCalculatorPage() {
           }),
         ]}
       />
-      <TaxCalculator />
+      <TaxCalculator
+        content={{
+          hero: findManagedSection<Record<string, unknown>>(sections, "tax.hero")?.data as Record<string, string> | undefined,
+          income: findManagedSection<Record<string, unknown>>(sections, "tax.income")?.data as Record<string, string> | undefined,
+          deductions: findManagedSection<Record<string, unknown>>(sections, "tax.deductions")?.data as Record<string, string> | undefined,
+          compliance: findManagedSection<Record<string, unknown>>(sections, "tax.compliance")?.data as Record<string, string> | undefined,
+          results: findManagedSection<Record<string, unknown>>(sections, "tax.results")?.data as Record<string, string> | undefined,
+        }}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from "@/lib/prisma";
+import { getSiteContact } from "@/lib/site-contact";
 
 const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
 
@@ -26,8 +27,31 @@ export async function POST(request: Request) {
     }
 
     const { message, history = [] } = await request.json();
-    const setting = await prisma.setting.findUnique({ where: { key: "GEMINI_API_KEY" } });
+    const [setting, contactSettingRows] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: "GEMINI_API_KEY" } }),
+      prisma.setting.findMany({
+        where: {
+          key: {
+            in: [
+              "contact_phone",
+              "SUPPORT_PHONE",
+              "contact_email",
+              "SUPPORT_EMAIL",
+              "contact_address",
+              "SUPPORT_ADDRESS",
+              "contact_whatsapp",
+              "SUPPORT_WHATSAPP",
+            ],
+          },
+        },
+      }),
+    ]);
     const apiKey = setting?.value || process.env.GEMINI_API_KEY;
+    const contactSettings = contactSettingRows.reduce<Record<string, string>>((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {});
+    const { phone, email } = getSiteContact(contactSettings);
 
     if (!apiKey || apiKey === 'KWEFK') {
       return NextResponse.json({ error: "API Key not configured or placeholder" }, { status: 500 });
@@ -48,8 +72,8 @@ Guidelines:
 - **Accuracy**: Provide general informational guidance regarding tax/registrations in India.
 - **Disclaimers**: State that you provide general guidelines, not final legal/financial advice.
 - **Call to Action**: For complex queries, custom pricing, or to book a service, direct them to contact support:
-  - **Phone/WhatsApp**: +91 7011246157
-  - **Email**: support@taxfiling24.com
+  - **Phone/WhatsApp**: ${phone}
+  - **Email**: ${email}
 - **Conciseness**: Keep responses moderately detailed but easy to read in a small chat box. Ideal length is roughly 250-400 words.
 - **Formatting**: Use bold headings, clear bullet lists, or numbered lists in markdown with spacing in response structure where logical. Do not hesitate to emphasize with **bolding** to guide important labels. Do not hallucinate URLs other than contact emails.`;
 

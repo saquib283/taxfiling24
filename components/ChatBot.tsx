@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, MessageCircle, Bot, X, Send, Loader2 } from "lucide-react";
+import { MessageSquare, Bot, X, Send, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { getSiteContact } from "@/lib/site-contact";
 
 interface Message {
   role: "user" | "model";
@@ -45,12 +46,36 @@ const itemVariants = {
   }
 };
 
-export default function ChatBot() {
+export default function ChatBot({
+  settings = {},
+  content,
+}: {
+  settings?: Record<string, string>;
+  content?: {
+    whatsappLabel?: string;
+    assistantLabel?: string;
+    headerTitle?: string;
+    welcomeMessage?: string;
+    inputPlaceholder?: string;
+    typingLabel?: string;
+    errorPrefix?: string;
+    connectionErrorMessage?: string;
+  };
+}) {
+  const { whatsapp } = getSiteContact(settings);
+  const whatsappLabel = content?.whatsappLabel || "WhatsApp";
+  const assistantLabel = content?.assistantLabel || "AI Assistant";
+  const headerTitle = content?.headerTitle || "TaxFiling24 Assistant";
+  const welcomeMessage =
+    content?.welcomeMessage || "Hello! I am your TaxFiling24 assistant. How can I help you today?";
+  const inputPlaceholder = content?.inputPlaceholder || "Ask your question here...";
+  const typingLabel = content?.typingLabel || "Typing...";
+  const errorPrefix = content?.errorPrefix || "Error:";
+  const connectionErrorMessage =
+    content?.connectionErrorMessage || "Something went wrong. Please check your connection.";
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "model", text: "Hello! I am your TaxFiling24 assistant. How can I help you today?" }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([{ role: "model", text: welcomeMessage }]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -64,6 +89,12 @@ export default function ChatBot() {
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0]?.role === "model" ? [{ role: "model", text: welcomeMessage }] : prev
+    );
+  }, [welcomeMessage]);
 
   const handleSend = async (e: FormEvent) => {
     e.preventDefault();
@@ -92,10 +123,13 @@ export default function ChatBot() {
       if (response.ok) {
         setMessages((prev) => [...prev, { role: "model", text: data.reply }]);
       } else {
-        setMessages((prev) => [...prev, { role: "model", text: `Error: ${data.error || "Failed to get response"}` }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "model", text: `${errorPrefix} ${data.error || "Failed to get response"}` },
+        ]);
       }
-    } catch (error) {
-      setMessages((prev) => [...prev, { role: "model", text: "Something went wrong. Please check connection." }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: "model", text: connectionErrorMessage }]);
     } finally {
       setIsLoading(false);
     }
@@ -118,10 +152,10 @@ export default function ChatBot() {
               {/* WhatsApp Option */}
               <motion.div variants={itemVariants} className="flex items-center gap-2">
                 <span className="rounded-full bg-[var(--bg-card)] px-3 py-1 text-xs font-bold text-[var(--fg-muted)] shadow-[var(--shadow-sm)] border border-[var(--border)] backdrop-blur-md">
-                  WhatsApp
+                  {whatsappLabel}
                 </span>
                 <motion.a
-                  href={"https://wa.me/+917011246157"}
+                  href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[var(--shadow-md)] overflow-hidden"
@@ -138,7 +172,7 @@ export default function ChatBot() {
               {/* AI Chat Option */}
               <motion.div variants={itemVariants} className="flex items-center gap-2">
                 <span className="rounded-full bg-[var(--bg-card)] px-3 py-1 text-xs font-bold text-[var(--fg-muted)] shadow-[var(--shadow-sm)] border border-[var(--border)] backdrop-blur-md">
-                  AI Assistant
+                  {assistantLabel}
                 </span>
                 <motion.button
                   onClick={() => {
@@ -193,7 +227,7 @@ export default function ChatBot() {
             <div className="flex items-center justify-between bg-[var(--primary)] p-4 text-white">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                <h3 className="font-semibold">TaxFiling24 Assistant</h3>
+                <h3 className="font-semibold">{headerTitle}</h3>
               </div>
               <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200 transition-colors">
                 <X className="h-5 w-5" />
@@ -230,7 +264,7 @@ export default function ChatBot() {
                 <div className="flex justify-start">
                   <div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-4 py-2 text-sm bg-white text-gray-800 border border-[var(--border)] rounded-bl-none shadow-sm">
                     <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
-                    <span className="text-gray-400">Typing...</span>
+                    <span className="text-gray-400">{typingLabel}</span>
                   </div>
                 </div>
               ) : null}
@@ -241,7 +275,7 @@ export default function ChatBot() {
             <form onSubmit={handleSend} className="p-4 border-t border-gray-100 flex items-center gap-2 bg-white">
               <input
                 type="text"
-                placeholder="Ask representing a query..."
+                placeholder={inputPlaceholder}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading}

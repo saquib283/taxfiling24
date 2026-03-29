@@ -13,6 +13,16 @@ export default function ContactSection({
     title?: string;
     description?: string;
     submitButtonText?: string;
+    fullNameLabel?: string;
+    fullNamePlaceholder?: string;
+    phoneLabel?: string;
+    phonePlaceholder?: string;
+    emailLabel?: string;
+    emailPlaceholder?: string;
+    serviceLabel?: string;
+    servicePlaceholder?: string;
+    messageLabel?: string;
+    messagePlaceholder?: string;
   };
 }) {
   const displayServices = services.length > 0 ? services : FORM_SERVICES;
@@ -44,10 +54,28 @@ export default function ContactSection({
       </div>
 
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-        {[
-          { name: "fullName", label: "Full Name", type: "text", required: true, placeholder: "John Doe" },
-          { name: "phone", label: "Phone Number", type: "tel", required: true, placeholder: "+91 98765 43210" },
-          { name: "email", label: "Email Address", type: "email", required: false, placeholder: "john@example.com" },
+        {[ 
+          {
+            name: "fullName",
+            label: content?.fullNameLabel || "Full Name",
+            type: "text",
+            required: true,
+            placeholder: content?.fullNamePlaceholder || "John Doe",
+          },
+          {
+            name: "phone",
+            label: content?.phoneLabel || "Phone Number",
+            type: "tel",
+            required: true,
+            placeholder: content?.phonePlaceholder || "+91 98765 43210",
+          },
+          {
+            name: "email",
+            label: content?.emailLabel || "Email Address",
+            type: "email",
+            required: false,
+            placeholder: content?.emailPlaceholder || "john@example.com",
+          },
         ].map((field) => (
           <div key={field.name}>
             <label className="mb-1.5 block text-sm font-bold text-slate-700">
@@ -67,7 +95,7 @@ export default function ContactSection({
         
         <div>
           <label className="mb-1.5 block text-sm font-bold text-slate-700">
-            Select Service <span className="text-red-500">*</span>
+            {content?.serviceLabel || "Select Service"} <span className="text-red-500">*</span>
           </label>
           <select
             name="service"
@@ -82,7 +110,7 @@ export default function ContactSection({
               backgroundSize: `20px`,
             }}
           >
-            <option value="">Choose service</option>
+            <option value="">{content?.servicePlaceholder || "Choose service"}</option>
             {displayServices.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
@@ -90,11 +118,11 @@ export default function ContactSection({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-bold text-slate-700">Message</label>
+          <label className="mb-1.5 block text-sm font-bold text-slate-700">{content?.messageLabel || "Message"}</label>
           <div className="relative">
             <textarea
               name="message"
-              placeholder="How can we help you?"
+              placeholder={content?.messagePlaceholder || "How can we help you?"}
               value={formData.message}
               onChange={handleChange}
               maxLength={180}
