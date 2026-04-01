@@ -6,6 +6,7 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 import JsonLd, { articleSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
 import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
 import { getSettings } from "@/lib/settings";
+import { absoluteUrl, buildMetadata } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{
@@ -16,59 +17,41 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   try {
+    const settings = await getSettings();
     const article = await prisma.article.findUnique({
       where: { slug },
       select: {
+        metaTitle: true,
         title: true,
         metaDescription: true,
         excerpt: true,
         thumbnailUrl: true,
         author: true,
         createdAt: true,
+        updatedAt: true,
+        publishedAt: true,
         tags: true,
       },
     });
 
     if (!article) return { title: "Article Not Found" };
 
+    const description =
+      article.metaDescription || article.excerpt || "Read our latest article insights.";
 
-  const description =
-    article.metaDescription || article.excerpt || "Read our latest article insights.";
-
-  return {
-    title: article.title,
-    description,
-    alternates: {
-      canonical: `https://taxfiling24.com/articles/${slug}`,
-    },
-    openGraph: {
-      type: "article" as const,
-      title: `${article.title} | TaxFiling24`,
-      description,
-      url: `https://taxfiling24.com/articles/${slug}`,
-      ...(article.thumbnailUrl
-        ? {
-            images: [
-              {
-                url: article.thumbnailUrl,
-                width: 1200,
-                height: 630,
-                alt: article.title,
-              },
-            ],
-          }
-        : {}),
-      publishedTime: article.createdAt.toISOString(),
+    return buildMetadata({
       authors: [article.author],
-      tags: article.tags || [],
-    },
-    twitter: {
-      card: "summary_large_image" as const,
-      title: article.title,
       description,
-      ...(article.thumbnailUrl ? { images: [article.thumbnailUrl] } : {}),
-    },
-  };
+      image: article.thumbnailUrl || undefined,
+      keywords: article.tags || [],
+      modifiedTime: (article.updatedAt || article.createdAt).toISOString(),
+      path: `/articles/${slug}`,
+      publishedTime: (article.publishedAt || article.createdAt).toISOString(),
+      settings,
+      tags: article.tags || [],
+      title: article.metaTitle || article.title,
+      type: "article",
+    });
   } catch (error) {
     console.error("SEO Metadata Error (Articles):", error);
     return { title: "Article | TaxFiling24" };
@@ -112,14 +95,14 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       <JsonLd
         data={[
           breadcrumbSchema([
-            { name: "Home", url: "https://taxfiling24.com" },
-            { name: "Articles", url: "https://taxfiling24.com/articles" },
-            { name: article.title, url: `https://taxfiling24.com/articles/${slug}` },
+            { name: "Home", url: absoluteUrl("/") },
+            { name: "Articles", url: absoluteUrl("/articles") },
+            { name: article.title, url: absoluteUrl(`/articles/${slug}`) },
           ]),
           articleSchema({
             title: article.title,
             description: article.metaDescription || article.excerpt || "",
-            url: `https://taxfiling24.com/articles/${slug}`,
+            url: absoluteUrl(`/articles/${slug}`),
             image: article.thumbnailUrl || undefined,
             datePublished: article.createdAt.toISOString(),
             dateModified: (article.updatedAt || article.createdAt).toISOString(),
@@ -171,9 +154,13 @@ export default async function ArticleDetailPage({ params }: PageProps) {
 
         {article.thumbnailUrl && (
           <AnimatedSection className="mb-12">
+            {/* Thumbnail sources can be arbitrary CMS URLs, so keep a standard img here until remote patterns are curated. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={article.thumbnailUrl}
               alt={article.title}
+              decoding="async"
+              loading="eager"
               className="rounded-2xl w-full aspect-video object-cover shadow-[var(--shadow-md)]"
             />
           </AnimatedSection>

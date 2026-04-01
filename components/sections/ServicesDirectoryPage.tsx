@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Briefcase,
@@ -139,6 +139,7 @@ export default function ServicesDirectoryPage({
   showCta,
   directoryContent,
   whatsappUrl,
+  initialSearch = "",
 }: {
   services: DirectoryService[];
   heroContent?: {
@@ -167,9 +168,14 @@ export default function ServicesDirectoryPage({
     clearFiltersText?: string;
   };
   whatsappUrl?: string;
+  initialSearch?: string;
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  useEffect(() => {
+    setSearchTerm(initialSearch);
+  }, [initialSearch]);
 
   const uniqueCategories = useMemo(
     () => Array.from(new Set(services.map((service) => service.category).filter(Boolean))),

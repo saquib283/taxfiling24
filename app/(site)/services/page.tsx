@@ -1,9 +1,15 @@
 import ServicesDirectoryPage from "@/components/sections/ServicesDirectoryPage";
+import JsonLd, {
+  breadcrumbSchema,
+  collectionPageSchema,
+  itemListSchema,
+} from "@/components/seo/JsonLd";
 import { SERVICES } from "@/lib/constants";
 import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
 import prisma from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { getSiteContact } from "@/lib/site-contact";
+import { absoluteUrl } from "@/lib/seo";
 
 interface ServiceCard {
   id?: string;
@@ -16,9 +22,18 @@ interface ServiceCard {
 
 type ServicesPageProps = Parameters<typeof ServicesDirectoryPage>[0];
 
-export default async function ServicesPage() {
+type PageProps = {
+  searchParams?: Promise<{
+    q?: string | string[];
+  }>;
+};
+
+export default async function ServicesPage({ searchParams }: PageProps) {
   const settings = await getSettings();
   const sections = getManagedPageSections("services", settings);
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialSearch =
+    typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q : "";
   let services: ServiceCard[] = [];
 
   try {
@@ -36,14 +51,37 @@ export default async function ServicesPage() {
   const { whatsapp } = getSiteContact(settings);
 
   return (
-    <ServicesDirectoryPage
-      services={services}
-      heroContent={heroSection?.data as ServicesPageProps["heroContent"]}
-      showHero={heroSection?.isVisible ?? true}
-      directoryContent={directorySection?.data as ServicesPageProps["directoryContent"]}
-      ctaContent={ctaSection?.data as ServicesPageProps["ctaContent"]}
-      showCta={ctaSection?.isVisible ?? true}
-      whatsappUrl={whatsapp}
-    />
+    <>
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", url: absoluteUrl("/") },
+            { name: "Services", url: absoluteUrl("/services") },
+          ]),
+          collectionPageSchema({
+            description:
+              "Explore professional tax, GST, registration, audit, accounting, and advisory services from TaxFiling24.",
+            name: "Services",
+            url: absoluteUrl("/services"),
+          }),
+          itemListSchema(
+            services.map((service) => ({
+              name: service.title,
+              url: absoluteUrl(service.href || `/services/${service.slug || service.id}`),
+            }))
+          ),
+        ]}
+      />
+      <ServicesDirectoryPage
+        services={services}
+        heroContent={heroSection?.data as ServicesPageProps["heroContent"]}
+        showHero={heroSection?.isVisible ?? true}
+        directoryContent={directorySection?.data as ServicesPageProps["directoryContent"]}
+        ctaContent={ctaSection?.data as ServicesPageProps["ctaContent"]}
+        showCta={ctaSection?.isVisible ?? true}
+        whatsappUrl={whatsapp}
+        initialSearch={initialSearch}
+      />
+    </>
   );
 }

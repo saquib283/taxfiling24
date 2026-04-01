@@ -1,18 +1,16 @@
-import { getSetting } from "@/lib/settings";
+import { getSetting, getSettings } from "@/lib/settings";
 import type { Metadata } from "next";
+import { buildPageMetadataFromSettings } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms of Service",
-  description: "Read TaxFiling24's terms of service to understand the conditions under which we provide our professional services.",
-  alternates: {
-    canonical: "https://taxfiling24.com/terms",
-  },
-  openGraph: {
-    title: "Terms of Service | TaxFiling24",
-    description: "Read TaxFiling24's terms of service to understand the conditions under which we provide our professional services.",
-    url: "https://taxfiling24.com/terms",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return buildPageMetadataFromSettings(settings, "terms", {
+    description:
+      "Read TaxFiling24's terms of service to understand the conditions under which we provide our professional services.",
+    path: "/terms",
+    title: "Terms of Service",
+  });
+}
 
 export default async function TermsPage() {
   const [title, content] = await Promise.all([

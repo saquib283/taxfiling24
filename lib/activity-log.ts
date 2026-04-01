@@ -1,7 +1,20 @@
 import prisma from "@/lib/prisma";
 
 type ActionType = "CREATED" | "UPDATED" | "DELETED" | "SENT" | "APPROVED" | "REJECTED";
-type EntityType = "Article" | "Service" | "FAQ" | "Review" | "TeamMember" | "Deadline" | "Inquiry" | "User" | "Campaign" | "Setting" | "Subscriber";
+type EntityType =
+  | "Article"
+  | "Service"
+  | "FAQ"
+  | "Review"
+  | "TeamMember"
+  | "Deadline"
+  | "Inquiry"
+  | "User"
+  | "Campaign"
+  | "Setting"
+  | "Subscriber"
+  | "Appointment"
+  | "BookingConfig";
 
 /**
  * Log an activity to the ActivityLog table.

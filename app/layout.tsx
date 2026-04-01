@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import prisma from "@/lib/prisma";
+import HtmlInjection from "@/components/seo/HtmlInjection";
 import JsonLd, {
+  localBusinessSchema,
   organizationSchema,
   webSiteSchema,
-  localBusinessSchema,
 } from "@/components/seo/JsonLd";
+import { getSettings } from "@/lib/settings";
+import {
+  SITE_URL,
+  buildPageMetadataFromSettings,
+  getDefaultDescription,
+  getSiteName,
+} from "@/lib/seo";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -14,72 +21,44 @@ const outfit = Outfit({
 });
 
 async function getSiteSettings() {
-  try {
-    const settings = await prisma.setting.findMany();
-    return settings.reduce((acc: any, curr: any) => {
-      acc[curr.key] = curr.value;
-      return acc;
-    }, {});
-  } catch {
-    return {};
-  }
+  return getSettings();
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const theme = await getSiteSettings();
-  const title = theme.seo_home_title || "TaxFiling24 | Complete Business, Tax & Compliance Solutions";
-  const description = theme.seo_home_description || "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory. Serving Startups, MSMEs, NGOs, and Corporates across India with expert CA & CS consultancy services.";
-  const ogImage = theme.seo_home_og_image || "/logo.png";
+  const settings = await getSiteSettings();
+  const siteName = getSiteName(settings);
+  const title =
+    settings.seo_home_title || `${siteName} | Complete Business, Tax & Compliance Solutions`;
+  const description = settings.seo_home_description || getDefaultDescription(settings);
+  const ogImage = settings.seo_home_og_image || settings.seo_default_og_image || "/logo.png";
+  const homeMetadata = buildPageMetadataFromSettings(settings, "home", {
+    description:
+      "Your trusted partner for business registration, taxation, compliance, and financial advisory services across India.",
+    path: "/",
+    title: `${siteName} | Complete Business, Tax & Compliance Solutions`,
+  });
 
   return {
-    metadataBase: new URL("https://taxfiling24.com"),
+    ...homeMetadata,
+    metadataBase: new URL(SITE_URL),
     title: {
-      default: title,
-      template: "%s | TaxFiling24",
+      default: homeMetadata.title as string,
+      template: `%s | ${siteName}`,
     },
-    description,
-    keywords: [
-      "tax filing",
-      "GST registration",
-      "company registration",
-      "chartered accountant",
-      "income tax return",
-      "ITR filing",
-      "business registration India",
-      "LLP registration",
-      "ROC compliance",
-      "tax planning",
-      "virtual CFO",
-      "audit services",
-      "trademark registration",
-      "MSME registration",
-      "financial advisory",
-      "TaxFiling24",
-    ],
-    authors: [{ name: "TaxFiling24", url: "https://taxfiling24.com" }],
-    creator: "TaxFiling24",
-    publisher: "TaxFiling24",
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
-    },
-    alternates: {
-      canonical: "https://taxfiling24.com",
-    },
+    applicationName: siteName,
+    authors: [{ name: siteName, url: SITE_URL }],
+    creator: siteName,
+    publisher: siteName,
+    description: settings.seo_home_description || getDefaultDescription(settings),
+    manifest: "/manifest.webmanifest",
+    referrer: "origin-when-cross-origin",
     openGraph: {
       type: "website",
       locale: "en_IN",
-      siteName: "TaxFiling24",
+      siteName,
       title,
       description,
-      url: "https://taxfiling24.com",
+      url: SITE_URL,
       images: [
         {
           url: ogImage,
@@ -96,8 +75,12 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [ogImage],
     },
     verification: {
-      // Add your Google Search Console verification code here
-      // google: "your-verification-code",
+      google: settings.seo_google_verification || undefined,
+      other: settings.seo_other_verification
+        ? {
+            custom: settings.seo_other_verification,
+          }
+        : undefined,
     },
     category: "finance",
   };
@@ -116,6 +99,7 @@ export default async function RootLayout({
   const fontFamily = theme.theme_font || "Outfit";
   const fontSize = theme.theme_font_size ? `${theme.theme_font_size}px` : "15px";
   const shadowStyle = theme.theme_shadow || "subtle";
+  const siteName = getSiteName(theme);
 
   // Map shadow style to actual CSS values
   const shadowMap: Record<string, { sm: string; md: string; lg: string }> = {
@@ -151,11 +135,15 @@ export default async function RootLayout({
   const gaId = theme.ga_id || "";
 
   return (
-    <html lang="en" className={outfit.variable}>
+    <html lang="en-IN" className={outfit.variable}>
       <head>
-        {fontFamily !== "Outfit" && (
-          <link rel="stylesheet" href={googleFontUrl} />
-        )}
+        {fontFamily !== "Outfit" ? (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link rel="stylesheet" href={googleFontUrl} />
+          </>
+        ) : null}
         <style>{`
           :root {
             --primary: ${primary};
@@ -176,18 +164,19 @@ export default async function RootLayout({
         `}</style>
         {gaId && (
           <>
+            <link rel="preconnect" href="https://www.googletagmanager.com" />
             <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
             <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');` }} />
           </>
         )}
-        {injectHead && <div dangerouslySetInnerHTML={{ __html: injectHead }} />}
+        <HtmlInjection html={injectHead} />
       </head>
       <body className={`${outfit.variable} ${outfit.className} antialiased selection:bg-[var(--accent)] selection:text-white`}>
         {/* Site-wide Structured Data */}
         <JsonLd
           data={[
             organizationSchema(theme),
-            webSiteSchema(),
+            webSiteSchema(siteName),
             localBusinessSchema(theme),
           ]}
         />
@@ -205,8 +194,8 @@ export default async function RootLayout({
         >
           Skip to main content
         </a>
-        <main id="main">{children}</main>
-        {injectBody && <div dangerouslySetInnerHTML={{ __html: injectBody }} />}
+        {children}
+        <HtmlInjection html={injectBody} />
       </body>
     </html>
   );

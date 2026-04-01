@@ -1,18 +1,16 @@
-import { getSetting } from "@/lib/settings";
+import { getSetting, getSettings } from "@/lib/settings";
 import type { Metadata } from "next";
+import { buildPageMetadataFromSettings } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "Read TaxFiling24's privacy policy to understand how we collect, use, and protect your personal information.",
-  alternates: {
-    canonical: "https://taxfiling24.com/privacy",
-  },
-  openGraph: {
-    title: "Privacy Policy | TaxFiling24",
-    description: "Read TaxFiling24's privacy policy to understand how we collect, use, and protect your personal information.",
-    url: "https://taxfiling24.com/privacy",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return buildPageMetadataFromSettings(settings, "privacy", {
+    description:
+      "Read TaxFiling24's privacy policy to understand how we collect, use, and protect your personal information.",
+    path: "/privacy",
+    title: "Privacy Policy",
+  });
+}
 
 export default async function PrivacyPage() {
   const [title, content] = await Promise.all([

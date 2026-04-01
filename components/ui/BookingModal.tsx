@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, Clock, User, Mail, Phone, MessageSquare, CheckCircle2, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { X, Calendar, User, Mail, Phone, MessageSquare, CheckCircle2, Loader2, Sparkles, AlertCircle, Video, Link2 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
+import { getMeetingTypeLabel, type BookingServiceConfig, type BookingSettings } from "@/lib/booking";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -13,30 +14,134 @@ interface BookingModalProps {
   defaultService?: string;
 }
 
+type SlotOption = {
+  date: string;
+  label: string;
+  startTime: string;
+};
+
+type AvailabilityResponse = {
+  availableSlots?: SlotOption[];
+  error?: string;
+  selectedServiceId?: string;
+  services?: BookingServiceConfig[];
+  settings?: BookingSettings | null;
+};
+
 export default function BookingModal({ isOpen, onClose, defaultService }: BookingModalProps) {
   const [loading, setLoading] = useState(false);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [bookingReference, setBookingReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
-
+  const [services, setServices] = useState<BookingServiceConfig[]>([]);
+  const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [slots, setSlots] = useState<SlotOption[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<SlotOption | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    service: defaultService || "",
     message: ""
   });
+
+  const selectedService = useMemo(
+    () => services.find((service) => service.id === selectedServiceId) || null,
+    [selectedServiceId, services]
+  );
+  const selectedDateKey = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
 
   const validateForm = () => {
     if (!formData.name.trim()) return "Name is required";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return "Invalid email address";
     if (!/^\+?[\d\s-]{10,}$/.test(formData.phone)) return "Invalid phone number (min 10 digits)";
     if (!selectedDate) return "Please select a date";
-    if (!selectedTime) return "Please select a time";
+    if (!selectedSlot) return "Please select a slot";
     return null;
   };
+
+  const fetchAvailability = async (serviceId: string, dateKey: string) => {
+    if (!dateKey) {
+      setSlots([]);
+      setSelectedSlot(null);
+      return;
+    }
+
+    setLoadingAvailability(true);
+    try {
+      const response = await fetch(`/api/appointments?date=${dateKey}&serviceId=${serviceId}`);
+      const data = (await response.json()) as AvailabilityResponse;
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch available slots.");
+      }
+
+      setSlots(Array.isArray(data.availableSlots) ? data.availableSlots : []);
+      setSelectedSlot((current) => {
+        if (!current) return null;
+        return data.availableSlots?.find((slot: SlotOption) => slot.startTime === current.startTime) || null;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch available slots.");
+      setSlots([]);
+      setSelectedSlot(null);
+    } finally {
+      setLoadingAvailability(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const initialize = async () => {
+      const nextDate = new Date();
+      const dateKey = format(nextDate, "yyyy-MM-dd");
+      setSuccess(false);
+      setBookingReference(null);
+      setError(null);
+      setSelectedSlot(null);
+      setLoadingAvailability(true);
+
+      try {
+        const response = await fetch(`/api/appointments?date=${dateKey}`);
+        const data = (await response.json()) as AvailabilityResponse;
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load booking options.");
+        }
+
+        const nextServices = Array.isArray(data.services) ? data.services : [];
+        setServices(nextServices);
+        setBookingSettings(data.settings || null);
+        setSelectedDate(nextDate);
+
+        const preferredService =
+          nextServices.find((service) => service.name === defaultService) ||
+          nextServices.find((service) => service.id === data.selectedServiceId) ||
+          nextServices[0];
+
+        const nextServiceId = preferredService?.id || "";
+        setSelectedServiceId(nextServiceId);
+        setSlots(Array.isArray(data.availableSlots) && nextServiceId === data.selectedServiceId ? data.availableSlots : []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load booking options.");
+      } finally {
+        setLoadingAvailability(false);
+      }
+    };
+
+    void initialize();
+  }, [defaultService, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !selectedDateKey || !selectedServiceId) {
+      return;
+    }
+
+    void fetchAvailability(selectedServiceId, selectedDateKey);
+  }, [isOpen, selectedDateKey, selectedServiceId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,11 +155,13 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
     setLoading(true);
 
     try {
-      // Prepare data for API
       const payload = {
         ...formData,
-        date: selectedDate ? selectedDate.toISOString().split('T')[0] : "",
-        time: selectedTime ? format(selectedTime, "hh:mm a") : ""
+        customerTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        date: selectedDateKey,
+        service: selectedService?.name || "",
+        serviceId: selectedServiceId,
+        time: selectedSlot?.startTime || "",
       };
 
       const res = await fetch("/api/appointments", {
@@ -63,20 +170,19 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
         body: JSON.stringify(payload),
       });
       
+      const data = await res.json();
+
       if (res.ok) {
         setSuccess(true);
-        // Reset form
+        setBookingReference(data.bookingReference || null);
         setFormData({
           name: "",
           email: "",
           phone: "",
-          service: defaultService || "",
           message: ""
         });
-        setSelectedDate(null);
-        setSelectedTime(null);
+        setSelectedSlot(null);
       } else {
-        const data = await res.json();
         setError(data.error || "Failed to schedule appointment");
       }
     } catch (err) {
@@ -87,7 +193,7 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError(null);
   };
@@ -243,16 +349,15 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
                     <label className="text-[10px] font-bold text-[var(--fg-muted)] ml-1 uppercase tracking-wide">Select Service</label>
                     <div className="relative">
                       <select
-                        name="service"
-                        value={formData.service}
-                        onChange={handleChange}
+                        value={selectedServiceId}
+                        onChange={(e) => { setSelectedServiceId(e.target.value); setSelectedSlot(null); if (error) setError(null); }}
                         className="w-full px-4 py-3 bg-[var(--bg-muted)] border border-[var(--border)] rounded-xl sm:rounded-2xl text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)]/10 focus:border-[var(--primary)] outline-none transition-all appearance-none cursor-pointer"
                       >
-                        <option value="">General Consultation</option>
-                        <option value="GST Filing">GST Filing</option>
-                        <option value="Income Tax">Income Tax</option>
-                        <option value="Company Registration">Company Registration</option>
-                        <option value="Audit">Audit Services</option>
+                        {services.map((service) => (
+                          <option key={service.id} value={service.id}>
+                            {service.name}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--fg-soft)]">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -268,7 +373,7 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
                       <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--fg-soft)] z-[1]" />
                       <DatePicker
                         selected={selectedDate}
-                        onChange={(date: Date | null) => { setSelectedDate(date); if (error) setError(null); }}
+                        onChange={(date: Date | null) => { setSelectedDate(date); setSelectedSlot(null); if (error) setError(null); }}
                         minDate={new Date()}
                         placeholderText="Select Date"
                         className="w-full pl-10 pr-4 py-3 bg-[var(--bg-muted)] border border-[var(--border)] rounded-xl sm:rounded-2xl text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)]/10 focus:border-[var(--primary)] outline-none transition-all"
@@ -277,21 +382,53 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-[var(--fg-muted)] ml-1 uppercase tracking-wide">Preferred Time</label>
-                    <div className="relative">
-                      <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--fg-soft)] z-[1]" />
-                      <DatePicker
-                        selected={selectedTime}
-                        onChange={(time: Date | null) => { setSelectedTime(time); if (error) setError(null); }}
-                        showTimeSelect
-                        showTimeSelectOnly
-                        timeIntervals={15}
-                        timeCaption="Time"
-                        dateFormat="h:mm aa"
-                        placeholderText="Select Time"
-                        className="w-full pl-10 pr-4 py-3 bg-[var(--bg-muted)] border border-[var(--border)] rounded-xl sm:rounded-2xl text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)]/10 focus:border-[var(--primary)] outline-none transition-all"
-                      />
+                    <label className="text-[10px] font-bold text-[var(--fg-muted)] ml-1 uppercase tracking-wide">Meeting Summary</label>
+                    <div className="rounded-xl sm:rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)] px-4 py-3 text-sm text-[var(--fg-muted)]">
+                      <div className="flex items-center gap-2 text-[var(--fg)] font-semibold">
+                        <Video className="h-4 w-4 text-[var(--primary)]" />
+                        {selectedService ? getMeetingTypeLabel(selectedService.meetingType) : "Select a service"}
+                      </div>
+                      <div className="mt-2 text-xs leading-relaxed">
+                        {selectedService?.description || bookingSettings?.bookingWindowLabel || "Choose a service and date to see slots."}
+                      </div>
+                      {selectedService?.locationLabel ? (
+                        <div className="mt-2 flex items-start gap-2 text-xs">
+                          <Link2 className="h-3.5 w-3.5 mt-0.5 text-[var(--primary)]" />
+                          {selectedService.locationLabel}
+                        </div>
+                      ) : null}
                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-[var(--fg-muted)] ml-1 uppercase tracking-wide">Available Slots</label>
+                    {loadingAvailability ? <Loader2 className="h-4 w-4 animate-spin text-[var(--fg-soft)]" /> : null}
+                  </div>
+                  <div className="rounded-xl sm:rounded-2xl border border-[var(--border)] bg-[var(--bg-muted)] p-3">
+                    {slots.length === 0 ? (
+                      <div className="px-2 py-3 text-sm text-[var(--fg-muted)]">
+                        No slots available for the selected date. Try another day.
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {slots.map((slot) => (
+                          <button
+                            key={`${slot.date}-${slot.startTime}`}
+                            type="button"
+                            onClick={() => { setSelectedSlot(slot); if (error) setError(null); }}
+                            className={`rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
+                              selectedSlot?.startTime === slot.startTime
+                                ? "bg-[var(--primary)] text-white shadow-[var(--shadow-md)]"
+                                : "bg-white text-[var(--fg)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] border border-[var(--border)]"
+                            }`}
+                          >
+                            {slot.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -333,7 +470,9 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-[var(--fg)] mb-2">Appointment Secured!</h2>
               <p className="text-[var(--fg-muted)] text-sm mb-8 leading-relaxed">
-                Our team has received your request and will contact you shortly to confirm the details.
+                {bookingReference
+                  ? `Our team has received your booking request. Reference: ${bookingReference}.`
+                  : "Our team has received your request and will contact you shortly to confirm the details."}
               </p>
               <button
                 onClick={onClose}

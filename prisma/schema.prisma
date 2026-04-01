@@ -150,24 +150,94 @@ model Subscriber {
 }
 
 model Campaign {
-  id        String   @id @default(cuid())
-  subject   String
-  content   String   @db.Text
-  status    String   @default("DRAFT") // DRAFT, SENT
-  sentAt    DateTime?
-  createdAt DateTime @default(now())
+  id                String            @id @default(cuid())
+  name              String?
+  subject           String
+  preheader         String?
+  content           String            @db.Text
+  status            String            @default("DRAFT") // DRAFT, SENDING, SENT, PARTIAL_FAILURE
+  provider          String            @default("SMTP")
+  audience          String            @default("ALL_ACTIVE")
+  fromName          String?
+  fromEmail         String?
+  replyTo           String?
+  externalId        String?
+  templateId        String?
+  template          CampaignTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  recipientCount    Int               @default(0)
+  sentCount         Int               @default(0)
+  deliveredCount    Int               @default(0)
+  openedCount       Int               @default(0)
+  readCount         Int               @default(0)
+  clickedCount      Int               @default(0)
+  bouncedCount      Int               @default(0)
+  failedCount       Int               @default(0)
+  complaintCount    Int               @default(0)
+  unsubscribedCount Int               @default(0)
+  sentAt            DateTime?
+  lastEventAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  events            CampaignEvent[]
+}
+
+model CampaignTemplate {
+  id            String     @id @default(cuid())
+  name          String
+  description   String?
+  category      String     @default("Newsletter")
+  subject       String
+  preheader     String?
+  content       String     @db.Text
+  isAiGenerated Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  campaigns     Campaign[]
+}
+
+model CampaignEvent {
+  id             String   @id @default(cuid())
+  campaignId     String
+  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  provider       String
+  eventType      String
+  providerEventId String?
+  recipientEmail String?
+  payload        Json?
+  createdAt      DateTime @default(now())
+
+  @@unique([campaignId, provider, providerEventId], map: "campaign_provider_event_unique")
 }
 
 model Appointment {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  phone     String
-  service   String?
-  date      DateTime
-  time      String
-  message   String?  @db.Text
-  status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  bookingReference   String?  @unique
+  name               String
+  email              String
+  phone              String
+  service            String?
+  serviceId          String?
+  date               DateTime
+  time               String
+  slotLabel          String?
+  startAt            DateTime?
+  endAt              DateTime?
+  durationMinutes    Int?
+  customerTimezone   String?
+  locationType       String?
+  locationLabel      String?
+  meetingLink        String?
+  message            String?  @db.Text
+  adminNotes         String?  @db.Text
+  cancellationReason String?  @db.Text
+  status             String   @default("PENDING") // PENDING, CONFIRMED, RESCHEDULED, CANCELLED, COMPLETED, NO_SHOW
+  source             String   @default("WEBSITE")
+  confirmationSentAt DateTime?
+  reminderSentAt     DateTime?
+  reminderCount      Int      @default(0)
+  sentReminderOffsets String?
+  meetingLinkSentAt  DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }

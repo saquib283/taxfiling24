@@ -9,6 +9,12 @@ const SEO_PAGES = [
   { key: "services", label: "Services Page" },
   { key: "articles", label: "Articles Page" },
   { key: "contact", label: "Contact Page" },
+  { key: "tools", label: "Tools Page" },
+  { key: "tax_calculator", label: "Tax Calculator" },
+  { key: "gst_calculator", label: "GST Calculator" },
+  { key: "privacy", label: "Privacy Policy" },
+  { key: "terms", label: "Terms Page" },
+  { key: "refund", label: "Refund Policy" },
 ];
 
 export default function SEOManagerPage() {
@@ -75,8 +81,34 @@ export default function SEOManagerPage() {
               <input type="text" value={values[`seo_${page.key}_og_image`] || ""} onChange={e => setValues({ ...values, [`seo_${page.key}_og_image`]: e.target.value })} placeholder="https://yourdomain.com/images/og-home.png" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Keywords</label>
+              <input type="text" value={values[`seo_${page.key}_keywords`] || ""} onChange={e => setValues({ ...values, [`seo_${page.key}_keywords`]: e.target.value })} placeholder="keyword one, keyword two, keyword three" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <p className="text-xs text-gray-400 mt-1">Use comma-separated keywords for this page.</p>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Canonical URL (Optional)</label>
               <input type="text" value={values[`seo_${page.key}_canonical`] || ""} onChange={e => setValues({ ...values, [`seo_${page.key}_canonical`]: e.target.value })} placeholder="https://yourdomain.com/page" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="pt-4 border-t border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">Sitewide Defaults</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Default Description</label>
+                  <textarea value={values.seo_default_description || ""} onChange={e => setValues({ ...values, seo_default_description: e.target.value })} placeholder="Fallback description used when a page does not have a custom one." rows={3} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Default Keywords</label>
+                  <input type="text" value={values.seo_default_keywords || ""} onChange={e => setValues({ ...values, seo_default_keywords: e.target.value })} placeholder="tax filing, GST, business compliance" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Default OG Image</label>
+                  <input type="text" value={values.seo_default_og_image || ""} onChange={e => setValues({ ...values, seo_default_og_image: e.target.value })} placeholder="https://yourdomain.com/images/og-default.png" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Google Verification Code</label>
+                  <input type="text" value={values.seo_google_verification || ""} onChange={e => setValues({ ...values, seo_google_verification: e.target.value })} placeholder="google-site-verification=..." className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
             </div>
           </div>
         </div>

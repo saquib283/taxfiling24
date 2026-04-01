@@ -16,12 +16,14 @@ const prismaClientSingleton = () => {
             } catch (error) {
               // P1001: Can't reach database server (Neon cold-start)
               // P1008: Operations timed out
+              // P1011/P1017: Server closed connection
+              // P2024: Connection pool timeout
               if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
-                (error.code === 'P1001' || error.code === 'P1008') &&
+                ['P1001', 'P1002', 'P1008', 'P1011', 'P1017', 'P2024'].includes(error.code) &&
                 retries > 0
               ) {
-                console.warn(`[Prisma] Serverless DB Offline (${error.code}). Retrying ${model}.${operation} in ${delay}ms... (${retries} left)`);
+                console.warn(`[Prisma] Transient DB Error (${error.code}). Retrying ${model}.${operation} in ${delay}ms... (${retries} left)`);
                 await new Promise((resolve) => setTimeout(resolve, delay));
                 retries--;
                 delay *= 1.5; // Exponential backoff

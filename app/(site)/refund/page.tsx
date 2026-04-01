@@ -1,18 +1,15 @@
-import { getSetting } from "@/lib/settings";
+import { getSetting, getSettings } from "@/lib/settings";
 import type { Metadata } from "next";
+import { buildPageMetadataFromSettings } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Refund & Cancellation Policy",
-  description: "Read TaxFiling24's refund and cancellation policy for all professional services.",
-  alternates: {
-    canonical: "https://taxfiling24.com/refund",
-  },
-  openGraph: {
-    title: "Refund & Cancellation Policy | TaxFiling24",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return buildPageMetadataFromSettings(settings, "refund", {
     description: "Read TaxFiling24's refund and cancellation policy for all professional services.",
-    url: "https://taxfiling24.com/refund",
-  },
-};
+    path: "/refund",
+    title: "Refund & Cancellation Policy",
+  });
+}
 
 export default async function RefundPage() {
   const [title, content] = await Promise.all([

@@ -14,6 +14,7 @@ import prisma from "@/lib/prisma";
 import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
 import { getSettings } from "@/lib/settings";
 import { getSiteContact } from "@/lib/site-contact";
+import { absoluteUrl, buildMetadata } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{
@@ -21,8 +22,15 @@ interface PageProps {
   }>;
 }
 
+type ServiceBenefit = string | { title?: string };
+type ServiceSubService = { description?: string; title?: string };
+type ServiceProcessStep = { description?: string; step?: string; title?: string };
+type ServiceDocument = string | { title?: string };
+type ServiceFaq = { answer: string; question: string };
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+  const settings = await getSettings();
   let dbData = null;
   try {
     dbData = await prisma.service.findUnique({ where: { slug } });
@@ -33,23 +41,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const data = dbData || SERVICES_DETAIL_DATA[slug];
   if (!data) return { title: "Service Not Found" };
 
-  return {
-    title: data.title,
+  return buildMetadata({
     description: data.description,
-    alternates: {
-      canonical: `https://taxfiling24.com/services/${slug}`,
-    },
-    openGraph: {
-      title: `${data.title} | TaxFiling24`,
-      description: data.description,
-      url: `https://taxfiling24.com/services/${slug}`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: data.title,
-      description: data.description,
-    },
-  };
+    keywords: [data.title, "tax services", "GST services", "business compliance"],
+    path: `/services/${slug}`,
+    settings,
+    title: data.title,
+  });
 }
 
 export async function generateStaticParams() {
@@ -58,7 +56,7 @@ export async function generateStaticParams() {
     if (dbServices.length > 0) {
        return dbServices.map((s) => ({ slug: s.slug }));
     }
-  } catch (e) {}
+  } catch {}
 
   return Object.keys(SERVICES_DETAIL_DATA).map((slug) => ({
     slug,
@@ -95,19 +93,34 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   // Robust parsing of JSON fields with smart fallbacks to static data if newly created services are empty
   const rawBenefits = dbData?.benefits;
-  const benefits = Array.isArray(rawBenefits) && rawBenefits.length > 0 ? rawBenefits : (SERVICES_DETAIL_DATA[slug]?.benefits || []);
+  const benefits: ServiceBenefit[] =
+    Array.isArray(rawBenefits) && rawBenefits.length > 0
+      ? (rawBenefits as ServiceBenefit[])
+      : (SERVICES_DETAIL_DATA[slug]?.benefits || []);
 
   const rawSubServices = dbData?.subServices;
-  const subServices = Array.isArray(rawSubServices) && rawSubServices.length > 0 ? rawSubServices : (SERVICES_DETAIL_DATA[slug]?.subServices || []);
+  const subServices: ServiceSubService[] =
+    Array.isArray(rawSubServices) && rawSubServices.length > 0
+      ? (rawSubServices as ServiceSubService[])
+      : (SERVICES_DETAIL_DATA[slug]?.subServices || []);
 
   const rawProcess = dbData?.process;
-  const processSteps = Array.isArray(rawProcess) && rawProcess.length > 0 ? rawProcess : (SERVICES_DETAIL_DATA[slug]?.process || []);
+  const processSteps: ServiceProcessStep[] =
+    Array.isArray(rawProcess) && rawProcess.length > 0
+      ? (rawProcess as ServiceProcessStep[])
+      : (SERVICES_DETAIL_DATA[slug]?.process || []);
 
   const rawDocs = dbData?.documentsRequired;
-  const documentsRequired = Array.isArray(rawDocs) && rawDocs.length > 0 ? rawDocs : (SERVICES_DETAIL_DATA[slug]?.documentsRequired || []);
+  const documentsRequired: ServiceDocument[] =
+    Array.isArray(rawDocs) && rawDocs.length > 0
+      ? (rawDocs as ServiceDocument[])
+      : (SERVICES_DETAIL_DATA[slug]?.documentsRequired || []);
 
   const rawFaqs = dbData?.faqs;
-  const faqs = Array.isArray(rawFaqs) && rawFaqs.length > 0 ? rawFaqs : (SERVICES_DETAIL_DATA[slug]?.faqs || []);
+  const faqs: ServiceFaq[] =
+    Array.isArray(rawFaqs) && rawFaqs.length > 0
+      ? (rawFaqs as ServiceFaq[])
+      : (SERVICES_DETAIL_DATA[slug]?.faqs || []);
 
   const overviewText = dbData?.overview || SERVICES_DETAIL_DATA[slug]?.overview || data.description;
 
@@ -116,14 +129,14 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       <JsonLd
         data={[
           breadcrumbSchema([
-            { name: "Home", url: "https://taxfiling24.com" },
-            { name: "Services", url: "https://taxfiling24.com/services" },
-            { name: data.title, url: `https://taxfiling24.com/services/${slug}` },
+            { name: "Home", url: absoluteUrl("/") },
+            { name: "Services", url: absoluteUrl("/services") },
+            { name: data.title, url: absoluteUrl(`/services/${slug}`) },
           ]),
           serviceSchema({
             name: data.title,
             description: data.description,
-            url: `https://taxfiling24.com/services/${slug}`,
+            url: absoluteUrl(`/services/${slug}`),
           }),
           ...(faqs.length > 0 ? [faqSchema(faqs as { question: string; answer: string }[])] : []),
         ]}
@@ -229,11 +242,11 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                       {String(overviewTemplate?.benefitsTitle || "Key Benefits & Guarantees")}
                     </h3>
                     <ul className="space-y-4">
-                      {benefits.map((benefit: any, idx: number) => (
+                      {benefits.map((benefit, idx) => (
                         <li key={idx} className="flex items-start gap-3.5 group">
                           <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-1 flex-shrink-0" />
                           <span className="text-slate-700 font-medium leading-relaxed">
-                            {typeof benefit === 'string' ? benefit : benefit.title || benefit}
+                            {typeof benefit === "string" ? benefit : benefit.title || ""}
                           </span>
                         </li>
                       ))}
@@ -263,7 +276,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             </AnimatedSection>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {subServices.map((sub: any, idx: number) => (
+              {subServices.map((sub, idx) => (
                 <AnimatedSection key={idx} variants={fadeUp}>
                   <div className="flex flex-col h-full bg-white p-6 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all duration-300 transform hover:-translate-y-1">
                     <div className="h-11 w-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4 text-slate-700">
@@ -299,7 +312,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   </div>
 
                   <div className="relative ml-4 pl-8 border-l-2 border-slate-200 space-y-12 flex-1">
-                    {processSteps.map((p: any, idx: number) => (
+                    {processSteps.map((p, idx) => (
                       <div key={idx} className="relative group">
                         <div className="absolute -left-[41px] top-1.5 w-4 h-4 rounded-full bg-white border-[3px] border-[var(--primary)] group-hover:bg-[var(--primary)] transition-all duration-200" />
                         <h4 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
@@ -330,10 +343,10 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                     </div>
 
                     <div className="space-y-2 flex-col gap-2 flex-1">
-                      {documentsRequired.map((doc: any, idx: number) => (
+                      {documentsRequired.map((doc, idx) => (
                         <div key={idx} className="flex items-center gap-3 p-3.5 rounded-xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all cursor-default">
                           <div className="h-2 w-2 rounded-full bg-[var(--primary)] text-white" />
-                          <span className="text-slate-700 text-sm font-medium">{typeof doc === 'string' ? doc : doc.title || doc}</span>
+                          <span className="text-slate-700 text-sm font-medium">{typeof doc === "string" ? doc : doc.title || ""}</span>
                         </div>
                       ))}
                     </div>
@@ -357,7 +370,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             </AnimatedSection>
 
             <div className="border-t border-slate-200 divide-y divide-slate-200">
-              {faqs.map((faq: any, idx: number) => (
+              {faqs.map((faq, idx) => (
                 <AnimatedSection key={idx} variants={fadeUp} className="w-full">
                   <details className="group [&_summary::-webkit-details-marker]:hidden overflow-hidden w-full">
                     <summary className="flex cursor-pointer items-center justify-between gap-4 py-5 text-slate-900 outline-none w-full">

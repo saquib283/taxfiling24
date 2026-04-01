@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -6,15 +7,15 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/admin/*", "/api", "/api/*", "/dashboard", "/dashboard/*", "/_next"],
+        disallow: ["/admin", "/admin/*", "/api", "/api/*", "/dashboard", "/dashboard/*"],
       },
       {
         userAgent: "Googlebot",
         allow: "/",
-        disallow: ["/admin", "/api", "/dashboard", "/_next"],
+        disallow: ["/admin", "/api", "/dashboard"],
       },
     ],
-    sitemap: "https://taxfiling24.com/sitemap.xml",
-    host: "https://taxfiling24.com",
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }

@@ -1,7 +1,7 @@
 import { getSiteContact } from "@/lib/site-contact";
 
 interface JsonLdProps {
-  data: Record<string, any> | Record<string, any>[];
+  data: Record<string, unknown> | Record<string, unknown>[];
 }
 
 export default function JsonLd({ data }: JsonLdProps) {
@@ -47,15 +47,15 @@ export function organizationSchema(settings: SiteSettings = {}) {
       streetAddress: address,
       addressCountry: "IN",
     },
-    sameAs: [whatsapp],
+    sameAs: [whatsapp].filter(Boolean),
   };
 }
 
-export function webSiteSchema() {
+export function webSiteSchema(siteName = "TaxFiling24") {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "TaxFiling24",
+    name: siteName,
     url: BASE_URL,
     potentialAction: {
       "@type": "SearchAction",
@@ -78,7 +78,7 @@ export function localBusinessSchema(settings: SiteSettings = {}) {
     image: `${BASE_URL}/logo.png`,
     telephone: phone,
     email,
-    priceRange: "₹₹",
+    priceRange: "INR 1000-10000",
     address: {
       "@type": "PostalAddress",
       streetAddress: address,
@@ -103,6 +103,38 @@ export function localBusinessSchema(settings: SiteSettings = {}) {
       "@type": "Country",
       name: "India",
     },
+  };
+}
+
+export function collectionPageSchema(page: {
+  description: string;
+  name: string;
+  url: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    description: page.description,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "TaxFiling24",
+      url: BASE_URL,
+    },
+    name: page.name,
+    url: page.url,
+  };
+}
+
+export function itemListSchema(items: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      name: item.name,
+      position: index + 1,
+      url: item.url,
+    })),
   };
 }
 
@@ -217,5 +249,26 @@ export function webPageSchema(page: {
       name: "TaxFiling24",
       url: BASE_URL,
     },
+  };
+}
+
+export function softwareApplicationSchema(app: {
+  description: string;
+  name: string;
+  url: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    applicationCategory: "FinanceApplication",
+    description: app.description,
+    name: app.name,
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "INR",
+    },
+    operatingSystem: "Web",
+    url: app.url,
   };
 }

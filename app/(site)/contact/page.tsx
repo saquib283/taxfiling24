@@ -7,6 +7,7 @@ import { getManagedPageSections } from "@/lib/managed-pages";
 import JsonLd, { webPageSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
 import type { Metadata } from "next";
 import { getSiteContact } from "@/lib/site-contact";
+import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 
 interface ContactCardItem {
   id: string;
@@ -37,20 +38,16 @@ interface ContactSectionData {
   directContactLabel?: string;
 }
 
-export const metadata: Metadata = {
-  title: "Contact Us",
-  description:
-    "Get in touch with TaxFiling24 for expert tax filing, GST registration, company incorporation, and financial advisory services. Call, email, or WhatsApp us today.",
-  alternates: {
-    canonical: "https://taxfiling24.com/contact",
-  },
-  openGraph: {
-    title: "Contact Us | TaxFiling24",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return buildPageMetadataFromSettings(settings, "contact", {
     description:
-      "Get in touch with TaxFiling24 for expert tax filing, GST registration, company incorporation, and financial advisory services.",
-    url: "https://taxfiling24.com/contact",
-  },
-};
+      "Contact TaxFiling24 for expert tax filing, GST registration, company incorporation, and financial advisory services.",
+    keywords: ["contact TaxFiling24", "tax consultant contact", "GST registration help"],
+    path: "/contact",
+    title: "Contact Us",
+  });
+}
 
 export default async function ContactPage() {
   const settings = await getSettings();
@@ -74,13 +71,13 @@ export default async function ContactPage() {
       <JsonLd
         data={[
           breadcrumbSchema([
-            { name: "Home", url: "https://taxfiling24.com" },
-            { name: "Contact Us", url: "https://taxfiling24.com/contact" },
+            { name: "Home", url: absoluteUrl("/") },
+            { name: "Contact Us", url: absoluteUrl("/contact") },
           ]),
           webPageSchema({
             name: "Contact TaxFiling24",
             description: "Get in touch with TaxFiling24 for expert tax filing and financial advisory services.",
-            url: "https://taxfiling24.com/contact",
+            url: absoluteUrl("/contact"),
           }),
         ]}
       />

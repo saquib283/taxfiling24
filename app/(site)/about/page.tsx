@@ -14,6 +14,7 @@ import JsonLd, { webPageSchema, breadcrumbSchema } from "@/components/seo/JsonLd
 import { getSettings } from "@/lib/settings";
 import { getManagedPageSections } from "@/lib/managed-pages";
 import type { Metadata } from "next";
+import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 
 interface TextItem {
   id: string;
@@ -48,21 +49,17 @@ interface AboutSectionData {
   quote?: string;
 }
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description:
-    "Learn about TaxFiling24 - your trusted partner for business registration, tax filing, GST compliance, and financial advisory services across India.",
-  alternates: {
-    canonical: "https://taxfiling24.com/about",
-  },
-  openGraph: {
-    title: "About Us | TaxFiling24",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return buildPageMetadataFromSettings(settings, "about", {
     description:
-      "Learn about TaxFiling24 - your trusted partner for business registration, tax filing, GST compliance, and financial advisory services across India.",
-    url: "https://taxfiling24.com/about",
-    images: [{ url: "/images/team_consulting.png", width: 1200, height: 630, alt: "TaxFiling24 Team" }],
-  },
-};
+      "Learn about TaxFiling24 and our business registration, tax filing, GST compliance, and financial advisory expertise across India.",
+    image: "/images/team_consulting.png",
+    keywords: ["about TaxFiling24", "chartered accountant firm", "tax consultants India"],
+    path: "/about",
+    title: "About Us",
+  });
+}
 
 export default async function AboutPage() {
   const settings = await getSettings();
@@ -75,14 +72,14 @@ export default async function AboutPage() {
       <JsonLd
         data={[
           breadcrumbSchema([
-            { name: "Home", url: "https://taxfiling24.com" },
-            { name: "About Us", url: "https://taxfiling24.com/about" },
+            { name: "Home", url: absoluteUrl("/") },
+            { name: "About Us", url: absoluteUrl("/about") },
           ]),
           webPageSchema({
             name: "About TaxFiling24",
             description:
               "Learn about TaxFiling24 - your trusted partner for business registration, tax filing, GST compliance, and financial advisory services across India.",
-            url: "https://taxfiling24.com/about",
+            url: absoluteUrl("/about"),
           }),
         ]}
       />

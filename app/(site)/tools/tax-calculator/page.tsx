@@ -1,23 +1,24 @@
 import TaxCalculator from "@/components/sections/TaxCalculator";
 import type { Metadata } from "next";
-import JsonLd, { breadcrumbSchema, webPageSchema } from "@/components/seo/JsonLd";
+import JsonLd, {
+  breadcrumbSchema,
+  softwareApplicationSchema,
+  webPageSchema,
+} from "@/components/seo/JsonLd";
 import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
 import { getSettings } from "@/lib/settings";
+import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Income Tax Calculator",
-  description:
-    "Free online income tax calculator for FY 2025-26. Calculate your tax liability under old and new tax regimes instantly. Powered by TaxFiling24.",
-  alternates: {
-    canonical: "https://taxfiling24.com/tools/tax-calculator",
-  },
-  openGraph: {
-    title: "Income Tax Calculator | TaxFiling24",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return buildPageMetadataFromSettings(settings, "tax_calculator", {
     description:
       "Free online income tax calculator for FY 2025-26. Calculate your tax liability under old and new tax regimes instantly.",
-    url: "https://taxfiling24.com/tools/tax-calculator",
-  },
-};
+    keywords: ["income tax calculator", "tax calculator India", "old vs new regime"],
+    path: "/tools/tax-calculator",
+    title: "Income Tax Calculator",
+  });
+}
 
 export default async function TaxCalculatorPage() {
   const settings = await getSettings();
@@ -25,17 +26,24 @@ export default async function TaxCalculatorPage() {
 
   return (
     <div className="bg-[var(--bg)] min-h-screen pb-16 lg:pb-24 pt-0">
+      <h1 className="sr-only">Income Tax Calculator</h1>
       <JsonLd
         data={[
           breadcrumbSchema([
-            { name: "Home", url: "https://taxfiling24.com" },
-            { name: "Tools", url: "https://taxfiling24.com/tools" },
-            { name: "Tax Calculator", url: "https://taxfiling24.com/tools/tax-calculator" },
+            { name: "Home", url: absoluteUrl("/") },
+            { name: "Tools", url: absoluteUrl("/tools") },
+            { name: "Tax Calculator", url: absoluteUrl("/tools/tax-calculator") },
           ]),
           webPageSchema({
             name: "Income Tax Calculator",
             description: "Free online income tax calculator for FY 2025-26.",
-            url: "https://taxfiling24.com/tools/tax-calculator",
+            url: absoluteUrl("/tools/tax-calculator"),
+          }),
+          softwareApplicationSchema({
+            description:
+              "Interactive web-based income tax calculator for comparing old and new tax regimes in India.",
+            name: "Income Tax Calculator",
+            url: absoluteUrl("/tools/tax-calculator"),
           }),
         ]}
       />

@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import Sidebar from "./Sidebar";
-import { User, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Scrollable Content Wrapper */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
+        <main id="main" className="flex-1 overflow-y-auto bg-gray-50">
           <div className="w-full h-full max-w-7xl mx-auto">
             {children}
           </div>
