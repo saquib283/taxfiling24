@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import PreHeaderBar from "@/components/layout/PreHeaderBar";
 import Navbar from "@/components/layout/Navbar";
 import SiteFooter from "@/components/sections/SiteFooter";
@@ -16,18 +18,29 @@ export default async function SiteLayout({
   type FooterContent = Parameters<typeof SiteFooter>[0]["content"];
   type FooterNavbarContent = Parameters<typeof SiteFooter>[0]["navbarContent"];
   type ChatbotContent = Parameters<typeof ChatBot>[0]["content"];
-  const [settings, services] = await Promise.all([
-    getSettings(),
-    prisma.service.findMany({
-      select: {
-        title: true,
-        slug: true
-      },
-      orderBy: {
-        createdAt: 'asc'
-      }
-    })
-  ]);
+  let settings = {};
+  let services: { title: string; slug: string }[] = [];
+  try {
+    const [fetchedSettings, fetchedServices] = await Promise.all([
+      getSettings(),
+      prisma.service.findMany({
+        select: {
+          title: true,
+          slug: true
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      })
+    ]);
+    settings = fetchedSettings;
+    services = fetchedServices;
+  } catch (error) {
+    console.error("Failed to fetch global layout settings/services (DB offline):", error);
+    try {
+      settings = await getSettings(); // getSettings itself has try-catch
+    } catch {}
+  }
   const globalSections = getManagedPageSections("global", settings);
   const navbarContent =
     findManagedSection<Record<string, unknown>>(globalSections, "global.navbar")?.data as NavbarContent;

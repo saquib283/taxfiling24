@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Save, Loader2, X } from "lucide-react";
 import { motion } from "framer-motion";
+import MediaImageInput from "@/components/admin/MediaImageInput";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -91,6 +92,23 @@ export default function SettingsPage() {
       )}
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+        {/* Branding & Media Section */}
+        <div>
+          <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-4">
+            Branding & Visual Media
+          </h3>
+          <div className="space-y-4">
+            <MediaImageInput
+              label="Primary Site Logo"
+              description="Header and footer brand mark. Upload a transparent PNG/SVG or enter URL."
+              value={settings.site_logo || ""}
+              defaultImage="/brand-logo.png"
+              aspectRatio="auto"
+              onChange={(url) => setSettings((prev: any) => ({ ...prev, site_logo: url }))}
+            />
+          </div>
+        </div>
+
         <div>
           <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-4">Integrations</h3>
           
@@ -178,9 +196,10 @@ export default function SettingsPage() {
                     "visible": true,
                     "children": [
                       { "href": "/services", "label": "All Services" },
-                      { "href": "/services#income-tax", "label": "Income Tax" },
-                      { "href": "/services#gst", "label": "GST Filings" },
-                      { "href": "/services#business", "label": "Business Registration" }
+                      { "href": "/services/taxation-gst-compliance-management", "label": "Taxation & GST Compliance" },
+                      { "href": "/services/business-setup-registration-services", "label": "Company & Startup Registration" },
+                      { "href": "/services/corporate-roc-secretarial-filings", "label": "ROC & Corporate Filings" },
+                      { "href": "/services/virtual-cfo-advisory-services", "label": "Virtual CFO Advisory" }
                     ]
                   },
                   { 

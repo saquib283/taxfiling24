@@ -4,13 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
+  ExternalLink,
   Eye,
   EyeOff,
   FilePlus2,
+  GripVertical,
   Loader2,
   Plus,
   Save,
   Trash2,
+  CheckCircle,
+  Sparkles,
 } from "lucide-react";
 import {
   createRepeaterItem,
@@ -21,6 +25,7 @@ import {
   ManagedSection,
   RepeaterFieldDefinition,
 } from "@/lib/managed-pages";
+import MediaImageInput from "@/components/admin/MediaImageInput";
 
 type PagesState = Record<ManagedPageKey, ManagedSection[]>;
 
@@ -51,16 +56,16 @@ function RepeaterEditor({
   const safeItems = Array.isArray(items) ? items : [];
 
   return (
-    <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h4 className="text-sm font-semibold text-gray-900">{field.label}</h4>
-          <p className="text-xs text-gray-500">Create, reorder, hide, or remove individual items.</p>
+          <h4 className="text-sm font-bold text-slate-800">{field.label}</h4>
+          <p className="text-xs text-slate-400 mt-0.5">Manage, reorder, or toggle visibility of sub-items.</p>
         </div>
         <button
           type="button"
           onClick={() => onChange([...safeItems, createRepeaterItem(field)])}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition shadow-sm active:scale-98 cursor-pointer self-start"
         >
           <Plus className="h-3.5 w-3.5" />
           {field.addLabel || "Add item"}
@@ -69,19 +74,23 @@ function RepeaterEditor({
 
       <div className="space-y-3">
         {safeItems.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-5 text-sm text-gray-500">
-            No items added yet.
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs text-slate-400 font-medium">
+            No list items registered yet. Click &quot;{field.addLabel || "Add item"}&quot; to get started.
           </div>
         ) : null}
 
         {safeItems.map((item, index) => (
-          <div key={String(item.id || index)} className="rounded-xl border border-gray-200 bg-white p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Item {index + 1}</p>
-                <p className="text-xs text-gray-500">{String(item.title || item.label || item.text || "Content item")}</p>
+          <div key={String(item.id || index)} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm relative transition hover:border-slate-300 duration-200">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                  #{String(index + 1).padStart(2, "0")}
+                </span>
+                <p className="text-xs font-bold text-slate-800 truncate max-w-[180px] sm:max-w-xs">
+                  {String(item.title || item.label || item.text || item.step || "Unlabeled item")}
+                </p>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 self-end sm:self-center">
                 <button
                   type="button"
                   onClick={() =>
@@ -91,8 +100,10 @@ function RepeaterEditor({
                       )
                     )
                   }
-                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                    item.isVisible === false ? "bg-gray-100 text-gray-600" : "bg-green-50 text-green-700"
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-bold border transition ${
+                    item.isVisible === false
+                      ? "bg-slate-50 text-slate-500 border-slate-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-100"
                   }`}
                 >
                   {item.isVisible === false ? "Hidden" : "Visible"}
@@ -100,34 +111,59 @@ function RepeaterEditor({
                 <button
                   type="button"
                   onClick={() => onChange(moveItem(safeItems, index, "up"))}
-                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                  className="rounded-lg p-1.5 border border-slate-100 text-slate-500 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
+                  title="Move up"
                 >
                   <ChevronUp className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => onChange(moveItem(safeItems, index, "down"))}
-                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                  className="rounded-lg p-1.5 border border-slate-100 text-slate-500 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
+                  title="Move down"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => onChange(safeItems.filter((_, entryIndex) => entryIndex !== index))}
-                  className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                  className="rounded-lg p-1.5 border border-rose-100 text-rose-600 hover:bg-rose-50 transition active:scale-95 cursor-pointer"
+                  title="Delete item"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-3 pt-3 border-t border-slate-50">
               {field.fields.map((subField) => {
                 const value = String(item[subField.key] ?? "");
+
+                // Image field inside repeater
+                if (subField.type === "image") {
+                  return (
+                    <div key={subField.key}>
+                      <MediaImageInput
+                        label={subField.label}
+                        value={value}
+                        defaultImage={subField.defaultImage}
+                        aspectRatio="square"
+                        onChange={(url) =>
+                          onChange(
+                            safeItems.map((entry, entryIndex) =>
+                              entryIndex === index ? { ...entry, [subField.key]: url } : entry
+                            )
+                          )
+                        }
+                      />
+                    </div>
+                  );
+                }
+
                 if (subField.type === "textarea") {
                   return (
                     <label key={subField.key} className="block">
-                      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         {subField.label}
                       </span>
                       <textarea
@@ -141,7 +177,7 @@ function RepeaterEditor({
                           )
                         }
                         placeholder={subField.placeholder}
-                        className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none ring-0 transition focus:border-blue-500"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 outline-none placeholder-slate-400 focus:border-indigo-500 transition resize-none"
                       />
                     </label>
                   );
@@ -149,7 +185,7 @@ function RepeaterEditor({
 
                 return (
                   <label key={subField.key} className="block">
-                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       {subField.label}
                     </span>
                     <input
@@ -163,7 +199,7 @@ function RepeaterEditor({
                         )
                       }
                       placeholder={subField.placeholder}
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none ring-0 transition focus:border-blue-500"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 outline-none placeholder-slate-400 focus:border-indigo-500 transition"
                     />
                   </label>
                 );
@@ -184,7 +220,7 @@ export default function WebsiteContentManager() {
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   const currentDefinition = definitions.find((definition) => definition.key === activePage)!;
   const currentSections = useMemo(() => pages[activePage] || [], [activePage, pages]);
@@ -248,7 +284,7 @@ export default function WebsiteContentManager() {
 
   const saveAll = async () => {
     setSaving(true);
-    setMessage("");
+    setMessage(null);
 
     try {
       const settings = Object.fromEntries(
@@ -262,13 +298,14 @@ export default function WebsiteContentManager() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save website content.");
+        const d = await response.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to save website content.");
       }
 
-      setMessage("Website content saved successfully.");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Something went wrong while saving.");
+      setMessage({ text: "Website content saved and published successfully!", type: "success" });
+      setTimeout(() => setMessage(null), 4000);
+    } catch (error: any) {
+      setMessage({ text: error instanceof Error ? error.message : "Something went wrong while saving.", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -277,19 +314,21 @@ export default function WebsiteContentManager() {
   if (loading) {
     return (
       <div className="flex min-h-[420px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="p-6 md:p-8 space-y-6 bg-slate-50/50 min-h-screen pb-24">
+      {/* Header element with save action */}
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Website Content</h1>
-          <p className="mt-2 max-w-2xl text-sm text-gray-600">
-            Manage homepage and marketing-page sections from one place. You can create, edit, reorder,
-            hide, show, and remove sections without touching code.
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 bg-clip-text text-transparent">
+            Website Content Manager
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Customize marketing sections, images, ordering, and block visibility across the entire public website.
           </p>
         </div>
 
@@ -297,29 +336,50 @@ export default function WebsiteContentManager() {
           type="button"
           onClick={saveAll}
           disabled={saving}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer active:scale-98 shrink-0"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? "Saving..." : "Save Website Content"}
+          {saving ? "Publishing to Website..." : "Save Website Content"}
         </button>
-      </div>
+      </header>
 
-      {message ? (
-        <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
-          {message}
+      {/* Floating feedback alert */}
+      {message && (
+        <div
+          className={`rounded-2xl border px-5 py-4 text-sm font-semibold flex items-center justify-between transition-all duration-300 shadow-sm animate-in fade-in ${
+            message.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                message.type === "success" ? "bg-emerald-500 animate-ping" : "bg-red-500"
+              }`}
+            />
+            <span>{message.text}</span>
+          </div>
+          <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-slate-600 text-xs font-bold">
+            &times;
+          </button>
         </div>
-      ) : null}
+      )}
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      {/* Page Selector Tabs */}
+      <div className="flex bg-slate-200/80 p-1.5 rounded-2xl border border-slate-200 shadow-inner overflow-x-auto whitespace-nowrap gap-1">
         {definitions.map((definition) => (
           <button
             key={definition.key}
             type="button"
-            onClick={() => setActivePage(definition.key)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            onClick={() => {
+              setActivePage(definition.key);
+              setSelectedSectionId("");
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 cursor-pointer shrink-0 ${
               activePage === definition.key
-                ? "bg-blue-600 text-white"
-                : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                ? "bg-white text-indigo-600 shadow-md scale-[1.01]"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/40"
             }`}
           >
             {definition.label}
@@ -327,106 +387,153 @@ export default function WebsiteContentManager() {
         ))}
       </div>
 
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-        <p className="text-sm font-semibold text-gray-900">{currentDefinition.label}</p>
-        <p className="mt-1 text-sm text-gray-500">
-          {currentDefinition.description} Live route: <span className="font-mono text-gray-700">{currentDefinition.route}</span>
-        </p>
+      {/* Page Info Banner */}
+      <div className="bg-gradient-to-r from-indigo-50/40 via-white to-indigo-50/20 rounded-2xl border border-indigo-100 p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shadow-2xs">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-indigo-600" />
+            Configuring: {currentDefinition.label}
+          </h3>
+          <p className="mt-1 text-xs text-slate-500 leading-relaxed max-w-2xl">
+            {currentDefinition.description}
+          </p>
+        </div>
+        <a
+          href={currentDefinition.route.startsWith("/") ? currentDefinition.route : "/"}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline shrink-0 bg-white border border-indigo-100 px-4 py-2.5 rounded-xl shadow-xs transition active:scale-98"
+        >
+          <span>View Live Page</span>
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)]">
+      {/* Main Workspace Panels */}
+      <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)] items-start">
+        {/* Left Column: Sections manager & Add sections */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="mb-4 flex items-center justify-between">
+          {/* Section listing cards */}
+          <section className="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Sections</h2>
-                <p className="text-sm text-gray-500">Choose a section to edit its content.</p>
+                <h2 className="text-base font-bold text-slate-950">Page Layout Blocks</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Click any block to edit its content.</p>
               </div>
+              <span className="text-[11px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
+                {currentSections.length} Blocks
+              </span>
             </div>
 
-            <div className="space-y-3">
-              {currentSections.map((section, index) => (
-                <div
-                  key={section.id}
-                  className={`rounded-xl border p-3 transition ${
-                    selectedSection?.id === section.id ? "border-blue-500 bg-blue-50/60" : "border-gray-200 bg-gray-50"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSectionId(section.id)}
-                    className="mb-3 block w-full text-left"
+            <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1">
+              {currentSections.map((section, index) => {
+                const isSelected = selectedSection?.id === section.id;
+                return (
+                  <div
+                    key={section.id}
+                    className={`rounded-2xl border transition duration-200 relative overflow-hidden flex flex-col ${
+                      isSelected
+                        ? "border-indigo-600 bg-indigo-50/30 ring-2 ring-indigo-500/20 shadow-sm"
+                        : "border-slate-200 bg-white hover:bg-slate-50/60"
+                    }`}
                   >
-                    <p className="text-sm font-semibold text-gray-900">{section.label}</p>
-                    <p className="mt-1 text-xs text-gray-500">{section.description}</p>
-                  </button>
+                    <div className="flex items-start p-4 gap-2">
+                      {/* Reorder Grip handle icon */}
+                      <div className="text-slate-300 self-center p-1">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
 
-                  <div className="flex flex-wrap items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateCurrentSections(
-                          currentSections.map((entry) =>
-                            entry.id === section.id ? { ...entry, isVisible: !entry.isVisible } : entry
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSectionId(section.id)}
+                        className="flex-1 text-left min-w-0 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <h4 className={`text-xs font-bold truncate ${isSelected ? "text-indigo-950" : "text-slate-800"}`}>
+                            {section.label}
+                          </h4>
+                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${section.isVisible ? "bg-emerald-500" : "bg-slate-300"}`} />
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5 truncate leading-normal">
+                          {section.description}
+                        </p>
+                      </button>
+                    </div>
+
+                    {/* Footer actions inside block card */}
+                    <div className="flex items-center justify-between px-4 pb-3 pt-2 border-t border-slate-100/80 bg-slate-50/40 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateCurrentSections(
+                            currentSections.map((entry) =>
+                              entry.id === section.id ? { ...entry, isVisible: !entry.isVisible } : entry
+                            )
                           )
-                        )
-                      }
-                      className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                        section.isVisible ? "bg-green-50 text-green-700" : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      {section.isVisible ? (
-                        <span className="inline-flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> Visible</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1"><EyeOff className="h-3.5 w-3.5" /> Hidden</span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateCurrentSections(moveItem(currentSections, index, "up"))}
-                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-200"
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateCurrentSections(moveItem(currentSections, index, "down"))}
-                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-200"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = currentSections.filter((entry) => entry.id !== section.id);
-                        updateCurrentSections(next);
-                        if (selectedSectionId === section.id) {
-                          setSelectedSectionId(next[0]?.id || "");
                         }
-                      }}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition cursor-pointer ${
+                          section.isVisible
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                            : "bg-slate-50 text-slate-500 border-slate-200"
+                        }`}
+                      >
+                        {section.isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                        {section.isVisible ? "Visible" : "Hidden"}
+                      </button>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <FilePlus2 className="h-5 w-5 text-blue-600" />
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentSections(moveItem(currentSections, index, "up"))}
+                          className="rounded-lg p-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
+                          title="Move block up"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentSections(moveItem(currentSections, index, "down"))}
+                          className="rounded-lg p-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
+                          title="Move block down"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = currentSections.filter((entry) => entry.id !== section.id);
+                            updateCurrentSections(next);
+                            if (selectedSectionId === section.id) {
+                              setSelectedSectionId(next[0]?.id || "");
+                            }
+                          }}
+                          className="rounded-lg p-1.5 border border-rose-100 text-rose-600 hover:bg-rose-50 transition active:scale-95 cursor-pointer"
+                          title="Delete block"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Add optional templates */}
+          <section className="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+            <div className="flex items-center gap-2">
+              <FilePlus2 className="h-5 w-5 text-indigo-500" />
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Add Section</h2>
-                <p className="text-sm text-gray-500">Bring back deleted sections or add optional blocks.</p>
+                <h2 className="text-base font-bold text-slate-950">Add Page Section</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Introduce optional content blocks onto the layout list.</p>
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
               {availableTemplates.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-500">
-                  All available sections for this page are already present.
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-xs text-slate-400 font-semibold leading-relaxed">
+                  All available section blocks for this page template are already added.
                 </div>
               ) : (
                 availableTemplates.map((template) => (
@@ -439,57 +546,120 @@ export default function WebsiteContentManager() {
                       updateCurrentSections(nextSections);
                       setSelectedSectionId(nextSection.id);
                     }}
-                    className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-left transition hover:border-blue-300 hover:bg-blue-50/50"
+                    className="block w-full rounded-2xl border border-slate-200 p-4 text-left transition hover:border-indigo-400 hover:bg-indigo-50/10 cursor-pointer duration-200"
                   >
-                    <p className="text-sm font-semibold text-gray-900">{template.label}</p>
-                    <p className="mt-1 text-xs text-gray-500">{template.description}</p>
+                    <p className="text-xs font-bold text-slate-800">{template.label}</p>
+                    <p className="mt-1 text-[11px] text-slate-400 leading-normal">{template.description}</p>
                   </button>
                 ))
               )}
             </div>
-          </div>
+          </section>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        {/* Right Column: Custom details canvas editor */}
+        <section className="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-2xs min-h-[500px]">
           {!selectedSection || !selectedTemplate ? (
-            <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
-              Select a section to edit it.
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-slate-50/20 border border-dashed border-slate-200 rounded-2xl min-h-[440px]">
+              <div className="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                <FilePlus2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Select Section</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-[240px] leading-relaxed">
+                Click on any page layout block in the left sidebar to display its inputs and manage content.
+              </p>
             </div>
           ) : (
             <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedSection.label}</h2>
-                <p className="mt-1 text-sm text-gray-500">{selectedSection.description}</p>
+              <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-black text-slate-900">{selectedSection.label}</h2>
+                    <span className="text-[11px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                      {selectedSection.type}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">{selectedSection.description}</p>
+                </div>
               </div>
 
-              {selectedTemplate.fields.map((field) => {
-                const value = selectedSection.data[field.key];
+              <div className="space-y-5">
+                {selectedTemplate.fields.map((field) => {
+                  const value = selectedSection.data[field.key];
 
-                if (field.type === "repeater") {
-                  return (
-                    <RepeaterEditor
-                      key={field.key}
-                      field={field}
-                      items={Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []}
-                      onChange={(items) =>
-                        updateSelectedSection((section) => ({
-                          ...section,
-                          data: {
-                            ...section.data,
-                            [field.key]: items,
-                          },
-                        }))
-                      }
-                    />
-                  );
-                }
+                  // Image field with dual upload/link and main image reference
+                  if (field.type === "image") {
+                    return (
+                      <MediaImageInput
+                        key={field.key}
+                        label={field.label}
+                        value={String(value ?? "")}
+                        defaultImage={field.defaultImage}
+                        placeholder={field.placeholder}
+                        onChange={(url) =>
+                          updateSelectedSection((section) => ({
+                            ...section,
+                            data: {
+                              ...section.data,
+                              [field.key]: url,
+                            },
+                          }))
+                        }
+                      />
+                    );
+                  }
 
-                if (field.type === "textarea") {
+                  if (field.type === "repeater") {
+                    return (
+                      <RepeaterEditor
+                        key={field.key}
+                        field={field}
+                        items={Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []}
+                        onChange={(items) =>
+                          updateSelectedSection((section) => ({
+                            ...section,
+                            data: {
+                              ...section.data,
+                              [field.key]: items,
+                            },
+                          }))
+                        }
+                      />
+                    );
+                  }
+
+                  if (field.type === "textarea") {
+                    return (
+                      <label key={field.key} className="block">
+                        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
+                          {field.label}
+                        </span>
+                        <textarea
+                          rows={field.rows || 4}
+                          value={String(value ?? "")}
+                          onChange={(event) =>
+                            updateSelectedSection((section) => ({
+                              ...section,
+                              data: {
+                                ...section.data,
+                                [field.key]: event.target.value,
+                              },
+                            }))
+                          }
+                          placeholder={field.placeholder}
+                          className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition resize-none"
+                        />
+                      </label>
+                    );
+                  }
+
                   return (
                     <label key={field.key} className="block">
-                      <span className="mb-2 block text-sm font-semibold text-gray-700">{field.label}</span>
-                      <textarea
-                        rows={field.rows || 4}
+                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
+                        {field.label}
+                      </span>
+                      <input
+                        type="text"
                         value={String(value ?? "")}
                         onChange={(event) =>
                           updateSelectedSection((section) => ({
@@ -501,35 +671,50 @@ export default function WebsiteContentManager() {
                           }))
                         }
                         placeholder={field.placeholder}
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition"
                       />
                     </label>
                   );
-                }
-
-                return (
-                  <label key={field.key} className="block">
-                    <span className="mb-2 block text-sm font-semibold text-gray-700">{field.label}</span>
-                    <input
-                      type="text"
-                      value={String(value ?? "")}
-                      onChange={(event) =>
-                        updateSelectedSection((section) => ({
-                          ...section,
-                          data: {
-                            ...section.data,
-                            [field.key]: event.target.value,
-                          },
-                        }))
-                      }
-                      placeholder={field.placeholder}
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-                    />
-                  </label>
-                );
-              })}
+                })}
+              </div>
             </div>
           )}
+        </section>
+      </div>
+
+      {/* Sticky Bottom Save Action Bar */}
+      <div className="sticky bottom-4 z-20 flex items-center justify-between rounded-2xl bg-slate-900/95 backdrop-blur-md px-6 py-3.5 text-white shadow-2xl border border-slate-700/60 mt-6 animate-in slide-in-from-bottom-2">
+        <div className="flex items-center gap-2.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs font-medium text-slate-200">
+            Configuring: <strong className="text-white">{currentDefinition.label}</strong>
+            {selectedSection && (
+              <>
+                {" "}&bull; <span className="text-indigo-300 font-semibold">{selectedSection.label}</span>
+              </>
+            )}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <a
+            href={currentDefinition.route.startsWith("/") ? currentDefinition.route : "/"}
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition"
+          >
+            <span>Preview Live</span>
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          <button
+            type="button"
+            onClick={saveAll}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-indigo-700 transition active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            <span>{saving ? "Saving Changes..." : "Save Website Content"}</span>
+          </button>
         </div>
       </div>
     </div>

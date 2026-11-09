@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
+import { requireAdmin } from "@/lib/auth";
 import {
   buildWebhookUrls,
   EMAIL_SETTING_KEYS,
@@ -82,6 +83,9 @@ function buildSummary(
 }
 
 export async function GET(request: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const [campaigns, templates, subscribers, settings] = await Promise.all([
       prisma.campaign.findMany({
@@ -152,6 +156,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const payload = (await request.json()) as CampaignPayload;
 

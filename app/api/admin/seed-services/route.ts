@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { SERVICES_DETAIL_DATA } from "@/lib/services-detail-data";
 import { SERVICES } from "@/lib/constants";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET() {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const createdServices = [];
     

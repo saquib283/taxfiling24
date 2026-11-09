@@ -75,6 +75,34 @@ export default function ComplianceCalendar({ deadlines = [], settings = {}, cont
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "" });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleReminderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, name: formData.name }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsSubmitted(true);
+      } else {
+        setSubmitError(data.error || "Failed to set reminder.");
+      }
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (groupedData.length === 0) {
     return null; // Or show a placeholder
@@ -120,15 +148,19 @@ export default function ComplianceCalendar({ deadlines = [], settings = {}, cont
         <div className="mx-auto max-w-4xl">
           <div className="mb-8 flex items-center justify-between rounded-2xl bg-[var(--bg-card)] p-4 shadow-[var(--shadow-md)]">
             <button
+              type="button"
               onClick={prevMonth}
-              className="group rounded-xl p-2 text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--primary)]"
+              aria-label="Previous month"
+              className="group rounded-xl p-2 text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
             >
               <ChevronLeft className="h-6 w-6 transition-transform group-hover:-translate-x-0.5" />
             </button>
             <h3 className="text-xl font-bold text-[var(--fg)]">{currentData.month}</h3>
             <button
+              type="button"
               onClick={nextMonth}
-              className="group rounded-xl p-2 text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--primary)]"
+              aria-label="Next month"
+              className="group rounded-xl p-2 text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
             >
               <ChevronRight className="h-6 w-6 transition-transform group-hover:translate-x-0.5" />
             </button>
@@ -249,7 +281,12 @@ export default function ComplianceCalendar({ deadlines = [], settings = {}, cont
                 </div>
 
                 {!isSubmitted ? (
-                  <form onSubmit={(e) => { e.preventDefault(); setIsSubmitted(true); }} className="space-y-4">
+                  <form onSubmit={handleReminderSubmit} className="space-y-4">
+                    {submitError && (
+                      <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
+                        {submitError}
+                      </p>
+                    )}
                     <div>
                       <label className="block text-sm font-semibold text-[var(--fg)] mb-1">Name</label>
                       <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" placeholder="John Doe" />
@@ -258,7 +295,9 @@ export default function ComplianceCalendar({ deadlines = [], settings = {}, cont
                       <label className="block text-sm font-semibold text-[var(--fg)] mb-1">Email</label>
                       <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" placeholder="john@example.com" />
                     </div>
-                    <button type="submit" className="w-full rounded-xl bg-[var(--primary)] py-2.5 font-bold text-white shadow-sm hover:brightness-110">Get Alerted</button>
+                    <button type="submit" disabled={isSubmitting} className="w-full rounded-xl bg-[var(--primary)] py-2.5 font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-50 cursor-pointer">
+                      {isSubmitting ? "Saving..." : "Get Alerted"}
+                    </button>
                     <button type="button" onClick={() => setIsModalOpen(false)} className="w-full text-sm text-[var(--fg-soft)] hover:underline">Cancel</button>
                   </form>
                 ) : (

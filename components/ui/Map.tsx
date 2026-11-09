@@ -48,8 +48,8 @@ export default function Map({ address }: { address: string }) {
   // Use Shaheen Bagh, Okhla coordinates as base
   const position: [number, number] = [28.5458, 77.3039];
   
-  // Sleek, minimal monochrome maps (CartoDB Positron) without the retina tag to prevent 404s
-  const tileUrl = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png";
+  // OpenStreetMap official tiles (free, reliable, high-resolution, no API key required)
+  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   const [mounted, setMounted] = useState(false);
 
@@ -70,8 +70,9 @@ export default function Map({ address }: { address: string }) {
       >
         <InvalidateMapSize />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
           url={tileUrl}
+          maxZoom={19}
         />
         <ZoomControl position="bottomright" />
         <Marker position={position} icon={customMarkerIcon}>

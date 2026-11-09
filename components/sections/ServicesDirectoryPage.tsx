@@ -213,6 +213,7 @@ export default function ServicesDirectoryPage({
 
   return (
     <div className="min-h-screen bg-[var(--bg)] selection:bg-[var(--primary)]/10">
+      {showHero === false ? <h1 className="sr-only">Services</h1> : null}
       {showHero !== false ? (
         <section className="relative overflow-hidden border-b border-slate-100 bg-slate-50/30 pt-12 pb-6 lg:pt-16 lg:pb-8">
           <div className="container relative mx-auto px-6">

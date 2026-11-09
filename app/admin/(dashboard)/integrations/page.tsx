@@ -27,6 +27,13 @@ const INTEGRATIONS: Integration[] = [
     icon: "📧",
   },
   {
+    name: "Meta WhatsApp Cloud API & Webhooks",
+    description: "Official WhatsApp messaging, automated reminders, broadcast campaigns, and bidirectional webhook logs.",
+    envKeys: ["WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN", "WHATSAPP_WEBHOOK_VERIFY_TOKEN"],
+    docsUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api",
+    icon: "💬",
+  },
+  {
     name: "Gemini AI",
     description: "AI-powered content generation for articles, emails, FAQs, and service descriptions.",
     envKeys: ["GEMINI_API_KEY"],
@@ -34,7 +41,7 @@ const INTEGRATIONS: Integration[] = [
     icon: "🤖",
   },
   {
-    name: "Database (PostgreSQL)",
+    name: "Database (MySQL)",
     description: "Primary data store for all application data via Prisma ORM.",
     envKeys: ["DATABASE_URL"],
     docsUrl: "https://www.prisma.io/docs",

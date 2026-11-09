@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+
+function sanitizeCsvCell(value: unknown): string {
+  let str = String(value ?? "");
+  // Neutralize CSV/Excel formula injection (leading =, +, -, @, tab, CR)
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
 
 export async function GET(request: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "inquiries";
@@ -30,18 +43,15 @@ export async function GET(request: Request) {
       if (data.length === 0) return new NextResponse("No data", { status: 200 });
       const headers = Object.keys(data[0]);
       const csv = [
-        headers.join(","),
+        headers.map((h) => sanitizeCsvCell(h)).join(","),
         ...data.map((row: any) =>
-          headers.map(h => {
-            const val = String(row[h] ?? "").replace(/"/g, '""');
-            return `"${val}"`;
-          }).join(",")
-        )
+          headers.map((h) => sanitizeCsvCell(row[h])).join(",")
+        ),
       ].join("\n");
 
       return new NextResponse(csv, {
         headers: {
-          "Content-Type": "text/csv",
+          "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": `attachment; filename="${type}_export.csv"`,
         },
       });

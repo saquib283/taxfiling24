@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
+import { ingestContact } from "@/lib/audience-service";
 import {
   addMinutes,
   combineDateAndTime,
@@ -23,6 +24,29 @@ type BookingRequestPayload = {
   serviceId?: string;
   time?: string;
 };
+
+// In-memory rate limiting map (IP -> timestamp & count)
+const bookingRateLimitMap = new Map<string, { count: number; lastRequest: number }>();
+
+function checkRateLimit(request: Request): boolean {
+  const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minute
+  const maxRequests = 5; // 5 booking requests per minute per IP
+
+  const rateData = bookingRateLimitMap.get(clientIp) || { count: 0, lastRequest: now };
+
+  if (now - rateData.lastRequest > windowMs) {
+    rateData.count = 1;
+    rateData.lastRequest = now;
+  } else {
+    rateData.count = (rateData.count || 0) + 1;
+  }
+
+  bookingRateLimitMap.set(clientIp, { count: rateData.count, lastRequest: now });
+
+  return rateData.count <= maxRequests;
+}
 
 function getDayRange(dateKey: string) {
   const dayStart = combineDateAndTime(dateKey, "00:00");
@@ -85,11 +109,32 @@ export async function GET(request: Request) {
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as BookingRequestPayload;
-    const { name, email, phone, date, time } = body;
+    if (!checkRateLimit(req)) {
+      return NextResponse.json(
+        { error: "Too many booking requests. Please wait a moment before trying again." },
+        { status: 429 }
+      );
+    }
 
-    if (!name || !email || !phone || !date || !time) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const body = (await req.json()) as BookingRequestPayload;
+    const cleanName = (body.name || "").trim();
+    const cleanEmail = (body.email || "").trim().toLowerCase();
+    const cleanPhone = (body.phone || "").trim();
+    const cleanDate = (body.date || "").trim();
+    const cleanTime = (body.time || "").trim();
+    const cleanMessage = (body.message || "").trim();
+
+    if (!cleanName || !cleanEmail || !cleanPhone || !cleanDate || !cleanTime) {
+      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
+    }
+
+    const phoneDigits = cleanPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      return NextResponse.json({ error: "Please provide a valid phone number (min 10 digits)." }, { status: 400 });
     }
 
     const settingsMap = await getSettings();
@@ -106,51 +151,64 @@ export async function POST(req: Request) {
       );
     }
 
-    const appointments = await getAppointmentsForDate(date);
-    const availableSlots = getAvailableSlots({
-      appointments,
-      availabilityRules: config.availabilityRules,
-      blockedDates: config.blockedDates,
-      date,
-      service,
-      settings: config.settings,
-    });
-    const slot =
-      availableSlots.find((item) => item.startTime === time) ||
-      availableSlots.find((item) => item.label === time);
-
-    if (!slot) {
-      return NextResponse.json(
-        { error: "That slot is no longer available. Please choose another time." },
-        { status: 409 }
-      );
-    }
-
     const status = config.settings.autoConfirmNewBookings ? "CONFIRMED" : "PENDING";
-    const appointment = await prisma.appointment.create({
-      data: {
-        adminNotes: null,
-        bookingReference: createBookingReference(),
-        customerTimezone: body.customerTimezone || config.settings.timezone,
-        date: new Date(date),
-        durationMinutes: service.durationMinutes,
-        email,
-        endAt: new Date(slot.endAt),
-        locationLabel: service.locationLabel,
-        locationType: service.meetingType,
-        message: body.message || null,
-        name,
-        phone,
-        service: service.name,
-        serviceId: service.id,
-        slotLabel: slot.label,
-        source: "WEBSITE",
-        startAt: new Date(slot.startAt),
-        status,
-        time: slot.startTime,
-      },
+    const { dayEnd, dayStart } = getDayRange(cleanDate);
+
+    // Concurrency-safe atomic reservation inside Prisma transaction
+    const appointment = await prisma.$transaction(async (tx) => {
+      const activeAppointments = await tx.appointment.findMany({
+        where: {
+          date: {
+            gte: dayStart,
+            lt: dayEnd,
+          },
+        },
+        orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      });
+
+      const availableSlots = getAvailableSlots({
+        appointments: activeAppointments,
+        availabilityRules: config.availabilityRules,
+        blockedDates: config.blockedDates,
+        date: cleanDate,
+        service,
+        settings: config.settings,
+      });
+
+      const slot =
+        availableSlots.find((item) => item.startTime === cleanTime) ||
+        availableSlots.find((item) => item.label === cleanTime);
+
+      if (!slot) {
+        throw new Error("SLOT_UNAVAILABLE");
+      }
+
+      return tx.appointment.create({
+        data: {
+          adminNotes: null,
+          bookingReference: createBookingReference(),
+          customerTimezone: body.customerTimezone || config.settings.timezone,
+          date: new Date(slot.startAt),
+          durationMinutes: service.durationMinutes,
+          email: cleanEmail,
+          endAt: new Date(slot.endAt),
+          locationLabel: service.locationLabel,
+          locationType: service.meetingType,
+          message: cleanMessage || null,
+          name: cleanName,
+          phone: cleanPhone,
+          service: service.name,
+          serviceId: service.id,
+          slotLabel: slot.label,
+          source: "WEBSITE",
+          startAt: new Date(slot.startAt),
+          status,
+          time: slot.startTime,
+        },
+      });
     });
 
+    // Send customer notification outside transaction
     try {
       const notification = config.settings.autoConfirmNewBookings ? "CONFIRMATION" : "BOOKING_RECEIVED";
       const sendResult = await sendAppointmentNotification({
@@ -178,12 +236,29 @@ export async function POST(req: Request) {
     await logActivity(
       "CREATED",
       "Appointment",
-      `New website booking for ${service.name} on ${date} at ${slot.label}`,
+      `New website booking for ${service.name} on ${cleanDate} at ${appointment.slotLabel || cleanTime}`,
       appointment.id
     );
 
+    // Automatically synchronize booked appointment clients into Campaign Audience
+    ingestContact({
+      email: cleanEmail,
+      name: cleanName,
+      phone: cleanPhone,
+      source: "APPOINTMENT",
+      tags: [service.name || "CA Consultation Booking"],
+      updateIfExists: true,
+    }).catch((e) => console.warn("[Audience] Failed to auto-ingest appointment client:", e));
+
     return NextResponse.json(appointment, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "SLOT_UNAVAILABLE") {
+      return NextResponse.json(
+        { error: "That time slot is no longer available. Please select another slot." },
+        { status: 409 }
+      );
+    }
+
     console.error("Appointment Error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to schedule appointment" },

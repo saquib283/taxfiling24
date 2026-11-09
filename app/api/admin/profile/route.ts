@@ -1,21 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("admin_token")?.value;
-
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "secure-admin-secret-key-default-256");
-    const { payload } = await jwtVerify(token, secret);
+    const admin = await requireAdmin();
+    if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId as string },
+      where: { id: admin.userId },
       select: { id: true, name: true, username: true, role: true },
     });
 
@@ -30,16 +24,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin();
+    if (!admin) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
     const { name, currentPassword, newPassword } = await request.json();
 
-    const cookieStore = await cookies();
-    const token = cookieStore.get("admin_token")?.value;
-    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "secure-admin-secret-key-default-256");
-    const { payload } = await jwtVerify(token, secret);
-
-    const user = await prisma.user.findUnique({ where: { id: payload.userId as string } });
+    const user = await prisma.user.findUnique({ where: { id: admin.userId } });
     if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 });
 
     if (name) {

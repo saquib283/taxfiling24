@@ -1,9 +1,21 @@
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export interface AdminUser {
   userId: string;
   role: string;
+}
+
+/**
+ * Resolves the JWT secret key. Fails closed if not configured.
+ */
+export function getJwtSecretKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET?.trim();
+  if (!secret) {
+    throw new Error("SECURITY_MISCONFIGURATION: JWT_SECRET environment variable is missing or empty.");
+  }
+  return new TextEncoder().encode(secret);
 }
 
 /**
@@ -17,9 +29,7 @@ export async function verifyAdmin(): Promise<AdminUser | null> {
 
     if (!token) return null;
 
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "secure-admin-secret-key-default-256"
-    );
+    const secret = getJwtSecretKey();
     const { payload } = await jwtVerify(token, secret);
 
     return {
@@ -32,16 +42,11 @@ export async function verifyAdmin(): Promise<AdminUser | null> {
 }
 
 /**
- * Verifies admin auth and returns user or throws a Response.
- * Use in API route handlers for clean one-liner auth checks.
+ * Verifies admin auth in API route handlers.
+ * Usage:
+ *   const admin = await requireAdmin();
+ *   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
  */
-export async function requireAdmin(): Promise<AdminUser> {
-  const user = await verifyAdmin();
-  if (!user) {
-    throw new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-  return user;
+export async function requireAdmin(): Promise<AdminUser | null> {
+  return verifyAdmin();
 }

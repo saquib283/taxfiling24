@@ -14,10 +14,12 @@ interface DeleteButtonProps {
 export default function DeleteButton({ id, endpoint, onDeleteSuccess }: DeleteButtonProps) {
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
 
   const handleDelete = async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const res = await fetch(`${endpoint}/${id}`, {
         method: "DELETE",
@@ -31,10 +33,11 @@ export default function DeleteButton({ id, endpoint, onDeleteSuccess }: DeleteBu
           router.refresh();
         }
       } else {
-        alert("Failed to delete item.");
+        const data = await res.json().catch(() => null);
+        setErrorMessage(data?.error || "Failed to delete item.");
       }
-    } catch (err) {
-      alert("Something went wrong deleting item.");
+    } catch {
+      setErrorMessage("Something went wrong deleting item.");
     } finally {
       setLoading(false);
     }
@@ -67,6 +70,9 @@ export default function DeleteButton({ id, endpoint, onDeleteSuccess }: DeleteBu
               className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 p-3 z-50 text-left"
             >
               <p className="text-xs font-medium text-gray-900 mb-2">Are you sure you want to delete?</p>
+              {errorMessage && (
+                <p className="text-[10px] text-red-600 mb-2 font-medium">{errorMessage}</p>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={handleDelete}

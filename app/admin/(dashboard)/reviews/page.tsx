@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
-import { Star, MessageCircle } from "lucide-react";
+import { Star, MessageCircle, AlertCircle } from "lucide-react";
 import ApproveButton from "@/components/admin/ApproveButton";
 import DeleteButton from "@/components/admin/DeleteButton";
 import AddReviewForm from "@/components/admin/AddReviewForm";
@@ -16,80 +16,106 @@ export default async function ReviewsListPage() {
     });
   } catch (e: any) {
     console.error("Database error in ReviewsListPage:", e);
-    error = "Could not reach the database. Please check your connection in Neon.";
+    error = "Could not reach the database. Please check your local connection settings.";
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-6 md:p-8 space-y-8 bg-slate-50/50 min-h-screen">
+      {/* Header section */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Reviews</h1>
-          <p className="text-gray-600">Moderate and approve client testimonials and reviews</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 bg-clip-text text-transparent">
+            Testimonial Reviews
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Moderate and approve client reviews, verify star ratings, and publish active testimonials.
+          </p>
         </div>
-        <AddReviewForm />
-      </div>
+        <div className="shrink-0 self-start sm:self-center">
+          <AddReviewForm />
+        </div>
+      </header>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-3">
-          <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+        <div className="p-4 bg-rose-50 text-rose-800 rounded-xl text-xs font-bold border border-rose-100/80 shadow-sm flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
           {error}
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Main Reviews Container */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         {reviews.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="p-3 bg-gray-50 rounded-full inline-block mb-3">
-              <MessageCircle className="h-8 w-8 text-gray-400" />
+          <div className="p-12 text-center max-w-sm mx-auto">
+            <div className="p-4 bg-slate-50 rounded-2xl inline-block mb-4 border border-slate-100">
+              <MessageCircle className="h-8 w-8 text-slate-400" />
             </div>
-            <p className="text-gray-500 font-medium">No reviews found.</p>
-            <p className="text-gray-400 text-sm mt-1">Client submissions will appear here.</p>
+            <h3 className="text-sm font-bold text-slate-900">No reviews found</h3>
+            <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+              Reviews submitted by clients or published through client directories will list here for approval.
+            </p>
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs font-semibold border-b border-gray-100">
-                <th className="p-4">Client</th>
-                <th className="p-4">Content</th>
-                <th className="p-4">Rating</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {reviews.map((review: any) => (
-                <tr key={review.id} className="hover:bg-gray-50 text-sm">
-                  <td className="p-4">
-                    <p className="font-medium text-gray-900">{review.name}</p>
-                    {review.role && <p className="text-xs text-gray-400">{review.role}</p>}
-                  </td>
-                  <td className="p-4 text-gray-600 text-xs max-w-sm truncate">
-                    "{review.content}"
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-0.5 text-yellow-500">
-                      {Array.from({ length: review.rating }).map((_, i) => (
-                        <Star key={i} className="h-3.5 w-3.5 fill-current" />
-                      ))}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                      review.isApproved 
-                        ? "bg-green-50 text-green-600 border-green-200" 
-                        : "bg-gray-50 text-gray-500 border-gray-200"
-                    }`}>
-                      {review.isApproved ? "Approved" : "Pending"}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right space-x-2 flex items-center justify-end">
-                    <ApproveButton id={review.id} isApproved={review.isApproved} />
-                    <DeleteButton id={review.id} endpoint="/api/admin/reviews" />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-slate-50/75 border-b border-slate-200/80">
+                  <th className="p-4 pl-6 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Name & Designation</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Testimonial Quote</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Star Rating</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Moderation Status</th>
+                  <th className="p-4 pr-6 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {reviews.map((review: any) => (
+                  <tr key={review.id} className="hover:bg-slate-50/50 transition duration-150 text-sm">
+                    <td className="p-4 pl-6">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800">{review.name}</p>
+                        {review.role && (
+                          <p className="text-xs text-slate-400 mt-0.5 leading-none">
+                            {review.role}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4 text-xs text-slate-600 max-w-sm truncate">
+                      "{review.content}"
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-0.5 text-amber-400">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`h-3.5 w-3.5 ${
+                              i < review.rating ? "fill-current text-amber-400" : "text-slate-200 fill-none"
+                            }`} 
+                          />
+                        ))}
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                        review.isApproved 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                          : "bg-slate-50 text-slate-500 border-slate-200"
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${review.isApproved ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
+                        {review.isApproved ? "Approved" : "Pending"}
+                      </span>
+                    </td>
+                    <td className="p-4 pr-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <ApproveButton id={review.id} isApproved={review.isApproved} />
+                        <DeleteButton id={review.id} endpoint="/api/admin/reviews" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

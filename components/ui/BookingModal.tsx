@@ -33,6 +33,13 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [success, setSuccess] = useState(false);
   const [bookingReference, setBookingReference] = useState<string | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<{
+    date: string;
+    reference: string;
+    service: string;
+    time: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [services, setServices] = useState<BookingServiceConfig[]>([]);
@@ -175,6 +182,12 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
       if (res.ok) {
         setSuccess(true);
         setBookingReference(data.bookingReference || null);
+        setConfirmedBooking({
+          date: selectedDateKey,
+          reference: data.bookingReference || "Confirmed",
+          service: selectedService?.name || "Tax & Compliance Consultation",
+          time: selectedSlot?.label || selectedSlot?.startTime || "",
+        });
         setFormData({
           name: "",
           email: "",
@@ -464,21 +477,51 @@ export default function BookingModal({ isOpen, onClose, defaultService }: Bookin
               </form>
             </div>
           ) : (
-            <div className="p-8 sm:p-12 text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100">
+            <div className="p-8 sm:p-10 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner border border-emerald-100">
                 <CheckCircle2 className="h-8 w-8 sm:h-10 sm:h-10 text-emerald-500" />
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[var(--fg)] mb-2">Appointment Secured!</h2>
-              <p className="text-[var(--fg-muted)] text-sm mb-8 leading-relaxed">
-                {bookingReference
-                  ? `Our team has received your booking request. Reference: ${bookingReference}.`
-                  : "Our team has received your request and will contact you shortly to confirm the details."}
+              <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--fg)] tracking-tight mb-2">
+                Consultation Reserved!
+              </h2>
+              <p className="text-[var(--fg-muted)] text-sm mb-6 max-w-sm mx-auto leading-relaxed">
+                Your consultation has been recorded. A confirmation email with session instructions has been dispatched.
               </p>
+
+              {confirmedBooking && (
+                <div className="bg-[var(--bg-muted)] border border-[var(--border)] rounded-2xl p-4 mb-6 text-left space-y-2 text-sm shadow-sm">
+                  <div className="flex justify-between items-center pb-2 border-b border-[var(--border)]">
+                    <span className="text-[10px] font-bold text-[var(--fg-muted)] uppercase tracking-wider">Booking Reference</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(confirmedBooking.reference);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="inline-flex items-center gap-1 font-mono text-xs font-bold text-[var(--primary)] hover:underline"
+                    >
+                      {confirmedBooking.reference}
+                      <span className="text-[10px] font-normal text-[var(--fg-muted)]">({copied ? "Copied!" : "Copy"})</span>
+                    </button>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-[var(--fg-muted)]">Service:</span>
+                    <span className="font-semibold text-[var(--fg)]">{confirmedBooking.service}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-[var(--fg-muted)]">Date & Slot:</span>
+                    <span className="font-semibold text-[var(--fg)]">{confirmedBooking.date} at {confirmedBooking.time}</span>
+                  </div>
+                </div>
+              )}
+
               <button
+                type="button"
                 onClick={onClose}
-                className="w-full bg-[var(--fg)] text-[var(--bg-card)] font-bold py-4 rounded-xl sm:rounded-2xl hover:opacity-90 transition-all shadow-[var(--shadow-md)]"
+                className="w-full bg-[var(--fg)] text-[var(--bg-card)] font-bold py-3.5 rounded-xl hover:opacity-90 transition-all shadow-[var(--shadow-md)]"
               >
-                Close Window
+                Done
               </button>
             </div>
           )}

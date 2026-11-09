@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import HtmlInjection from "@/components/seo/HtmlInjection";
@@ -14,6 +14,13 @@ import {
   getDefaultDescription,
   getSiteName,
 } from "@/lib/seo";
+
+export const viewport: Viewport = {
+  themeColor: "#0A2540",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -137,6 +144,7 @@ export default async function RootLayout({
   return (
     <html lang="en-IN" className={outfit.variable}>
       <head>
+        <link rel="preconnect" href="https://images.unsplash.com" />
         {fontFamily !== "Outfit" ? (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />

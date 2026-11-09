@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 import {
   getProviderStatuses,
   resolveEmailProviderConfig,
@@ -11,6 +12,9 @@ import {
  * Never returns actual values — only presence checks.
  */
 export async function GET() {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const statuses: Record<string, boolean> = {};
 
@@ -47,6 +51,9 @@ export async function GET() {
     statuses["MAILGUN_API_KEY"] = !!providerConfig.mailgunApiKey;
     statuses["MAILGUN_DOMAIN"] = !!providerConfig.mailgunDomain;
     statuses["DATABASE_URL"] = !!process.env.DATABASE_URL;
+    statuses["WHATSAPP_PHONE_NUMBER_ID"] = !!(process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID);
+    statuses["WHATSAPP_ACCESS_TOKEN"] = !!(process.env.WHATSAPP_ACCESS_TOKEN || process.env.ACCESS_TOKEN);
+    statuses["WHATSAPP_WEBHOOK_VERIFY_TOKEN"] = !!process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
     statuses["EMAIL_PROVIDER_SMTP"] = providerStatuses.SMTP;
     statuses["EMAIL_PROVIDER_RESEND"] = providerStatuses.RESEND;
     statuses["EMAIL_PROVIDER_MAILGUN"] = providerStatuses.MAILGUN;

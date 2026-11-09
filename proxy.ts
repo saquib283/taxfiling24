@@ -16,24 +16,26 @@ export async function proxy(request: NextRequest) {
 
     if (!token) {
       if (pathname.startsWith("/api/admin")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
 
+    const secretKey = process.env.JWT_SECRET?.trim();
+    if (!secretKey) {
+      if (pathname.startsWith("/api/admin")) {
+        return NextResponse.json({ error: "Server authentication error" }, { status: 500 });
+      }
+      return NextResponse.redirect(new URL("/admin/login?error=unconfigured", request.url));
+    }
+
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "secure-admin-secret-key-default-256");
+      const secret = new TextEncoder().encode(secretKey);
       await jwtVerify(token, secret);
       return NextResponse.next();
-    } catch (err) {
+    } catch {
       if (pathname.startsWith("/api/admin")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }

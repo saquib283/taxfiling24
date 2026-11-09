@@ -229,7 +229,12 @@ export default function ChatBot({
                 <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                 <h3 className="font-semibold">{headerTitle}</h3>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200 transition-colors">
+              <button 
+                type="button"
+                onClick={() => setIsOpen(false)} 
+                className="text-white hover:text-gray-200 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/40"
+                aria-label="Close assistant"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>

@@ -14,9 +14,9 @@ const ENTITY_ICONS: Record<string, any> = {
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  CREATED: "bg-green-50 text-green-700 border-green-200",
-  UPDATED: "bg-blue-50 text-blue-700 border-blue-200",
-  DELETED: "bg-red-50 text-red-700 border-red-200",
+  CREATED: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  UPDATED: "bg-blue-50 text-blue-700 border-blue-100/80",
+  DELETED: "bg-rose-50 text-rose-700 border-rose-100",
 };
 
 export default async function ActivityLogPage() {
@@ -26,42 +26,62 @@ export default async function ActivityLogPage() {
   });
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">Activity Log</h1>
-        <p className="text-gray-600">Track all changes made in the admin panel</p>
-      </div>
+    <div className="p-6 md:p-8 space-y-8 bg-slate-50/50 min-h-screen">
+      {/* Header section */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 bg-clip-text text-transparent">
+            Activity Log
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Track auditing events, updates, creations, and content modifications made inside the administration workspace.
+          </p>
+        </div>
+      </header>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Main logs list */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden divide-y divide-slate-100">
         {logs.length === 0 ? (
-          <div className="p-12 text-center">
-            <Activity className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">No activity recorded yet.</p>
-            <p className="text-gray-400 text-sm mt-1">Actions will be tracked as you manage content.</p>
+          <div className="p-12 text-center max-w-sm mx-auto">
+            <div className="p-4 bg-slate-50 rounded-2xl inline-block mb-4 border border-slate-100">
+              <Activity className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">No activity logged yet</h3>
+            <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+              Log entries are recorded automatically as actions are taken across content layouts.
+            </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {logs.map((log: any) => {
-              const Icon = ENTITY_ICONS[log.entity] || Activity;
-              return (
-                <div key={log.id} className="p-4 flex items-center gap-4 hover:bg-gray-50">
-                  <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                    <Icon className="h-4 w-4 text-gray-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${ACTION_COLORS[log.action] || "bg-gray-50 text-gray-600 border-gray-200"}`}>{log.action}</span>
-                      <span className="text-sm font-medium text-gray-900">{log.entity}</span>
-                    </div>
-                    {log.details && <p className="text-xs text-gray-500 truncate">{log.details}</p>}
-                  </div>
-                  <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">
-                    {new Date(log.createdAt).toLocaleString()}
-                  </span>
+          logs.map((log: any) => {
+            const Icon = ENTITY_ICONS[log.entity] || Activity;
+            return (
+              <div key={log.id} className="p-5 flex items-center gap-4 hover:bg-slate-50/30 transition duration-150">
+                <div className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center shrink-0 shadow-sm">
+                  <Icon className="h-4.5 w-4.5 text-slate-500" />
                 </div>
-              );
-            })}
-          </div>
+                
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-extrabold border uppercase ${
+                      ACTION_COLORS[log.action] || "bg-slate-50 text-slate-500 border-slate-200"
+                    }`}>
+                      {log.action}
+                    </span>
+                    <span className="text-xs font-bold text-slate-800">{log.entity}</span>
+                  </div>
+                  {log.details && (
+                    <p className="text-xs text-slate-450 truncate leading-relaxed">
+                      {log.details}
+                    </p>
+                  )}
+                </div>
+                
+                <span className="text-[10px] font-bold text-slate-400 shrink-0 whitespace-nowrap bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg">
+                  {new Date(log.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                </span>
+              </div>
+            );
+          })
         )}
       </div>
     </div>

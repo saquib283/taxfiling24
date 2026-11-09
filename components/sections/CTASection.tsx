@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Send, Phone, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Send, Phone, ShieldCheck, CalendarClock } from "lucide-react";
 import { getSiteContact } from "@/lib/site-contact";
 
 interface CTASectionProps {
@@ -52,18 +53,23 @@ export default function CTASection({ settings = {}, content }: CTASectionProps) 
             {subtext}
           </p>
             <div className="mb-10 flex flex-wrap justify-center gap-4">
-            <motion.a
+            <Link
+              href="/book"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold tracking-wide text-indigo-900 shadow-[var(--shadow-lg)] transition-all hover:-translate-y-1 hover:scale-105 hover:shadow-xl cursor-pointer"
+            >
+              <CalendarClock className="h-4 w-4 text-indigo-600" />
+              <span>Book CA Consultation</span>
+            </Link>
+            <Link
               href="/contact"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--bg-card)] px-7 py-4 font-bold tracking-wide text-[var(--primary)] shadow-[var(--shadow-lg)] transition-all hover:-translate-y-1 hover:scale-105 hover:shadow-xl"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-white/40 bg-white/10 px-7 py-4 font-bold tracking-wide text-white backdrop-blur-md transition-all hover:-translate-y-1 hover:scale-105 hover:border-white hover:bg-white/20 cursor-pointer"
             >
               <Send className="h-4 w-4" />
               {buttonText}
-            </motion.a>
+            </Link>
             <motion.a
               href={`tel:${phoneRaw}`}
-              className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 bg-white/10 px-7 py-4 font-bold tracking-wide text-white backdrop-blur-md transition-all hover:-translate-y-1 hover:scale-105 hover:border-white/50 hover:bg-white/20"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 bg-white/10 px-7 py-4 font-bold tracking-wide text-white backdrop-blur-md transition-all hover:-translate-y-1 hover:scale-105 hover:border-white/50 hover:bg-white/20 cursor-pointer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >

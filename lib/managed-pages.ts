@@ -19,7 +19,7 @@ export type ManagedPageKey =
   | "articleDetail"
   | "taxCalculator"
   | "gstCalculator";
-export type FieldType = "text" | "textarea" | "url" | "repeater";
+export type FieldType = "text" | "textarea" | "url" | "image" | "repeater";
 
 export interface ManagedItem {
   id: string;
@@ -42,6 +42,7 @@ export interface BaseFieldDefinition {
   type?: Exclude<FieldType, "repeater">;
   placeholder?: string;
   rows?: number;
+  defaultImage?: string;
 }
 
 export interface RepeaterFieldDefinition {
@@ -128,6 +129,10 @@ function urlField(key: string, label: string, placeholder = ""): BaseFieldDefini
   return { key, label, type: "url", placeholder };
 }
 
+function imageField(key: string, label: string, defaultImage = "", placeholder = ""): BaseFieldDefinition {
+  return { key, label, type: "image", defaultImage, placeholder: placeholder || defaultImage };
+}
+
 function repeaterField(
   key: string,
   label: string,
@@ -194,6 +199,7 @@ const homeTemplates: SectionTemplate[] = [
       textareaField("subheading", "Subheading", SITE_CONTENT_DEFAULTS.hero_subheading),
       textField("primaryCtaLabel", "Primary Button", "Talk To Expert"),
       textField("secondaryCtaLabel", "Secondary Button", "Explore Services"),
+      imageField("image", "Hero Visual Image", "/images/hero_bg.png"),
       textField("clientsLabel", "Clients Label", "Happy Clients"),
       textField("experienceLabel", "Experience Label", "Years of Experience"),
       textField("expertsTitle", "Expert Card Title", "Certified Experts"),
@@ -218,6 +224,7 @@ const homeTemplates: SectionTemplate[] = [
         subheading: settings.hero_subheading || SITE_CONTENT_DEFAULTS.hero_subheading,
         primaryCtaLabel: settings.hero_cta_primary || "Talk To Expert",
         secondaryCtaLabel: settings.hero_cta_secondary || "Explore Services",
+        image: settings.hero_image || "/images/hero_bg.png",
         clientsLabel: "Happy Clients",
         experienceLabel: "Years of Experience",
         expertsTitle: "Certified Experts",
@@ -274,6 +281,7 @@ const homeTemplates: SectionTemplate[] = [
       textareaField("description", "Description", SITE_CONTENT_DEFAULTS.about_description),
       textField("primaryCtaLabel", "Primary Button", "Talk To Expert"),
       textField("secondaryCtaLabel", "Secondary Button", "Schedule Appointment"),
+      imageField("image", "About Section Image", "/images/team_consulting.png"),
       textField("clientsLabel", "Clients Label", "Happy Clients"),
       textField("experienceLabel", "Experience Label", "Years of Experience"),
       repeaterField(
@@ -306,6 +314,7 @@ const homeTemplates: SectionTemplate[] = [
           description: settings.about_description || SITE_CONTENT_DEFAULTS.about_description,
           primaryCtaLabel: "Talk To Expert",
           secondaryCtaLabel: "Schedule Appointment",
+          image: settings.about_image || "/images/team_consulting.png",
           clientsLabel: "Happy Clients",
           experienceLabel: "Years of Experience",
           features: features.map((feature: { title: string; description: string }, index: number) => ({
@@ -355,7 +364,7 @@ const homeTemplates: SectionTemplate[] = [
           textField("step", "Step Number", "01"),
           textField("title", "Title", "Strategic Discovery"),
           textareaField("description", "Description", "Map your business requirements.", 3),
-          textField("image", "Image Path", "/images/process_discovery.png"),
+          imageField("image", "Step Illustration Image", "/images/process_discovery.png"),
           textField("ctaLabel", "Link Label", "Explore Framework"),
           urlField("ctaHref", "Link URL", "/about"),
         ],
@@ -587,7 +596,7 @@ const aboutTemplates: SectionTemplate[] = [
       textField("title", "Title", "About Taxfiling24"),
       textField("highlight", "Highlight", "Taxfiling24"),
       textareaField("description", "Description", "Empowering businesses through simplified taxation."),
-      textField("backgroundImage", "Background Image", "/images/team_consulting.png"),
+      imageField("backgroundImage", "Background Banner Image", "/images/about_hero_bg.jpg"),
     ],
     createSection: () => ({
       id: "about-hero",
@@ -599,7 +608,7 @@ const aboutTemplates: SectionTemplate[] = [
         title: "About Taxfiling24",
         highlight: "Taxfiling24",
         description: "Empowering businesses through simplified taxation, seamless compliance, and expert financial advisory.",
-        backgroundImage: "/images/team_consulting.png",
+        backgroundImage: "/images/about_hero_bg.jpg",
       },
     }),
   },
@@ -618,7 +627,7 @@ const aboutTemplates: SectionTemplate[] = [
       ),
       textField("badgeTitle", "Badge Title", "Certified Excellence"),
       textField("badgeDescription", "Badge Description", "Recognized industry leaders"),
-      textField("image", "Image", "/images/team_consulting.png"),
+      imageField("image", "Story Section Image", "/images/team_consulting.png"),
     ],
     createSection: () => ({
       id: "about-story",
@@ -1057,6 +1066,7 @@ const globalTemplates: SectionTemplate[] = [
     fields: [
       textField("brandPrefix", "Brand Prefix", "TaxFiling"),
       textField("brandHighlight", "Brand Highlight", "24"),
+      imageField("logo", "Brand Logo Image", "/brand-logo.png"),
       textField("contactButtonLabel", "Contact Button", "Contact"),
       textField("searchPlaceholder", "Desktop Search Placeholder", "Search services..."),
       textField("mobileSearchPlaceholder", "Mobile Search Placeholder", "Search..."),
@@ -1071,6 +1081,7 @@ const globalTemplates: SectionTemplate[] = [
       data: {
         brandPrefix: "TaxFiling",
         brandHighlight: "24",
+        logo: "/brand-logo.png",
         contactButtonLabel: "Contact",
         searchPlaceholder: "Search services...",
         mobileSearchPlaceholder: "Search...",
@@ -1088,6 +1099,7 @@ const globalTemplates: SectionTemplate[] = [
         "Tagline",
         "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business."
       ),
+      imageField("logo", "Footer Logo Image", "/brand-logo.png"),
       textField("newsletterTitle", "Newsletter Title", "Stay Informed"),
       textareaField(
         "newsletterDescription",
@@ -1133,6 +1145,7 @@ const globalTemplates: SectionTemplate[] = [
       data: {
         tagline:
           "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.",
+        logo: "/brand-logo.png",
         newsletterTitle: "Stay Informed",
         newsletterDescription:
           "Subscribe to our newsletter for the latest compliance alerts and tax updates.",

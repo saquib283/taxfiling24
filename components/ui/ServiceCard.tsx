@@ -59,6 +59,7 @@ export default function ServiceCard({
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center rounded-full bg-[#25D366]/10 p-2.5 text-[#25D366] transition-all hover:bg-[#25D366] hover:text-white"
             title="WhatsApp Now"
+            aria-label={`Chat on WhatsApp about ${title}`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

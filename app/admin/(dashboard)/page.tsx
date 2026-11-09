@@ -19,7 +19,18 @@ import Link from "next/link";
 
 async function getStats() {
   try {
-    const [totalArticles, totalServices, articleViews, totalInquiries, pendingInquiries, totalReviews, totalFaqs, totalTeam] = await Promise.all([
+    const [
+      totalArticles,
+      totalServices,
+      articleViews,
+      totalInquiries,
+      pendingInquiries,
+      totalReviews,
+      totalFaqs,
+      totalTeam,
+      totalAppointments,
+      pendingAppointments
+    ] = await Promise.all([
       prisma.article.count(),
       prisma.service.count(),
       prisma.article.aggregate({ _sum: { views: true } }),
@@ -28,6 +39,8 @@ async function getStats() {
       prisma.review.count(),
       prisma.fAQ.count(),
       prisma.teamMember.count(),
+      prisma.appointment.count().catch(() => 0),
+      prisma.appointment.count({ where: { status: "PENDING" } }).catch(() => 0),
     ]);
 
     const recentArticles = await prisma.article.findMany({
@@ -51,6 +64,8 @@ async function getStats() {
       totalReviews,
       totalFaqs,
       totalTeam,
+      totalAppointments,
+      pendingAppointments,
       recentArticles,
       recentInquiries,
     };
@@ -65,6 +80,8 @@ async function getStats() {
       totalReviews: 0,
       totalFaqs: 0,
       totalTeam: 0,
+      totalAppointments: 0,
+      pendingAppointments: 0,
       recentArticles: [],
       recentInquiries: [],
     };
@@ -75,37 +92,89 @@ export default async function AdminDashboard() {
   const stats = await getStats();
 
   const statCards = [
-    { title: "Total Articles", value: stats.totalArticles, icon: FileText, color: "bg-blue-50 text-blue-600", link: "/admin/articles" },
-    { title: "Active Services", value: stats.totalServices, icon: Briefcase, color: "bg-indigo-50 text-indigo-600", link: "/admin/services" },
-    { title: "Article Views", value: stats.totalViews, icon: Eye, color: "bg-green-50 text-green-600", link: "/admin/articles" },
-    { title: "Pending Inquiries", value: stats.pendingInquiries, icon: Inbox, color: "bg-orange-50 text-orange-600", link: "/admin/inquiries" },
-    { title: "Total Reviews", value: stats.totalReviews, icon: Star, color: "bg-yellow-50 text-yellow-600", link: "/admin/reviews" },
-    { title: "Team Members", value: stats.totalTeam, icon: Users, color: "bg-purple-50 text-purple-600", link: "/admin/team" },
+    { 
+      title: "Consultations", 
+      value: stats.totalAppointments, 
+      badge: stats.pendingAppointments > 0 ? `${stats.pendingAppointments} Pending` : undefined,
+      badgeColor: "bg-amber-100 text-amber-800",
+      icon: Calendar, 
+      color: "bg-indigo-50 text-indigo-600", 
+      link: "/admin/appointments" 
+    },
+    { 
+      title: "Inquiries", 
+      value: stats.totalInquiries, 
+      badge: stats.pendingInquiries > 0 ? `${stats.pendingInquiries} New` : undefined,
+      badgeColor: "bg-orange-100 text-orange-800",
+      icon: Inbox, 
+      color: "bg-orange-50 text-orange-600", 
+      link: "/admin/inquiries" 
+    },
+    { title: "Active Services", value: stats.totalServices, icon: Briefcase, color: "bg-blue-50 text-blue-600", link: "/admin/services" },
+    { title: "Published Articles", value: stats.totalArticles, icon: FileText, color: "bg-sky-50 text-sky-600", link: "/admin/articles" },
+    { title: "Total Article Views", value: stats.totalViews.toLocaleString(), icon: Eye, color: "bg-emerald-50 text-emerald-600", link: "/admin/articles" },
+    { title: "Client Reviews", value: stats.totalReviews, icon: Star, color: "bg-yellow-50 text-yellow-600", link: "/admin/reviews" },
   ];
 
   return (
     <div className="p-6">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Welcome back to your content management workspace.</p>
+          <p className="text-gray-600">Welcome back to your business and compliance management workspace.</p>
         </div>
-        <a href="/api/admin/export?type=inquiries&format=csv" className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
-          <Download className="h-4 w-4" /> Export Leads CSV
-        </a>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/appointments" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm">
+            <Calendar className="h-4 w-4" /> Bookings
+          </Link>
+          <a href="/api/admin/export?type=inquiries&format=csv" className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
+            <Download className="h-4 w-4" /> Export Leads
+          </a>
+        </div>
       </div>
+
+      {/* Actionable Pending Banner if pending items */}
+      {(stats.pendingAppointments > 0 || stats.pendingInquiries > 0) && (
+        <div className="mb-8 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-3 w-3 rounded-full bg-amber-500 animate-ping" />
+            <p className="text-sm font-semibold text-amber-900">
+              Action Required: You have {stats.pendingAppointments} pending consultation{stats.pendingAppointments === 1 ? "" : "s"} and {stats.pendingInquiries} new client inquir{stats.pendingInquiries === 1 ? "y" : "ies"}.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {stats.pendingAppointments > 0 && (
+              <Link href="/admin/appointments" className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors">
+                Review Consultations
+              </Link>
+            )}
+            {stats.pendingInquiries > 0 && (
+              <Link href="/admin/inquiries" className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors">
+                View Inquiries
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <Link href={card.link} key={i} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+            <Link href={card.link} key={i} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow group">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{card.title}</p>
-                <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                  {card.badge && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${card.badgeColor}`}>
+                      {card.badge}
+                    </span>
+                  )}
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
               </div>
-              <div className={`p-3 rounded-lg ${card.color}`}>
+              <div className={`p-3 rounded-xl ${card.color} group-hover:scale-105 transition-transform`}>
                 <Icon className="h-5 w-5" />
               </div>
             </Link>

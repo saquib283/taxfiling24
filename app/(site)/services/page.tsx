@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+
+import type { Metadata } from "next";
 import ServicesDirectoryPage from "@/components/sections/ServicesDirectoryPage";
 import JsonLd, {
   breadcrumbSchema,
@@ -9,7 +12,18 @@ import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages"
 import prisma from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { getSiteContact } from "@/lib/site-contact";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return buildPageMetadataFromSettings(settings, "services", {
+    description:
+      "Explore professional tax, GST, registration, audit, accounting, and advisory services from TaxFiling24.",
+    keywords: ["tax services", "GST registration", "company filing", "audit services India"],
+    path: "/services",
+    title: "Our Services | Complete Business Compliance",
+  });
+}
 
 interface ServiceCard {
   id?: string;

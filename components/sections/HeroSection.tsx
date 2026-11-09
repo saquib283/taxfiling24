@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import { Phone, ArrowRight, Check } from "lucide-react";
 import { SITE_CONTENT_DEFAULTS } from "@/lib/constants";
@@ -15,6 +15,7 @@ interface HeroProps {
     subheading?: string;
     primaryCtaLabel?: string;
     secondaryCtaLabel?: string;
+    image?: string;
     clientsLabel?: string;
     experienceLabel?: string;
     expertsTitle?: string;
@@ -24,6 +25,7 @@ interface HeroProps {
 }
 
 export default function HeroSection({ settings = {}, content }: HeroProps) {
+  const shouldReduceMotion = useReducedMotion();
   const badge = content?.badge || settings.hero_badge || "Premium Corporate Advisory";
   const headline = content?.headline || settings.hero_headline || SITE_CONTENT_DEFAULTS.hero_headline;
   const subheading = content?.subheading || settings.hero_subheading || SITE_CONTENT_DEFAULTS.hero_subheading;
@@ -37,6 +39,10 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
   const highlights =
     content?.highlights?.filter((item) => item.isVisible !== false && item.text) ||
     [{ text: "No Hidden Charges" }, { text: "Timely Compliance" }, { text: "Expert Team" }];
+
+  const taxIndex = headline.search(/tax/i);
+  const beforeTax = taxIndex >= 0 ? headline.slice(0, taxIndex) : headline;
+  const fromTax = taxIndex >= 0 ? headline.slice(taxIndex) : "";
 
   return (
     <section
@@ -56,14 +62,14 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
             variants={fadeUp}
             className="flex flex-col"
           >
-            <span className="mb-6 inline-flex w-fit rounded-full border border-[var(--accent-light)]/30 bg-[var(--accent-soft)]/50 px-5 py-2 text-sm font-semibold tracking-wide text-[var(--primary)] shadow-sm backdrop-blur-md uppercase">
+            <span className="mb-6 inline-flex w-fit rounded-full border border-[var(--accent-light)]/30 bg-[var(--accent-soft)]/50 px-5 py-2 text-sm font-semibold tracking-wide text-[var(--primary)] shadow-sm backdrop-blur-md">
               {badge}
             </span>
             <h1 className="mb-5 text-3xl font-extrabold tracking-tight leading-tight text-[var(--fg)] sm:text-4xl lg:text-5xl lg:leading-[1.1]">
-              {headline.includes("Tax") ? (
+              {taxIndex >= 0 ? (
                 <>
-                  {headline.split("Tax")[0]}<br className="hidden lg:block" />
-                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>Tax{headline.split("Tax").slice(1).join("Tax")}</span>
+                  {beforeTax}<br className="hidden lg:block" />
+                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>{fromTax}</span>
                 </>
               ) : (
                 <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>{headline}</span>
@@ -113,7 +119,7 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
             <div className="relative overflow-hidden rounded-[var(--radius-xl)] bg-[var(--bg-muted)] shadow-[var(--shadow-lg)] border border-[var(--border)]">
               <div className="aspect-[4/3] w-full lg:aspect-[16/10]">
                 <Image
-                  src="/images/hero_bg.png"
+                  src={content?.image || settings.hero_image || "/images/hero_bg.png"}
                   alt="Tax and Compliance consulting session with expert advisory"
                   fill
                   className="object-cover"
@@ -122,8 +128,8 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                 />
               </div>
               <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                animate={shouldReduceMotion ? { y: 0 } : { y: [0, -8, 0] }}
+                transition={shouldReduceMotion ? { duration: 0 } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 rounded-2xl border border-white/20 px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
                 style={{ backgroundImage: "var(--gradient-primary)" }}
               >
@@ -131,8 +137,8 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                 <p className="text-xs sm:text-sm font-medium text-white/90">{clientsLabel}</p>
               </motion.div>
               <motion.div
-                animate={{ y: [0, 8, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                animate={shouldReduceMotion ? { y: 0 } : { y: [0, 8, 0] }}
+                transition={shouldReduceMotion ? { duration: 0 } : { duration: 5, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute right-4 top-4 sm:right-5 sm:top-5 rounded-2xl border border-white/20 px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
                 style={{ background: "linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%)" }}
               >
@@ -141,8 +147,8 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
               </motion.div>
             </div>
             <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+              animate={shouldReduceMotion ? { y: 0 } : { y: [0, -6, 0] }}
+              transition={shouldReduceMotion ? { duration: 0 } : { duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
               className="mt-6 sm:mt-0 sm:absolute sm:-bottom-6 sm:right-6 sm:w-72 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 shadow-[var(--shadow-xl)] backdrop-blur-xl transition-transform hover:-translate-y-1 mx-4 sm:mx-0"
             >
               <div className="flex items-center gap-4">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
+import { requireAdmin } from "@/lib/auth";
 
 type TemplatePayload = {
   category?: string;
@@ -14,6 +15,9 @@ type TemplatePayload = {
 };
 
 export async function GET() {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const templates = await prisma.campaignTemplate.findMany({
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
@@ -30,6 +34,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const payload = (await request.json()) as TemplatePayload;
 

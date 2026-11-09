@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
+import { requireAdmin } from "@/lib/auth";
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { id } = await params;
     const data = await request.json();
@@ -16,13 +20,14 @@ export async function PUT(
         title: data.title,
         slug: data.slug,
         content: data.content,
-        excerpt: data.excerpt,
-        category: data.category,
+        excerpt: data.excerpt || null,
+        thumbnailUrl: data.thumbnailUrl !== undefined ? (data.thumbnailUrl || null) : undefined,
+        category: data.category || null,
         tags: data.tags || [],
-        readTime: data.readTime,
+        readTime: data.readTime || null,
         isFeatured: data.isFeatured ?? false,
-        metaTitle: data.metaTitle,
-        metaDescription: data.metaDescription,
+        metaTitle: data.metaTitle || null,
+        metaDescription: data.metaDescription || null,
         published: data.published ?? false,
       },
     });
@@ -41,6 +46,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { id } = await params;
     await prisma.article.delete({

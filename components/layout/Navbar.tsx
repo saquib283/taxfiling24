@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown, Search } from "lucide-react";
  
@@ -26,6 +27,7 @@ export default function Navbar({
   content?: {
     brandPrefix?: string;
     brandHighlight?: string;
+    logo?: string;
     contactButtonLabel?: string;
     searchPlaceholder?: string;
     mobileSearchPlaceholder?: string;
@@ -34,7 +36,8 @@ export default function Navbar({
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [servicesOpen, setServicesOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [mobileExpandedLabel, setMobileExpandedLabel] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const brandPrefix = content?.brandPrefix || "TaxFiling";
   const brandHighlight = content?.brandHighlight || "24";
@@ -52,9 +55,10 @@ export default function Navbar({
       visible: true,
       children: [
         { href: "/services", label: "All Services", visible: true },
-        { href: "/services#income-tax", label: "Income Tax", visible: true },
-        { href: "/services#gst", label: "GST Filings", visible: true },
-        { href: "/services#business", label: "Business Registration", visible: true },
+        { href: "/services/taxation-gst-compliance-management", label: "Taxation & GST Compliance", visible: true },
+        { href: "/services/business-setup-registration-services", label: "Company & Startup Registration", visible: true },
+        { href: "/services/corporate-roc-secretarial-filings", label: "ROC & Corporate Filings", visible: true },
+        { href: "/services/virtual-cfo-advisory-services", label: "Virtual CFO Advisory", visible: true },
       ]
     },
     { 
@@ -70,11 +74,19 @@ export default function Navbar({
     { href: "/contact", label: "Contact", visible: true },
   ];
 
-  const [navItems, setNavItems] = useState(hardcodedNavItems);
+  const navItems: NavItem[] = useMemo(() => {
+    if (settings.NAVBAR_CONFIG) {
+      try {
+        const config = JSON.parse(settings.NAVBAR_CONFIG);
+        if (Array.isArray(config) && config.length > 0) {
+          return config;
+        }
+      } catch (err) {
+        console.error("Failed to parse NAVBAR_CONFIG:", err);
+      }
+    }
 
-  useEffect(() => {
-    let baseItems = [...hardcodedNavItems];
-    
+    const baseItems = [...hardcodedNavItems];
     if (dynamicServices && dynamicServices.length > 0) {
       const servicesIndex = baseItems.findIndex(item => item.label === "Services");
       if (servicesIndex !== -1) {
@@ -92,19 +104,7 @@ export default function Navbar({
       }
     }
 
-    if (settings.NAVBAR_CONFIG) {
-      try {
-        const config = JSON.parse(settings.NAVBAR_CONFIG);
-        if (Array.isArray(config) && config.length > 0) {
-          setNavItems(config);
-          return;
-        }
-      } catch (err) {
-        console.error("Failed to parse NAVBAR_CONFIG:", err);
-      }
-    }
-    
-    setNavItems(baseItems);
+    return baseItems;
   }, [settings.NAVBAR_CONFIG, dynamicServices]);
 
   useEffect(() => {
@@ -119,35 +119,43 @@ export default function Navbar({
       <nav className="container mx-auto flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8 relative">
         <Link
           href="/"
-          className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
+          className="flex items-center transition-opacity hover:opacity-90 py-0.5"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <img 
-            src="/logo.png" 
-            className="h-10 w-10 object-cover rounded-full shadow-[var(--shadow-sm)]" 
-            alt="TaxFiling24 Logo" 
+          <Image 
+            src={content?.logo || settings.site_logo || "/brand-logo.png"} 
+            width={170}
+            height={60}
+            priority
+            unoptimized
+            className="h-11 sm:h-12 md:h-13 w-auto object-contain" 
+            alt="TaxFiling24" 
           />
-          <span className="text-xl font-bold tracking-tight text-[var(--fg)]">
-            {brandPrefix}
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: "var(--gradient-primary)" }}
-            >
-              {brandHighlight}
-            </span>
-          </span>
         </Link>
 
         <div className="hidden absolute left-1/2 -translate-x-1/2 items-center gap-1 md:flex">
           {navItems.filter(item => item.visible !== false && item.href !== "/contact").map((item) => {
             if (item.children) {
+              const isOpen = activeDropdown === item.label;
               return (
-                <div key={item.label} className="relative group">
-                  <button className="flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] transition-all cursor-pointer">
+                <div 
+                  key={item.label} 
+                  className="relative group focus-within:block"
+                  onMouseEnter={() => setActiveDropdown(item.label)}
+                  onMouseLeave={() => setActiveDropdown(null)}
+                >
+                  <button 
+                    type="button"
+                    onClick={() => setActiveDropdown(isOpen ? null : item.label)}
+                    aria-haspopup="true"
+                    aria-expanded={isOpen}
+                    className="flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all cursor-pointer"
+                  >
                     {item.label}
-                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : "group-hover:rotate-180"}`} />
                   </button>
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-[var(--border)] rounded-xl shadow-[var(--shadow-md)] overflow-hidden hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className={`absolute top-full left-0 pt-2 w-64 z-50 animate-in fade-in slide-in-from-top-2 before:absolute before:-top-2 before:left-0 before:right-0 before:h-2 before:content-[''] ${isOpen ? "block" : "hidden group-hover:block group-focus-within:block"}`}>
+                    <div className="w-full bg-white border border-[var(--border)] rounded-xl shadow-[var(--shadow-md)] overflow-hidden">
                     <div className="p-2 border-b border-[var(--border)] sticky top-0 bg-white z-10">
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -161,7 +169,7 @@ export default function Navbar({
                         />
                       </div>
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto py-1">
+                    <div className="max-h-[300px] overflow-y-auto py-1" role="menu">
                       {(() => {
                         const filtered = item.children.filter(
                           (child: any) =>
@@ -181,12 +189,15 @@ export default function Navbar({
                           <Link 
                             key={child.href} 
                             href={child.href}
-                            className="block px-4 py-2.5 text-sm text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] transition-colors"
+                            role="menuitem"
+                            onClick={() => setActiveDropdown(null)}
+                            className="block px-4 py-2.5 text-sm text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] focus:bg-[var(--accent-soft)] focus:text-[var(--primary)] focus:outline-none transition-colors"
                           >
                             {child.label}
                           </Link>
                         ));
                       })()}
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -197,7 +208,7 @@ export default function Navbar({
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] transition-all duration-200"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all duration-200"
               >
                 {item.label}
               </Link>
@@ -213,9 +224,12 @@ export default function Navbar({
             {contactButtonLabel}
           </Link>
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-lg p-2 text-[var(--fg)] md:hidden"
+            className="rounded-lg p-2 text-[var(--fg)] md:hidden focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
             aria-label="Toggle menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -225,6 +239,7 @@ export default function Navbar({
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
+            id="mobile-navigation"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -233,20 +248,23 @@ export default function Navbar({
             <div className="flex flex-col gap-0.5">
               {navItems.filter(item => item.visible !== false).map((item) => {
                 const hasChildren = !!item.children;
+                const isSubmenuOpen = mobileExpandedLabel === item.label;
                 
                 return (
                   <div key={item.label}>
                     {hasChildren ? (
                       <div>
                         <button 
-                          onClick={() => setServicesOpen(!servicesOpen)}
+                          type="button"
+                          onClick={() => setMobileExpandedLabel(isSubmenuOpen ? null : item.label)}
+                          aria-expanded={isSubmenuOpen}
                           className="w-full flex items-center justify-between rounded-lg py-2.5 px-3 text-left text-sm font-medium text-[var(--fg)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] transition-colors"
                         >
                           {item.label}
-                          <ChevronDown className={`h-4 w-4 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isSubmenuOpen ? 'rotate-180' : ''}`} />
                         </button>
                         <AnimatePresence>
-                          {servicesOpen && (
+                          {isSubmenuOpen && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
@@ -288,6 +306,7 @@ export default function Navbar({
                                       href={child.href}
                                       onClick={() => {
                                         setMobileMenuOpen(false);
+                                        setMobileExpandedLabel(null);
                                         setSearchQuery("");
                                       }}
                                       className="block py-2 px-3 text-xs font-medium text-[var(--fg-muted)] hover:text-[var(--primary)] transition-colors"

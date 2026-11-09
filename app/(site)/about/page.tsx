@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Image from "next/image";
 import {
   Award,
@@ -92,30 +94,47 @@ export default async function AboutPage() {
           switch (section.type) {
             case "about.hero":
               return (
-                <section key={section.id} className="relative overflow-hidden bg-[var(--primary)] py-32 text-white lg:py-40">
-                  <div className="absolute inset-0 z-0 bg-black/40" />
+                <section key={section.id} className="relative overflow-hidden py-14 text-white sm:py-18 lg:py-24">
+                  {/* Dedicated High-Quality Background Banner (Clearly Visible) */}
                   <div className="absolute inset-0 z-0">
                     <Image
-                      src={data.backgroundImage || "/images/team_consulting.png"}
-                      alt="Taxfiling24 Professional Team"
+                      src={data.backgroundImage || "/images/about_hero_bg.jpg"}
+                      alt="Taxfiling24 Corporate Advisory"
                       fill
-                      className="object-cover opacity-30 mix-blend-overlay"
+                      className="object-cover object-center"
                       priority
+                      quality={95}
+                      sizes="100vw"
                     />
                   </div>
+
+                  {/* Light subtle tint so image remains vivid and fully visible */}
+                  <div className="absolute inset-0 z-[1] bg-slate-950/25" />
+
+                  {/* Hero Content with Frosted Glass Scrim for 100% Crisp Text Contrast */}
                   <div className="container relative z-10 mx-auto px-4 text-center sm:px-6 lg:px-8">
-                    <h1 className="mb-6 text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-7xl">
-                      {typeof data.title === "string" && data.highlight && data.title.includes(data.highlight) ? (
-                        <>
-                          {data.title.split(data.highlight)[0]}
-                          <span className="text-[var(--accent-light)]">{data.highlight}</span>
-                          {data.title.split(data.highlight).slice(1).join(data.highlight)}
-                        </>
-                      ) : (
-                        data.title
-                      )}
-                    </h1>
-                    <p className="mx-auto max-w-3xl text-lg text-white/90 sm:text-2xl">{data.description}</p>
+                    <div className="mx-auto max-w-3xl rounded-3xl border border-white/20 bg-slate-950/65 p-6 sm:p-8 md:p-10 backdrop-blur-md shadow-2xl shadow-black/50">
+                      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-indigo-200 backdrop-blur-md shadow-xs">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        Premier Corporate Advisory & Tax Practice
+                      </div>
+
+                      <h1 className="mb-3 text-3xl font-black tracking-tight text-white drop-shadow-md sm:text-4xl lg:text-5xl">
+                        {typeof data.title === "string" && data.highlight && data.title.includes(data.highlight) ? (
+                          <>
+                            {data.title.split(data.highlight)[0]}
+                            <span className="text-amber-400 font-black">{data.highlight}</span>
+                            {data.title.split(data.highlight).slice(1).join(data.highlight)}
+                          </>
+                        ) : (
+                          data.title
+                        )}
+                      </h1>
+
+                      <p className="mx-auto max-w-2xl text-sm font-medium text-slate-100 sm:text-base lg:text-lg leading-relaxed">
+                        {data.description}
+                      </p>
+                    </div>
                   </div>
                 </section>
               );

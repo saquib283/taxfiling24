@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
+import { requireAdmin } from "@/lib/auth";
 import { getBookingConfig, getDueReminderOffsets, parseSentReminderOffsets } from "@/lib/booking";
 import { sendAppointmentNotification, type AppointmentNotificationType } from "@/lib/booking-notifications";
 import { getSettings } from "@/lib/settings";
@@ -8,10 +9,13 @@ import { getSettings } from "@/lib/settings";
 type ReminderRequestPayload = {
   appointmentId?: string;
   reminderOffsetMinutes?: number;
-  type?: "CONFIRMATION" | "MEETING_LINK" | "REMINDER";
+  type?: "CONFIRMATION" | "MEETING_LINK" | "REMINDER" | "RESCHEDULED" | "CANCELLED";
 };
 
 export async function POST(request: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const body = (await request.json()) as ReminderRequestPayload;
 
@@ -42,12 +46,7 @@ export async function POST(request: Request) {
     const service =
       config.services.find((item) => item.id === appointment.serviceId) ||
       config.services.find((item) => item.name === appointment.service);
-    const notificationType: AppointmentNotificationType =
-      body.type === "CONFIRMATION"
-        ? "CONFIRMATION"
-        : body.type === "MEETING_LINK"
-        ? "MEETING_LINK"
-        : "REMINDER";
+    const notificationType: AppointmentNotificationType = body.type;
     const dueOffsets =
       body.type === "REMINDER"
         ? getDueReminderOffsets({

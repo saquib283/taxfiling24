@@ -24,6 +24,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/book`,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/services`,
       changeFrequency: "weekly",
       priority: 0.9,
@@ -79,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const services = await prisma.service.findMany({
       select: { createdAt: true, slug: true },
     });
-    servicePagesFromDatabase = services.map((service) => ({
+    servicePagesFromDatabase = services.map((service: any) => ({
       url: `${baseUrl}/services/${service.slug}`,
       lastModified: service.createdAt,
       changeFrequency: "monthly" as const,
@@ -90,7 +95,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { published: true },
       select: { slug: true, updatedAt: true },
     });
-    articlePages = articles.map((article) => ({
+    articlePages = articles.map((article: any) => ({
       url: `${baseUrl}/articles/${article.slug}`,
       lastModified: article.updatedAt,
       changeFrequency: "weekly" as const,

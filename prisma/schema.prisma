@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -43,7 +43,7 @@ model Article {
   thumbnailUrl String?             // Featured Image link
   
   category     ArticleCategory?    // Uses PostgreSQL Enum
-  tags         String[] @default([]) // Array of tags for categorization
+  tags         Json?               // Changed from String[] to Json? for MySQL compatibility
   readTime     Int?                // e.g., 5 min
   isFeatured   Boolean  @default(false)
   views        Int      @default(0)
@@ -95,14 +95,96 @@ model Review {
 }
 
 model Inquiry {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  phone     String?
-  service   String?
-  message   String   @db.Text
-  status    String   @default("PENDING") // PENDING, RESOLVED, ARCHIVED
-  createdAt DateTime @default(now())
+  id             String         @id @default(cuid())
+  name           String
+  email          String
+  phone          String?
+  service        String?
+  message        String         @db.Text
+  status         String         @default("NEW") // "NEW", "CONTACTED", "FOLLOW_UP_SCHEDULED", "CONSULTATION_BOOKED", "PROPOSAL_SENT", "WON", "LOST", "ARCHIVED"
+  priority       String         @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "URGENT"
+  estimatedValue Float?         // Deal value in INR ₹
+  assignedTo     String?        // Staff or CA name
+  company        String?        // Business or Firm name
+  city           String?
+  source         String         @default("WEBSITE_FORM") // "WEBSITE_FORM", "WHATSAPP", "PHONE", "REFERRAL"
+  tags           Json?          // Array of tags
+  lostReason     String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+
+  followUps      LeadFollowUp[]
+  activities     LeadActivity[]
+  proposals      LeadProposal[]
+  whatsappLogs   WhatsAppLog[]
+}
+
+model LeadFollowUp {
+  id           String    @id @default(cuid())
+  inquiryId    String
+  inquiry      Inquiry   @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  scheduledAt  DateTime
+  type         String    @default("CALL") // "CALL", "WHATSAPP", "EMAIL", "MEETING", "TASK"
+  title        String
+  notes        String?   @db.Text
+  status       String    @default("PENDING") // "PENDING", "COMPLETED", "CANCELLED", "MISSED"
+  outcome      String?   @db.Text
+  completedAt  DateTime?
+  assignedTo   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([inquiryId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+model LeadActivity {
+  id          String   @id @default(cuid())
+  inquiryId   String
+  inquiry     Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  type        String   // "NOTE", "CALL", "EMAIL", "WHATSAPP", "STATUS_CHANGE", "FOLLOW_UP_CREATED", "FOLLOW_UP_COMPLETED", "VALUE_UPDATED", "PROPOSAL_CREATED", "PROPOSAL_SENT", "PROPOSAL_ACCEPTED"
+  title       String
+  description String?  @db.Text
+  metadata    Json?
+  performedBy String   @default("Admin")
+  createdAt   DateTime @default(now())
+
+  @@index([inquiryId])
+  @@index([createdAt])
+}
+
+model LeadProposal {
+  id             String    @id @default(cuid())
+  inquiryId      String
+  inquiry        Inquiry   @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  proposalNumber String    @unique // e.g. "TF24-QT-2026-001"
+  title          String    // e.g. "Private Limited Incorporation & Annual Compliance"
+  status         String    @default("DRAFT") // "DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"
+  validUntil     DateTime
+  lineItems      Json      // Array of: { description, sacCode, qty, rate, gstPercent, amount }
+  subtotal          Float
+  discount          Float     @default(0)
+  taxAmount         Float     // 18% GST (CGST+SGST or IGST)
+  totalAmount       Float     // Grand total in INR ₹
+  currency          String    @default("INR")
+  clientGstin       String?
+  clientPan         String?
+  clientAddress     String?
+  placeOfSupply     String?   // e.g. "07-DELHI", "27-MAHARASHTRA"
+  taxType           String    @default("IGST") // "IGST" or "CGST_SGST"
+  paymentMilestones Json?
+  notes             String?   @db.Text
+  terms          String?   @db.Text // Terms of Engagement & Payment Schedule
+  pdfUrl         String?
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([inquiryId])
+  @@index([proposalNumber])
+  @@index([status])
 }
 
 model FAQ {
@@ -145,7 +227,13 @@ model Subscriber {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  phone     String?
+  source    String   @default("NEWSLETTER") // "NEWSLETTER", "INQUIRY", "APPOINTMENT", "CSV_IMPORT", "MANUAL"
+  tags      Json?    // Array of string tags e.g. ["GST", "Startup", "Nov2026"]
+  company   String?
+  notes     String?  @db.Text
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
   isActive  Boolean  @default(true)
 }
 
@@ -179,6 +267,7 @@ model Campaign {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   events            CampaignEvent[]
+  whatsappLogs      WhatsAppLog[]
 }
 
 model CampaignTemplate {
@@ -240,4 +329,40 @@ model Appointment {
   cancelledAt        DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+model WhatsAppLog {
+  id              String    @id @default(cuid())
+  messageId       String?   // Meta wamid
+  direction       String    // "INBOUND" | "OUTBOUND" | "STATUS_UPDATE"
+  fromNumber      String    // Sender phone (E.164 digits)
+  toNumber        String    // Recipient phone (E.164 digits)
+  senderName      String?   // Profile name from WhatsApp contacts
+  messageType     String    @default("text") // "text", "template", "image", "document", "audio", "video", "interactive", "status", "unknown"
+  content         String?   @db.Text // Message body, template summary, or caption
+  mediaUrl        String?   @db.Text // Media ID or asset URL
+  mediaMimeType   String?
+  status          String    @default("received") // "received", "sent", "delivered", "read", "failed"
+  errorCode       String?
+  errorMessage    String?   @db.Text
+  pricingCategory String?   // "service", "utility", "marketing", "authentication"
+  rawPayload      Json?     // Full raw Meta webhook JSON for forensic audit
+  
+  // Relations & Linkage
+  inquiryId       String?
+  inquiry         Inquiry?  @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  campaignId      String?
+  campaign        Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([messageId])
+  @@index([fromNumber])
+  @@index([toNumber])
+  @@index([direction])
+  @@index([status])
+  @@index([createdAt])
+  @@index([inquiryId])
+  @@index([campaignId])
 }

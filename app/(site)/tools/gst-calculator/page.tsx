@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import GSTCalculator from "@/components/sections/GSTCalculator";
 import type { Metadata } from "next";
 import JsonLd, {

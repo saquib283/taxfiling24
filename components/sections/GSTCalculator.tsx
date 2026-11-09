@@ -1,64 +1,66 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  Package, Percent, TrendingUp, Building2,
-  Plus, Trash2, ShoppingCart, Tag, Receipt,
-  Download, Printer, Target, ShieldCheck, IndianRupee
+  Package,
+  Percent,
+  TrendingUp,
+  Building2,
+  Plus,
+  Trash2,
+  ShoppingCart,
+  Tag,
+  Receipt,
+  FileDown,
+  FileText,
+  Target,
+  ShieldCheck,
+  IndianRupee,
+  Check,
+  Sparkles,
+  ArrowRight,
+  Info,
+  ExternalLink,
+  ChevronDown,
 } from "lucide-react";
-import AnimatedSection from "@/components/ui/AnimatedSection";
+import Link from "next/link";
+import { generateGstReportPdf } from "@/lib/generateGstPdf";
+import { generateGstExcel } from "@/lib/generateGstExcel";
 
-function InputWrapper({ label, children, icon }: { label: string; children: React.ReactNode; icon?: React.ReactNode }) {
-  return (
-    <div className="group rounded-xl border border-slate-200 bg-slate-50/30 p-5 transition-all focus-within:border-blue-600 focus-within:bg-white focus-within:shadow-sm">
-      <div className="mb-3 flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-100 bg-white text-slate-400 group-focus-within:text-blue-600 shadow-sm">
-            {icon ? icon : <Percent className="h-3.5 w-3.5" />}
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
-      </div>
-      <div className="relative">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-const GST_RATES = [0, 3, 5, 18, 40];
+const GST_RATES = [0, 3, 5, 12, 18, 28, 40] as const;
 
 const HSN_PRESETS = [
-  { hsn: "0101", desc: "Live Horses", rate: 0, category: "Agriculture" },
-  { hsn: "1001", desc: "Wheat & Meslin", rate: 0, category: "Agriculture" },
-  { hsn: "2106", desc: "Food Preparations", rate: 18, category: "Food" },
-  { hsn: "2201", desc: "Water (incl. Mineral)", rate: 18, category: "Beverages" },
-  { hsn: "2202", desc: "Aerated / Soft drinks", rate: 40, category: "Beverages" },
-  { hsn: "2401", desc: "Tobacco products", rate: 40, category: "Tobacco" },
-  { hsn: "3004", desc: "Medicaments / Medicines", rate: 5, category: "Pharma" },
-  { hsn: "3401", desc: "Soap / Detergent", rate: 5, category: "FMCG" },
-  { hsn: "3808", desc: "Pesticides", rate: 5, category: "Agri Inputs" },
-  { hsn: "4901", desc: "Books & Printed Matter", rate: 0, category: "Education" },
-  { hsn: "6101", desc: "Overcoats / Jackets", rate: 5, category: "Textiles" },
-  { hsn: "7108", desc: "Gold / Silver", rate: 3, category: "Precious Metals" },
-  { hsn: "8471", desc: "Laptops / Computers", rate: 18, category: "Electronics" },
-  { hsn: "8517", desc: "Mobile Phones", rate: 18, category: "Electronics" },
-  { hsn: "8703", desc: "Luxury Cars / SUVs", rate: 40, category: "Automobiles" },
-  { hsn: "8711", desc: "Two-wheelers", rate: 18, category: "Automobiles" },
-  { hsn: "2523", desc: "Cement", rate: 18, category: "Construction" },
-  { hsn: "9503", desc: "Toys & Games", rate: 5, category: "Toys" },
-  { hsn: "9619", desc: "Sanitary products", rate: 5, category: "Health" },
+  { hsn: "0101", desc: "Live Horses & Farm Animals", rate: 0, category: "Agriculture" },
+  { hsn: "1001", desc: "Wheat & Food Grains", rate: 0, category: "Agriculture" },
+  { hsn: "2106", desc: "Food Preparations & Edibles", rate: 18, category: "Food" },
+  { hsn: "2201", desc: "Packaged Drinking Water", rate: 18, category: "Beverages" },
+  { hsn: "2202", desc: "Aerated / Soft Drinks", rate: 40, category: "Beverages" },
+  { hsn: "2401", desc: "Tobacco & Related Products", rate: 40, category: "Tobacco" },
+  { hsn: "3004", desc: "Medicaments / Pharma Medicines", rate: 5, category: "Pharma" },
+  { hsn: "3401", desc: "Soap & Hygiene Detergents", rate: 5, category: "FMCG" },
+  { hsn: "3808", desc: "Pesticides & Fertilizers", rate: 5, category: "Agri Inputs" },
+  { hsn: "4901", desc: "Books & Educational Material", rate: 0, category: "Education" },
+  { hsn: "6101", desc: "Readymade Garments & Apparel", rate: 5, category: "Textiles" },
+  { hsn: "7108", desc: "Gold / Silver Bullion & Jewellery", rate: 3, category: "Precious Metals" },
+  { hsn: "8471", desc: "Laptops & Computing Equipment", rate: 18, category: "Electronics" },
+  { hsn: "8517", desc: "Mobile Phones & Hardware", rate: 18, category: "Electronics" },
+  { hsn: "8703", desc: "Automobiles & Motor Cars", rate: 28, category: "Automobiles" },
+  { hsn: "8711", desc: "Motorcycles & Two-Wheelers", rate: 18, category: "Automobiles" },
+  { hsn: "2523", desc: "Portland Cement", rate: 28, category: "Construction" },
+  { hsn: "9503", desc: "Educational Toys & Games", rate: 5, category: "Toys" },
+  { hsn: "9619", desc: "Sanitary & Health Hygiene Goods", rate: 5, category: "Health" },
 ];
 
 const SAC_PRESETS = [
-  { hsn: "9954", desc: "Construction Services", rate: 18, category: "Construction" },
-  { hsn: "9963", desc: "Hotel stays < ₹7,500/day", rate: 5, category: "Hospitality" },
-  { hsn: "9963", desc: "Premium Hotel / Restaurant", rate: 18, category: "Hospitality" },
-  { hsn: "9964", desc: "Passenger Transport (Air/Taxi)", rate: 5, category: "Transport" },
-  { hsn: "9983", desc: "Gym, Salon & Yoga Services", rate: 5, category: "Leisure" },
-  { hsn: "9983", desc: "IT / Software Services", rate: 18, category: "IT" },
-  { hsn: "9971", desc: "Financial Services (Banking)", rate: 18, category: "Finance" },
-  { hsn: "9993", desc: "CA / Professional Services", rate: 18, category: "Professional" },
+  { hsn: "9954", desc: "Construction & Commercial Works", rate: 18, category: "Construction" },
+  { hsn: "9963", desc: "Hotel Accommodation < ₹7,500/day", rate: 5, category: "Hospitality" },
+  { hsn: "9963", desc: "Luxury Hotel & Fine Dining", rate: 18, category: "Hospitality" },
+  { hsn: "9964", desc: "Passenger Transport Services", rate: 5, category: "Transport" },
+  { hsn: "9983", desc: "Fitness, Salon & Wellness", rate: 5, category: "Leisure" },
+  { hsn: "9983", desc: "Software, Cloud & IT Services", rate: 18, category: "IT" },
+  { hsn: "9971", desc: "Banking & Financial Services", rate: 18, category: "Finance" },
+  { hsn: "9993", desc: "CA, Legal & Advisory Services", rate: 18, category: "Professional" },
 ];
 
 type CalcMode = "exclusive" | "inclusive";
@@ -150,6 +152,16 @@ export default function GSTCalculator({
     servicePresets?: Array<{ hsn?: string; desc?: string; rate?: string; category?: string; isVisible?: boolean }>;
   };
 }) {
+  // Navigation: Quick Calculator vs Invoice Builder
+  const [calculatorView, setCalculatorView] = useState<"quick" | "invoice">("quick");
+
+  // --- QUICK CALCULATOR STATE ---
+  const [quickAmount, setQuickAmount] = useState<number>(10000);
+  const [quickRate, setQuickRate] = useState<number>(18);
+  const [quickMode, setQuickMode] = useState<CalcMode>("exclusive");
+  const [quickSupply, setQuickSupply] = useState<"intra" | "inter">("intra");
+
+  // --- INVOICE BUILDER STATE ---
   const [calcMode, setCalcMode] = useState<CalcMode>("exclusive");
   const [showMarginMode, setShowMarginMode] = useState(false);
   const [margin, setMargin] = useState<number>(20);
@@ -163,16 +175,30 @@ export default function GSTCalculator({
   const [inputGstRate, setInputGstRate] = useState<number>(18);
   const [items, setItems] = useState<BillItem[]>([]);
 
+  // Exports
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem("gst_items");
     if (saved) {
       try {
         setItems(JSON.parse(saved));
       } catch (e) {
-        console.error("Failed to load items", e);
+        console.error("Failed to load saved GST items", e);
       }
     } else {
-        setItems([{ id: "1", name: "Standard Product", unitPrice: 1000, quantity: 1, gstRate: 18, cessRate: 0, discount: 0 }]);
+      setItems([
+        {
+          cessRate: 0,
+          discount: 0,
+          gstRate: 18,
+          id: "1",
+          name: "Consultancy & Advisory Services",
+          quantity: 1,
+          unitPrice: 15000,
+        },
+      ]);
     }
   }, []);
 
@@ -183,72 +209,107 @@ export default function GSTCalculator({
   }, [items]);
 
   const [newItem, setNewItem] = useState<BillItem>({
+    cessRate: 0,
+    discount: 0,
+    gstRate: 18,
     id: "",
     name: "",
-    unitPrice: 0,
     quantity: 1,
-    gstRate: 18,
-    cessRate: 0,
-    discount: 0
+    unitPrice: 0,
   });
 
   const addItem = () => {
     if (newItem.unitPrice <= 0) return;
-    setItems([...items, { ...newItem, id: Date.now().toString(), name: newItem.name || `Item ${items.length + 1}` }]);
-    setNewItem({ id: "", name: "", unitPrice: 0, quantity: 1, gstRate: 18, cessRate: 0, discount: 0 });
+    setItems([
+      ...items,
+      {
+        ...newItem,
+        id: Date.now().toString(),
+        name: newItem.name || `Line Item ${items.length + 1}`,
+      },
+    ]);
+    setNewItem({
+      cessRate: 0,
+      discount: 0,
+      gstRate: 18,
+      id: "",
+      name: "",
+      quantity: 1,
+      unitPrice: 0,
+    });
     setHsnSearch("");
   };
 
   const removeItem = (id: string) => {
-    setItems(items.filter(i => i.id !== id));
+    setItems(items.filter((i) => i.id !== id));
   };
 
-  const updateItem = (id: string, field: keyof BillItem, value: any) => {
-    setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
-  };
-
-  const heroCopy = content?.hero || {};
-  const controlsCopy = content?.controls || {};
-  const entryCopy = content?.entry || {};
-  const complianceCopy = content?.compliance || {};
-  const entriesCopy = content?.entries || {};
-  const summaryCopy = content?.summary || {};
+  // Preset Lookups
   const goodsPresets =
     content?.goodsPresets
       ?.filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
       .map((item) => ({
-        hsn: item.hsn || "",
-        desc: item.desc || "",
-        rate: Number(item.rate || 0),
         category: item.category || "",
+        desc: item.desc || "",
+        hsn: item.hsn || "",
+        rate: Number(item.rate || 0),
       })) || HSN_PRESETS;
+
   const servicePresets =
     content?.servicePresets
       ?.filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
       .map((item) => ({
-        hsn: item.hsn || "",
-        desc: item.desc || "",
-        rate: Number(item.rate || 0),
         category: item.category || "",
+        desc: item.desc || "",
+        hsn: item.hsn || "",
+        rate: Number(item.rate || 0),
       })) || SAC_PRESETS;
 
   const presets = activeTab === "goods" ? goodsPresets : servicePresets;
-  const filtered = useMemo(() =>
-    presets.filter(h =>
-      h.desc.toLowerCase().includes(hsnSearch.toLowerCase()) ||
-      h.hsn.includes(hsnSearch) ||
-      h.category.toLowerCase().includes(hsnSearch.toLowerCase())
-    ),
+
+  const filteredPresets = useMemo(
+    () =>
+      presets.filter(
+        (h) =>
+          h.desc.toLowerCase().includes(hsnSearch.toLowerCase()) ||
+          h.hsn.includes(hsnSearch) ||
+          h.category.toLowerCase().includes(hsnSearch.toLowerCase())
+      ),
     [hsnSearch, presets]
   );
 
+  // Quick Computation
+  const quickResults = useMemo(() => {
+    const rateDecimal = quickRate / 100;
+    let base = 0;
+    let tax = 0;
+    let total = 0;
+
+    if (quickMode === "exclusive") {
+      base = quickAmount;
+      tax = base * rateDecimal;
+      total = base + tax;
+    } else {
+      total = quickAmount;
+      base = total / (1 + rateDecimal);
+      tax = total - base;
+    }
+
+    const cgst = quickSupply === "intra" ? tax / 2 : 0;
+    const sgst = quickSupply === "intra" ? tax / 2 : 0;
+    const igst = quickSupply === "inter" ? tax : 0;
+
+    return { base, cgst, igst, sgst, tax, total };
+  }, [quickAmount, quickMode, quickRate, quickSupply]);
+
+  // Invoice Computation
   const results = useMemo(() => {
     let subTotal = 0;
     let totalGst = 0;
     let totalCess = 0;
     let totalDiscount = 0;
-    
-    const itemBreakdown = items.map(item => {
+
+    const itemBreakdown = items.map((item) => {
       let price = item.unitPrice * item.quantity;
       if (showMarginMode) {
         price = price * (1 + margin / 100);
@@ -257,7 +318,10 @@ export default function GSTCalculator({
       const discountedPrice = price - discountVal;
       totalDiscount += discountVal;
 
-      let basePrice = 0, gst = 0, cess = 0;
+      let basePrice = 0;
+      let gst = 0;
+      let cess = 0;
+
       if (calcMode === "exclusive") {
         basePrice = discountedPrice;
         gst = basePrice * (item.gstRate / 100);
@@ -273,7 +337,7 @@ export default function GSTCalculator({
       totalGst += gst;
       totalCess += cess;
 
-      return { ...item, basePrice, gst, cess, discountVal, total: basePrice + gst + cess };
+      return { ...item, basePrice, cess, discountVal, gst, total: basePrice + gst + cess };
     });
 
     const grandTotal = subTotal + totalGst + totalCess;
@@ -283,365 +347,852 @@ export default function GSTCalculator({
     const compositionTax = grandTotal * (compositionRate / 100);
 
     return {
-      items: itemBreakdown,
-      subTotal,
-      totalGst,
-      totalCess,
-      totalDiscount,
-      grandTotal,
       cgst: totalGst / 2,
-      sgst: totalGst / 2,
+      compositionRate,
+      compositionTax,
+      grandTotal,
       igst: totalGst,
       itcAmount,
+      items: itemBreakdown,
       netGstPayable,
-      compositionTax,
-      compositionRate
+      sgst: totalGst / 2,
+      subTotal,
+      totalCess,
+      totalDiscount,
+      totalGst,
     };
   }, [items, calcMode, showMarginMode, margin, inputPurchases, inputGstRate, activeTab]);
 
-  const exportToCSV = () => {
-    const headers = ["Item", "Unit Price", "Quantity", "Discount %", "GST %", "Base Total", "Tax Amount", "Grand Total"];
-    const rows = results.items.map(i => [
-      i.name, i.unitPrice, i.quantity, i.discount, i.gstRate,
-      i.basePrice.toFixed(2), i.gst.toFixed(2), i.total.toFixed(2)
-    ]);
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `gst_calculation_${Date.now()}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const getExportData = () => ({
+    calcMode,
+    cgst: results.cgst,
+    compositionRate: results.compositionRate,
+    compositionTax: results.compositionTax,
+    grandTotal: results.grandTotal,
+    igst: results.igst,
+    inputGstRate,
+    inputPurchases,
+    isRcm,
+    itcAmount: results.itcAmount,
+    items: results.items,
+    margin,
+    netGstPayable: results.netGstPayable,
+    placeOfSupply,
+    sgst: results.sgst,
+    showMarginMode,
+    subTotal: results.subTotal,
+    taxScheme,
+    totalCess: results.totalCess,
+    totalDiscount: results.totalDiscount,
+    totalGst: results.totalGst,
+  });
+
+  const downloadPdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const pdfBytes = await generateGstReportPdf(getExportData());
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `TaxFiling24_GST_Invoice_${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("GST PDF generation failed:", err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
-  const fmt = (v: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v);
+  const downloadExcel = async () => {
+    setIsGeneratingExcel(true);
+    try {
+      const buffer = await generateGstExcel(getExportData());
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `TaxFiling24_GST_Computation_${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("GST Excel generation failed:", err);
+    } finally {
+      setIsGeneratingExcel(false);
+    }
+  };
+
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("en-IN", {
+      currency: "INR",
+      maximumFractionDigits: 0,
+      style: "currency",
+    }).format(v);
+
+  const heroCopy = content?.hero || {};
+
   return (
-    <section className="relative bg-slate-50 py-16 lg:py-24" id="gst-calculator">
-      <div className="mx-auto px-4 max-w-3xl">
-        <AnimatedSection className="mb-12 text-center">
-            <h2 className="mb-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {heroCopy.titlePrefix || "GST &"} <span className="text-blue-600">{heroCopy.titleHighlight || "Invoicing"}</span>
-            </h2>
-            <p className="mx-auto max-w-xl text-sm text-slate-500 leading-relaxed">
-                {heroCopy.description ||
-                  "Professional itemized billing and tax calculations compliant with the latest GST regulations."}
-            </p>
-        </AnimatedSection>
+    <section className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-6">
+        <Link href="/" className="hover:text-slate-800 transition">
+          Home
+        </Link>
+        <span>/</span>
+        <Link href="/tools" className="hover:text-slate-800 transition">
+          Tools
+        </Link>
+        <span>/</span>
+        <span className="text-slate-900 font-semibold">GST Calculator</span>
+      </nav>
 
-        {/* Action Bar */}
-        <div className="mb-10 flex flex-wrap items-center justify-center gap-4">
-           <div className="inline-flex h-10 items-center justify-center rounded-lg bg-white p-1 border border-slate-200 shadow-sm">
-            <button 
-              onClick={() => setCalcMode("exclusive")} 
-              className={`flex items-center h-full px-5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${calcMode === "exclusive" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              {controlsCopy.exclusiveLabel || "Exclusive"}
-            </button>
-            <button 
-              onClick={() => setCalcMode("inclusive")} 
-              className={`flex items-center h-full px-5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${calcMode === "inclusive" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              {controlsCopy.inclusiveLabel || "Inclusive"}
-            </button>
+      {/* Hero Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-slate-200">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 mb-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Indian GST Act &amp; HSN Slabs Compliant
           </div>
-
-          <button 
-            onClick={() => setShowMarginMode(!showMarginMode)} 
-            className={`flex h-10 items-center gap-2 rounded-lg px-4 text-[10px] font-bold uppercase tracking-wider transition-all border shadow-sm ${showMarginMode ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"}`}
-          >
-            <TrendingUp className="h-3.5 w-3.5" /> {controlsCopy.marginLabel || "Margin"}
-          </button>
-
-          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-white p-1 border border-slate-200 shadow-sm">
-            <button 
-              onClick={() => setTaxScheme("regular")} 
-              className={`flex items-center h-full px-4 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all ${taxScheme === "regular" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              {controlsCopy.regularLabel || "Regular"}
-            </button>
-            <button 
-              onClick={() => setTaxScheme("composition")} 
-              className={`flex items-center h-full px-4 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all ${taxScheme === "composition" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              {controlsCopy.compositionLabel || "Composition"}
-            </button>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+            {heroCopy.titlePrefix || "GST &"}{" "}
+            <span className="text-indigo-600">{heroCopy.titleHighlight || "Invoicing Calculator"}</span>
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 max-w-2xl leading-relaxed">
+            {heroCopy.description ||
+              "Calculate GST liability in inclusive and exclusive modes, divide CGST/SGST/IGST, search HSN/SAC codes, and build multi-item tax invoices with Input Tax Credit (ITC) offset."}
+          </p>
         </div>
 
-        <div className="space-y-8">
-          {/* Item Entry Section */}
-          <motion.div 
-            whileHover={{ y: -2 }}
-            className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md hover:border-slate-300"
+        {/* Mode Switcher */}
+        <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setCalculatorView("quick")}
+            className={`px-4 py-2 rounded-lg transition cursor-pointer ${
+              calculatorView === "quick"
+                ? "bg-white text-slate-900 font-bold shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
           >
-              <div className="mb-8 border-b border-slate-100 pb-5 flex items-center justify-between">
-                  <div>
-                      <h3 className="text-lg font-bold text-slate-900 tracking-tight">{entryCopy.panelTitle || "Add Item"}</h3>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">{entryCopy.panelSubtitle || "Goods or Services entry"}</p>
-                  </div>
-                  <div className="flex h-10 rounded-xl bg-slate-100 p-1">
-                      {(["goods", "services"] as const).map(t => (
-                          <button key={t} onClick={() => setActiveTab(t)} className={`px-5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>{t === "goods" ? (entryCopy.goodsLabel || "goods") : (entryCopy.servicesLabel || "services")}</button>
-                      ))}
-                  </div>
-              </div>
+            Instant Calculator
+          </button>
+          <button
+            type="button"
+            onClick={() => setCalculatorView("invoice")}
+            className={`px-4 py-2 rounded-lg transition cursor-pointer ${
+              calculatorView === "invoice"
+                ? "bg-white text-slate-900 font-bold shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Invoice &amp; Itemized Builder
+          </button>
+        </div>
+      </div>
 
-              <div className="space-y-6">
-                <div className="relative group/search">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-blue-500 transition-colors">
-                      <Search className="h-5 w-5" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder={activeTab === "goods" ? (entryCopy.searchPlaceholderGoods || "Search HSN presets...") : (entryCopy.searchPlaceholderServices || "Search SAC presets...")}
-                    value={hsnSearch}
-                    onChange={e => { setHsnSearch(e.target.value); setShowHsnPanel(true); }}
-                    onFocus={() => setShowHsnPanel(true)}
-                    className="w-full pl-12 pr-4 py-4 border border-slate-100 rounded-2xl bg-slate-50/50 focus:bg-white focus:border-blue-200 focus:outline-none transition-all text-sm font-semibold shadow-inner"
-                  />
-                  <AnimatePresence>
-                    {showHsnPanel && hsnSearch && (
-                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 right-0 top-full z-10 mt-3 max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl animate-in fade-in zoom-in-95">
-                        {filtered.length === 0 ? (
-                          <div className="px-4 py-3 text-sm text-slate-500">{entryCopy.noPresetResultsText || "No matching presets found"}</div>
-                        ) : filtered.map((item) => (
-                          <button key={`${item.hsn}-${item.desc}`} onClick={() => { setNewItem({ ...newItem, name: item.desc, gstRate: item.rate }); setHsnSearch(item.desc); setShowHsnPanel(false); }} className="flex w-full items-center justify-between rounded-xl px-5 py-4 text-left hover:bg-slate-50 transition-colors group/item">
-                            <div>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.hsn} • {item.category}</span>
-                              <p className="text-sm font-bold text-slate-700 group-hover/item:text-blue-600 transition-colors">{item.desc}</p>
-                            </div>
-                            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-600 border border-blue-100">{item.rate}% GST</span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                   <InputWrapper label={entryCopy.unitPriceLabel || "Unit Price"} icon={<IndianRupee className="h-5 w-5 text-blue-500" />}>
-                      <input type="number" value={newItem.unitPrice || ""} placeholder="0.00" onChange={e => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none placeholder:text-slate-300" />
-                   </InputWrapper>
-                   <div className="grid grid-cols-2 gap-4">
-                      <InputWrapper label={entryCopy.quantityLabel || "Qty"} icon={<Package className="h-4 w-4 text-slate-400" />}><input type="number" value={newItem.quantity} onChange={e => setNewItem({ ...newItem, quantity: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
-                      <InputWrapper label={entryCopy.gstRateLabel || "GST %"} icon={<Percent className="h-4 w-4 text-slate-400" />}>
-                          <select value={newItem.gstRate} onChange={e => setNewItem({ ...newItem, gstRate: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none cursor-pointer appearance-none">
-                              {GST_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
-                          </select>
-                      </InputWrapper>
-                   </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-6 items-center">
-                  <div className="grid grid-cols-2 gap-4 flex-1 w-full">
-                       <InputWrapper label={entryCopy.discountLabel || "Discount %"} icon={<Tag className="h-4 w-4 text-emerald-500" />}><input type="number" value={newItem.discount || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, discount: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
-                       <InputWrapper label={entryCopy.cessLabel || "Cess %"} icon={<ShieldCheck className="h-4 w-4 text-amber-500" />}><input type="number" value={newItem.cessRate || ""} placeholder="0" onChange={e => setNewItem({ ...newItem, cessRate: Number(e.target.value) })} className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none" /></InputWrapper>
-                  </div>
-                  <button onClick={addItem} className="flex h-[72px] w-full sm:w-44 items-center justify-center gap-2 rounded-[24px] bg-slate-900 text-sm font-bold uppercase tracking-wider text-white shadow-xl hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all">
-                      <Plus className="h-4 w-4" /> {entryCopy.addItemLabel || "Add Item"}
+      {/* VIEW 1: INSTANT QUICK GST CALCULATOR */}
+      {calculatorView === "quick" && (
+        <div className="pt-8 max-w-4xl mx-auto space-y-8">
+          {/* Main Quick Box */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+            {/* Amount input */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  Enter Base or Total Amount (₹)
+                </label>
+                <div className="flex items-center gap-1.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setQuickMode("exclusive")}
+                    className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+                      quickMode === "exclusive"
+                        ? "bg-slate-900 text-white shadow-2xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    Add GST (Exclusive)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickMode("inclusive")}
+                    className={`px-3 py-1 rounded-md font-semibold transition cursor-pointer ${
+                      quickMode === "inclusive"
+                        ? "bg-slate-900 text-white shadow-2xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    Remove GST (Inclusive)
                   </button>
                 </div>
               </div>
-          </motion.div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-              <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
-                  <h4 className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400"><Building2 className="h-4 w-4 text-blue-500" /> {complianceCopy.placeOfSupplyTitle || "Place of Supply"}</h4>
-                  <div className="flex rounded-xl bg-slate-50 p-1 border border-slate-100">
-                      <button onClick={() => setPlaceOfSupply("intra")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "intra" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>{complianceCopy.intraLabel || "Intra-State"}</button>
-                      <button onClick={() => setPlaceOfSupply("inter")} className={`flex-1 rounded-lg py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${placeOfSupply === "inter" ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400"}`}>{complianceCopy.interLabel || "Inter-State"}</button>
-                  </div>
-              </motion.div>
-              <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm flex items-center justify-between transition-all hover:shadow-md hover:border-slate-300">
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">{complianceCopy.reverseChargeTitle || "Reverse Charge"}</h4>
-                    <p className="text-[10px] font-bold text-slate-300 uppercase mt-1">{complianceCopy.reverseChargeDescription || "Tax paid by recipient"}</p>
-                  </div>
-                  <button onClick={() => setIsRcm(!isRcm)} className={`flex h-8 w-13 items-center rounded-full p-1 transition-all ${isRcm ? "bg-blue-600" : "bg-slate-200"}`}><div className={`h-6 w-6 rounded-full bg-white shadow-sm transition-all ${isRcm ? "translate-x-5" : "translate-x-0"}`} /></button>
-              </motion.div>
-          </div>
-
-          {/* ITC Input Section */}
-          <motion.div whileHover={{ y: -2 }} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
-              <details className="group">
-                  <summary className="list-none cursor-pointer flex items-center justify-between">
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-900 tracking-tight">{complianceCopy.itcTitle || "Purchase Inputs (ITC)"}</h3>
-                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">{complianceCopy.itcSubtitle || "Offset your tax liability"}</p>
-                    </div>
-                    <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center group-open:bg-blue-50 transition-colors">
-                      <Plus className="h-4 w-4 text-slate-400 group-open:rotate-45 transition-all" />
-                    </div>
-                  </summary>
-                  <div className="grid gap-6 sm:grid-cols-2 pt-8 animate-in fade-in slide-in-from-top-2">
-                      <InputWrapper label={complianceCopy.totalPurchasesLabel || "Total Purchases"} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />}><input type="number" value={inputPurchases || ""} placeholder="0.00" onChange={e => setInputPurchases(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
-                      <InputWrapper label={complianceCopy.inputGstLabel || "Input GST %"} icon={<Percent className="h-4 w-4 text-slate-400" />}><input type="number" value={inputGstRate} onChange={e => setInputGstRate(Number(e.target.value))} className="w-full bg-transparent text-xl font-bold text-slate-900 outline-none" /></InputWrapper>
-                  </div>
-              </details>
-          </motion.div>
-
-          {/* Item List Section */}
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-              <div className="mb-8 flex items-center justify-between border-b border-slate-100 pb-5">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">{entriesCopy.title || "Transaction Entries"}</h3>
-                <span className="rounded-full bg-slate-50 px-3.5 py-1.5 text-[10px] font-bold text-slate-500 border border-slate-200">{items.length} {entriesCopy.itemCountSuffix || "Items"}</span>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  value={quickAmount || ""}
+                  onChange={(e) => setQuickAmount(Number(e.target.value))}
+                  placeholder="10,000"
+                  className="w-full rounded-2xl border border-slate-200 pl-11 pr-4 py-3.5 text-2xl sm:text-3xl font-extrabold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition"
+                />
               </div>
 
-              <div className="space-y-4">
-                {items.length === 0 ? (
-                  <div className="py-16 text-center bg-slate-50/50 rounded-[24px] border border-dashed border-slate-200">
-                      <Package className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-300">{entriesCopy.emptyStateText || "No items added yet"}</p>
+              {/* Amount Presets */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-3">
+                <span className="text-xs text-slate-400 font-medium mr-1">Presets:</span>
+                {[1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setQuickAmount(amt)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+                      quickAmount === amt
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    ₹{amt.toLocaleString("en-IN")}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* GST Rate Selectors */}
+            <div className="space-y-2.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
+                Select Applicable GST Tax Slab
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                {GST_RATES.map((rate) => {
+                  const labels: Record<number, string> = {
+                    0: "Exempt Goods",
+                    3: "Gold / Silver",
+                    5: "Essentials",
+                    12: "Standard I",
+                    18: "Standard II",
+                    28: "Luxury / Cement",
+                    40: "Sin Goods",
+                  };
+
+                  return (
+                    <button
+                      key={rate}
+                      type="button"
+                      onClick={() => setQuickRate(rate)}
+                      className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center justify-center ${
+                        quickRate === rate
+                          ? "bg-slate-900 text-white border-slate-900 shadow-sm scale-102"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="text-lg font-black">{rate}%</span>
+                      <span
+                        className={`text-[10px] truncate max-w-[85px] mt-0.5 ${
+                          quickRate === rate ? "text-slate-300" : "text-slate-400"
+                        }`}
+                      >
+                        {labels[rate] || "GST"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Supply Location */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/70 text-xs">
+              <div>
+                <span className="font-bold text-slate-900 block">Supply Transaction Type</span>
+                <span className="text-slate-500">
+                  Determines whether CGST + SGST (Intra-state) or IGST (Inter-state) is levied
+                </span>
+              </div>
+              <div className="inline-flex p-1 rounded-xl bg-white border border-slate-200 font-semibold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setQuickSupply("intra")}
+                  className={`px-3 py-1.5 rounded-lg transition ${
+                    quickSupply === "intra"
+                      ? "bg-slate-900 text-white shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Intra-State (CGST + SGST)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickSupply("inter")}
+                  className={`px-3 py-1.5 rounded-lg transition ${
+                    quickSupply === "inter"
+                      ? "bg-slate-900 text-white shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Inter-State (IGST)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Result Highlight Card */}
+          <div className="rounded-3xl border border-slate-900 bg-slate-950 text-white p-6 sm:p-8 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/10 text-center sm:text-left">
+              <div>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                  {quickMode === "exclusive" ? "Grand Total (Post-GST)" : "Net Base Amount (Pre-GST)"}
+                </span>
+                <div className="text-4xl sm:text-5xl font-extrabold text-white mt-1 tracking-tight">
+                  {fmt(quickMode === "exclusive" ? quickResults.total : quickResults.base)}
+                </div>
+              </div>
+
+              <div className="sm:text-right">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                  Total Tax Component ({quickRate}%)
+                </span>
+                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-1">
+                  +{fmt(quickResults.tax)}
+                </div>
+              </div>
+            </div>
+
+            {/* Split Details */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
+                <span className="text-xs text-slate-400 font-medium block">Net Base Price</span>
+                <span className="text-base font-bold text-white mt-1 block">
+                  {fmt(quickResults.base)}
+                </span>
+              </div>
+
+              {quickSupply === "intra" ? (
+                <>
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-xs text-slate-400 font-medium block">
+                      CGST ({quickRate / 2}%)
+                    </span>
+                    <span className="text-base font-bold text-indigo-300 mt-1 block">
+                      {fmt(quickResults.cgst)}
+                    </span>
                   </div>
-                ) : (
-                  <div className="divide-y divide-slate-50 overflow-hidden rounded-[24px] border border-slate-100 shadow-sm">
-                    <div className="bg-slate-50/80 px-6 py-3.5 flex text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em]">
-                       <span className="flex-1">{entriesCopy.descriptionColumn || "Description"}</span>
-                       <span className="w-20 text-right">{entriesCopy.quantityColumn || "Qty/Rate"}</span>
-                       <span className="w-24 text-right">{entriesCopy.totalColumn || "Total Net"}</span>
-                       <span className="w-10"></span>
-                    </div>
-                    {items.map((item) => (
-                      <div key={item.id} className="group px-6 py-5 flex items-center bg-white hover:bg-slate-50/50 transition-all">
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-slate-900 truncate uppercase tracking-tight">{item.name}</p>
-                            <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider">{item.gstRate}% Tax {item.cessRate > 0 && `| ${item.cessRate}% Cess`} | {item.discount}% Disc</p>
-                        </div>
-                        <div className="w-20 text-right">
-                            <p className="text-xs font-bold text-slate-500">{item.quantity} × {fmt(item.unitPrice)}</p>
-                        </div>
-                        <div className="w-24 text-right">
-                            <p className="text-sm font-bold text-slate-900">{fmt(results.items.find(i => i.id === item.id)?.total || 0)}</p>
-                        </div>
-                        <div className="w-10 flex justify-end">
-                            <button onClick={() => removeItem(item.id)} className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-200 hover:text-red-500 hover:bg-red-50 transition-all"><Trash2 className="h-4 w-4" /></button>
-                        </div>
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-xs text-slate-400 font-medium block">
+                      SGST ({quickRate / 2}%)
+                    </span>
+                    <span className="text-base font-bold text-indigo-300 mt-1 block">
+                      {fmt(quickResults.sgst)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 col-span-2">
+                  <span className="text-xs text-slate-400 font-medium block">
+                    IGST ({quickRate}%)
+                  </span>
+                  <span className="text-base font-bold text-indigo-300 mt-1 block">
+                    {fmt(quickResults.igst)}
+                  </span>
+                </div>
+              )}
+
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <span className="text-xs text-emerald-300 font-medium block">Total Payable</span>
+                <span className="text-base font-bold text-emerald-400 mt-1 block">
+                  {fmt(quickResults.total)}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+              <p>
+                Calculated on basis of {quickMode} pricing u/s Section 15 of CGST Act.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewItem({
+                    cessRate: 0,
+                    discount: 0,
+                    gstRate: quickRate,
+                    id: Date.now().toString(),
+                    name: `Item (${quickRate}% GST)`,
+                    quantity: 1,
+                    unitPrice: Math.round(quickResults.base),
+                  });
+                  setCalculatorView("invoice");
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+              >
+                <span>Add to Multi-Item Invoice Builder</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: MULTI-ITEM INVOICE & HSN BUILDER */}
+      {calculatorView === "invoice" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-6">
+          {/* Left Column: Invoice Form & Items */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Item Entry Form */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Add Invoice Line Item</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Lookup official HSN/SAC codes or key in manual products
+                  </p>
+                </div>
+                <div className="inline-flex p-1 rounded-lg bg-slate-100 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("goods")}
+                    className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                      activeTab === "goods" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500"
+                    }`}
+                  >
+                    Goods (HSN)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("services")}
+                    className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                      activeTab === "services" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500"
+                    }`}
+                  >
+                    Services (SAC)
+                  </button>
+                </div>
+              </div>
+
+              {/* HSN Auto-complete search */}
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={
+                    activeTab === "goods"
+                      ? "Search goods HSN code or description (e.g. 8471, Mobile, Cement)..."
+                      : "Search services SAC code or category (e.g. 9983, Software, CA, Hotel)..."
+                  }
+                  value={hsnSearch}
+                  onChange={(e) => {
+                    setHsnSearch(e.target.value);
+                    setShowHsnPanel(true);
+                  }}
+                  onFocus={() => setShowHsnPanel(true)}
+                  className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-indigo-500"
+                />
+
+                {showHsnPanel && hsnSearch && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                    {filteredPresets.length === 0 ? (
+                      <div className="p-3 text-xs text-slate-400 text-center">
+                        No presets found matching &quot;{hsnSearch}&quot;
                       </div>
-                    ))}
+                    ) : (
+                      filteredPresets.map((item) => (
+                        <button
+                          key={`${item.hsn}-${item.desc}`}
+                          type="button"
+                          onClick={() => {
+                            setNewItem({
+                              ...newItem,
+                              gstRate: item.rate,
+                              name: `${item.desc} (HSN ${item.hsn})`,
+                            });
+                            setHsnSearch(item.desc);
+                            setShowHsnPanel(false);
+                          }}
+                          className="w-full p-2.5 rounded-lg text-left hover:bg-slate-50 transition flex items-center justify-between text-xs cursor-pointer"
+                        >
+                          <div>
+                            <span className="font-semibold text-slate-900">{item.desc}</span>
+                            <span className="ml-2 font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {item.hsn}
+                            </span>
+                          </div>
+                          <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                            {item.rate}% GST
+                          </span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
-          </div>
 
-          {/* Invoice Summary Report */}
-          <div className="overflow-hidden rounded-[40px] border border-slate-900 bg-slate-900 text-white shadow-2xl">
-              <div className="p-10">
-                <div className="mb-10 flex items-center justify-between border-b border-white/10 pb-8">
-                    <div>
-                        <h3 className="text-xl font-bold tracking-tight">{summaryCopy.panelTitle || "Invoice Summary"}</h3>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-white/30 mt-1.5">{summaryCopy.panelSubtitle || "Live Computation"}</p>
-                    </div>
-                    <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
-                        <Receipt className="h-6 w-6 text-blue-400" />
-                    </div>
+              {/* Line item inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                    Item Description / Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                    placeholder="e.g. IT Consultation Services"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500"
+                  />
                 </div>
-                
-                <div className="space-y-10">
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/20 mb-4">{summaryCopy.totalPayableLabel || "Total Amount Payable"}</p>
-                    <p className="text-6xl font-black tracking-tighter text-white">{fmt(results.grandTotal)}</p>
-                    <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-white/30">{summaryCopy.totalPayableDescription || "Inclusive of all taxes & cess"}</p>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-6 border-y border-white/5 py-10">
-                    <div className="text-center group cursor-default">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400/50 mb-3 group-hover:text-blue-400 transition-colors">
-                          {placeOfSupply === "intra" ? "CGST + SGST (50/50)" : "IGST (100%)"}
-                        </p>
-                        <p className="text-3xl font-bold text-blue-400">{fmt(results.totalGst)}</p>
-                    </div>
-                    <div className="text-center border-l border-white/5 group cursor-default">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/20 mb-3 group-hover:text-white/40 transition-colors">{summaryCopy.taxableBaseLabel || "Net Taxable Base"}</p>
-                        <p className="text-3xl font-bold text-white">{fmt(results.subTotal)}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5 px-6">
-                    <div className="flex justify-between items-center opacity-30 hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{summaryCopy.discountsLabel || "Discounts Applied"}</span>
-                      <span className="text-sm font-black text-red-400">-{fmt(results.totalDiscount)}</span>
-                    </div>
-
-                    <div className="space-y-4 pt-6 border-t border-white/5">
-                        {placeOfSupply === "intra" ? (
-                          <>
-                            <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
-                              <span className="text-[11px] font-bold uppercase tracking-widest">{summaryCopy.cgstLabel || "CGST Breakdown"}</span>
-                              <span className="text-sm font-bold">{fmt(results.cgst)}</span>
-                            </div>
-                            <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
-                              <span className="text-[11px] font-bold uppercase tracking-widest">{summaryCopy.sgstLabel || "SGST Breakdown"}</span>
-                              <span className="text-sm font-bold">{fmt(results.sgst)}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
-                            <span className="text-[11px] font-bold uppercase tracking-widest">{summaryCopy.igstLabel || "Integrated GST (IGST)"}</span>
-                            <span className="text-sm font-bold">{fmt(results.igst)}</span>
-                          </div>
-                        )}
-                        {results.totalCess > 0 && (
-                          <div className="flex justify-between items-center opacity-50 hover:opacity-100 transition-opacity">
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500">{summaryCopy.cessBreakdownLabel || "Compensation Cess"}</span>
-                            <span className="text-sm font-bold text-amber-400">{fmt(results.totalCess)}</span>
-                          </div>
-                        )}
-                        {results.itcAmount > 0 && (
-                          <motion.div initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex justify-between items-center bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20">
-                            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">{summaryCopy.itcOffsetLabel || "ITC Claimed Offset"}</span>
-                            <span className="text-lg font-black text-emerald-400">-{fmt(results.itcAmount)}</span>
-                          </motion.div>
-                        )}
-                    </div>
-                  </div>
-
-                  <div className="mt-6 rounded-[24px] bg-white/[0.03] p-8 border border-white/10 shadow-inner">
-                      <div className="flex justify-between items-center">
-                         <div>
-                            <span className="text-xs font-bold uppercase tracking-widest text-white/30">{summaryCopy.netGstLabel || "Net GST Cash Payable"}</span>
-                            <p className="text-[9px] font-bold text-white/10 mt-1 uppercase tracking-wider">{taxScheme === "composition" ? (summaryCopy.compositionDescription || "Composition Scheme Rate") : (results.itcAmount > 0 ? (summaryCopy.creditDescription || "Utilizing Input Credits") : (summaryCopy.standardDescription || "Standard Liability"))}</p>
-                         </div>
-                         <span className="text-4xl font-black text-white">{fmt(taxScheme === "composition" ? results.compositionTax : (isRcm ? 0 : results.netGstPayable))}</span>
-                      </div>
-                  </div>
-
-                  {showMarginMode && (
-                    <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="rounded-[24px] bg-emerald-500/5 p-8 border border-emerald-500/10 mt-8">
-                       <div className="mb-6 flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400/50">{summaryCopy.marginAnalysisTitle || "Profit Margin Analysis"}</span>
-                          <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                             <Target className="h-4 w-4 text-emerald-400" />
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-10">
-                          <div className="flex-1">
-                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">{summaryCopy.expectedMarginLabel || "Expected Margin %"}</p>
-                            <input type="number" value={margin} onChange={e => setMargin(Number(e.target.value))} className="w-full bg-transparent text-3xl font-black text-white outline-none border-b border-white/5 pb-2 focus:border-emerald-500/50 transition-colors" />
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10px] font-bold uppercase text-white/20 mb-2 tracking-widest">{summaryCopy.estimatedProfitLabel || "Estimated Profit"}</p>
-                            <p className="text-3xl font-black text-emerald-400">{fmt(results.subTotal * (margin / 100))}</p>
-                          </div>
-                       </div>
-                    </motion.div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 pt-6">
-                    <button onClick={exportToCSV} className="flex items-center justify-center gap-2 rounded-[20px] border border-white/10 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-white/5 active:scale-95 transition-all">
-                      <Download className="h-4 w-4" /> {summaryCopy.exportLabel || "Export Data"}
-                    </button>
-                    <button onClick={() => window.print()} className="flex items-center justify-center gap-2 rounded-[20px] bg-blue-600 py-4 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-blue-500 hover:shadow-xl hover:shadow-blue-600/20 active:scale-95 transition-all">
-                      <Printer className="h-4 w-4" /> {summaryCopy.printLabel || "Print Invoice"}
-                    </button>
-                  </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                    Unit Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={newItem.unitPrice || ""}
+                    onChange={(e) => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })}
+                    placeholder="1,000"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm font-semibold outline-none focus:border-indigo-500"
+                  />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">GST Rate</label>
+                  <select
+                    value={newItem.gstRate}
+                    onChange={(e) => setNewItem({ ...newItem, gstRate: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-slate-200 px-2.5 py-2 outline-none focus:border-indigo-500 bg-white font-semibold"
+                  >
+                    {GST_RATES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}%
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Discount %</label>
+                  <input
+                    type="number"
+                    value={newItem.discount || ""}
+                    onChange={(e) => setNewItem({ ...newItem, discount: Number(e.target.value) })}
+                    placeholder="0"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Cess %</label>
+                  <input
+                    type="number"
+                    value={newItem.cessRate || ""}
+                    onChange={(e) => setNewItem({ ...newItem, cessRate: Number(e.target.value) })}
+                    placeholder="0"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={addItem}
+                  disabled={newItem.unitPrice <= 0}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-semibold transition disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add to Invoice
+                </button>
+              </div>
+            </div>
+
+            {/* Invoice Line Items Table */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Invoice Entries ({items.length})
+                </h3>
+                {items.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setItems([])}
+                    className="text-xs text-rose-600 hover:text-rose-800 font-medium cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              {items.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  No items added yet. Use the form above to add goods or services.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
+                        <th className="py-2.5 px-4">Item</th>
+                        <th className="py-2.5 px-3 text-right">Qty</th>
+                        <th className="py-2.5 px-3 text-right">Unit Price</th>
+                        <th className="py-2.5 px-3 text-right">GST %</th>
+                        <th className="py-2.5 px-4 text-right">Total</th>
+                        <th className="py-2.5 px-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {results.items.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/60">
+                          <td className="py-3 px-4 font-semibold text-slate-900 truncate max-w-[200px]">
+                            {item.name}
+                          </td>
+                          <td className="py-3 px-3 text-right text-slate-600">{item.quantity}</td>
+                          <td className="py-3 px-3 text-right text-slate-600">
+                            {fmt(item.unitPrice)}
+                          </td>
+                          <td className="py-3 px-3 text-right font-medium text-emerald-700">
+                            {item.gstRate}%
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-slate-900">
+                            {fmt(item.total)}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeItem(item.id)}
+                              className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition"
+                              title="Remove item"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Compliance Overrides & ITC Offset */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
+                Tax Scheme &amp; Input Tax Credit (ITC)
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    Taxation Regime Scheme
+                  </label>
+                  <select
+                    value={taxScheme}
+                    onChange={(e) => setTaxScheme(e.target.value as "regular" | "composition")}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white"
+                  >
+                    <option value="regular">Regular Scheme (Standard Rates)</option>
+                    <option value="composition">Composition Scheme (1% Goods, 6% Services)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    Supply Location
+                  </label>
+                  <select
+                    value={placeOfSupply}
+                    onChange={(e) => setPlaceOfSupply(e.target.value as "intra" | "inter")}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white"
+                  >
+                    <option value="intra">Intra-State (CGST 50% + SGST 50%)</option>
+                    <option value="inter">Inter-State (IGST 100%)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* ITC Purchase offset */}
+              <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    Total Purchases (For ITC Claim)
+                  </label>
+                  <input
+                    type="number"
+                    value={inputPurchases || ""}
+                    onChange={(e) => setInputPurchases(Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    Input Purchase GST Rate %
+                  </label>
+                  <input
+                    type="number"
+                    value={inputGstRate}
+                    onChange={(e) => setInputGstRate(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Invoice Summary Studio */}
+          <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-6">
+            <div className="rounded-2xl border border-slate-900 bg-slate-950 text-white p-6 shadow-xl space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div>
+                  <span className="text-xs font-medium text-slate-400 block">Invoice Type</span>
+                  <span className="text-sm font-bold text-white">
+                    {placeOfSupply === "intra" ? "Intra-State (CGST/SGST)" : "Inter-State (IGST)"}
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  <Receipt className="h-3.5 w-3.5" />
+                  Tax Invoice
+                </div>
+              </div>
+
+              {/* Total Payable Headline */}
+              <div className="text-center py-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                  Grand Total Invoice Amount
+                </span>
+                <div className="text-4xl font-extrabold text-white mt-1 tracking-tight">
+                  {fmt(results.grandTotal)}
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Inclusive of all taxes &amp; cess
+                </p>
+              </div>
+
+              {/* Breakdown Grid */}
+              <div className="space-y-2.5 pt-2 border-t border-white/10 text-xs">
+                <div className="flex justify-between items-center text-slate-300">
+                  <span>Net Taxable Value</span>
+                  <span className="font-semibold text-white">{fmt(results.subTotal)}</span>
+                </div>
+
+                {results.totalDiscount > 0 && (
+                  <div className="flex justify-between items-center text-emerald-400">
+                    <span>Total Discount Allowed</span>
+                    <span className="font-semibold">-{fmt(results.totalDiscount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center text-slate-300">
+                  <span>Total GST Levied</span>
+                  <span className="font-semibold text-white">{fmt(results.totalGst)}</span>
+                </div>
+
+                {placeOfSupply === "intra" ? (
+                  <>
+                    <div className="flex justify-between items-center text-slate-400 pl-3">
+                      <span>• Central GST (CGST)</span>
+                      <span>{fmt(results.cgst)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-400 pl-3">
+                      <span>• State GST (SGST)</span>
+                      <span>{fmt(results.sgst)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center text-slate-400 pl-3">
+                    <span>• Integrated GST (IGST)</span>
+                    <span>{fmt(results.igst)}</span>
+                  </div>
+                )}
+
+                {results.totalCess > 0 && (
+                  <div className="flex justify-between items-center text-amber-400">
+                    <span>Compensation Cess</span>
+                    <span>{fmt(results.totalCess)}</span>
+                  </div>
+                )}
+
+                {results.itcAmount > 0 && (
+                  <div className="flex justify-between items-center text-emerald-400 pt-1">
+                    <span>ITC Purchase Credit Offset</span>
+                    <span className="font-bold">-{fmt(results.itcAmount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center pt-3 border-t border-white/10 text-sm">
+                  <span className="font-bold text-white">Net GST Payable (Cash)</span>
+                  <span className="text-xl font-extrabold text-emerald-400">
+                    {fmt(taxScheme === "composition" ? results.compositionTax : (isRcm ? 0 : results.netGstPayable))}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={downloadExcel}
+                  disabled={isGeneratingExcel || items.length === 0}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white transition disabled:opacity-50 cursor-pointer"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  {isGeneratingExcel ? "Generating..." : "Export Excel"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={downloadPdf}
+                  disabled={isGeneratingPdf || items.length === 0}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  {isGeneratingPdf ? "Generating..." : "Download Invoice"}
+                </button>
+              </div>
+            </div>
+
+            {/* GST Filing Support Callout */}
+            <div className="rounded-2xl border border-slate-200 bg-emerald-50/60 p-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="h-9 w-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">
+                    Monthly GST Return Filing (GSTR-1 &amp; 3B)
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                    Avoid late filing penalties u/s Section 47. Get our CA team to reconcile your 2B ITC and submit error-free returns.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/services/taxation-gst-compliance-management"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 pt-1"
+              >
+                <span>Explore GST Management Services</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

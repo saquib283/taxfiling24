@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 export type EmailProvider = "SMTP" | "RESEND" | "MAILGUN";
 
 export const EMAIL_PROVIDERS: EmailProvider[] = ["SMTP", "RESEND", "MAILGUN"];
@@ -72,16 +74,16 @@ export function resolveEmailProviderConfig(
 ): EmailProviderConfig {
   const fromEmail =
     rawSettings.EMAIL_FROM_EMAIL ||
-    rawSettings.contact_email ||
     process.env.EMAIL_FROM_EMAIL ||
-    rawSettings.SMTP_USER ||
-    process.env.SMTP_USER ||
+    rawSettings.contact_email ||
+    (rawSettings.SMTP_USER?.includes("@") ? rawSettings.SMTP_USER : "") ||
+    (process.env.SMTP_USER?.includes("@") ? process.env.SMTP_USER : "") ||
     "";
 
   const replyTo =
     rawSettings.EMAIL_REPLY_TO ||
-    rawSettings.contact_email ||
     process.env.EMAIL_REPLY_TO ||
+    rawSettings.contact_email ||
     fromEmail;
 
   return {
@@ -92,7 +94,12 @@ export function resolveEmailProviderConfig(
       rawSettings.EMAIL_FROM_NAME || process.env.EMAIL_FROM_NAME || DEFAULT_FROM_NAME,
     fromEmail,
     replyTo,
-    resendApiKey: rawSettings.RESEND_API_KEY || process.env.RESEND_API_KEY || "",
+    resendApiKey:
+      rawSettings.RESEND_API_KEY ||
+      process.env.RESEND_API_KEY ||
+      (rawSettings.SMTP_PASS?.startsWith("re_") ? rawSettings.SMTP_PASS : "") ||
+      (process.env.SMTP_PASS?.startsWith("re_") ? process.env.SMTP_PASS : "") ||
+      "",
     resendAudienceId:
       rawSettings.RESEND_AUDIENCE_ID || process.env.RESEND_AUDIENCE_ID || "",
     resendWebhookSecret:
@@ -127,8 +134,10 @@ export function getProviderStatuses(
   };
 }
 
-export function getProviderLabel(provider: EmailProvider): string {
+export function getProviderLabel(provider: EmailProvider | "WHATSAPP" | string): string {
   switch (provider) {
+    case "WHATSAPP":
+      return "WhatsApp Cloud API";
     case "RESEND":
       return "Resend";
     case "MAILGUN":
@@ -237,17 +246,155 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+export interface WrapEmailOptions {
+  content: string;
+  preheader?: string | null;
+  subject?: string;
+  fromName?: string;
+  recipientEmail?: string;
+  baseUrl?: string;
+}
+
+export function createUnsubscribeToken(email: string): string {
+  const secret = process.env.JWT_SECRET || "tf24-unsubscribe-fallback-salt";
+  return crypto.createHmac("sha256", secret).update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
+}
+
+export function verifyUnsubscribeToken(email: string, token: string): boolean {
+  if (!email || !token) return false;
+  const expected = createUnsubscribeToken(email);
+  const expectedBuf = Buffer.from(expected);
+  const actualBuf = Buffer.from(token);
+  if (expectedBuf.length !== actualBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, actualBuf);
+}
+
+export function wrapEmailHtml(options: WrapEmailOptions): string {
+  const {
+    content,
+    preheader,
+    subject = "TaxFiling24 Update",
+    fromName = DEFAULT_FROM_NAME,
+    recipientEmail,
+    baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  } = options;
+
+  const preheaderHtml = preheader?.trim()
+    ? `<div style="display:none!important;visibility:hidden;mso-hide:all;font-size:1px;color:#f8fafc;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(
+        preheader.trim()
+      )}</div>`
+    : "";
+
+  const token = recipientEmail ? createUnsubscribeToken(recipientEmail) : "";
+  const unsubscribeUrl = recipientEmail
+    ? `${baseUrl}/unsubscribe?email=${encodeURIComponent(recipientEmail)}&token=${token}`
+    : `${baseUrl}/unsubscribe`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${escapeHtml(subject)}</title>
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    body { margin: 0; padding: 0; width: 100% !important; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0F172A; }
+    p, li, td { font-size: 15px; line-height: 1.6; color: #334155; }
+    h1, h2, h3, h4 { color: #0A2540; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
+    h1 { font-size: 24px; line-height: 1.3; }
+    h2 { font-size: 20px; line-height: 1.35; }
+    h3 { font-size: 17px; line-height: 1.4; }
+    a { color: #0A2540; text-decoration: underline; }
+    hr { border: none; border-top: 1px solid #E2E8F0; margin: 24px 0; }
+    blockquote { margin: 16px 0; padding: 12px 18px; border-left: 4px solid #D4AF37; background-color: #F8FAFC; color: #475569; font-style: italic; }
+    ul, ol { padding-left: 20px; margin: 16px 0; }
+    li { margin-bottom: 6px; }
+    .email-container { max-width: 600px; margin: 0 auto; width: 100%; }
+    .email-card { background: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 16px rgba(10, 37, 64, 0.05); }
+    .email-header { background: #0A2540; padding: 24px 32px; text-align: left; border-bottom: 3px solid #D4AF37; }
+    .email-header h2 { color: #FFFFFF; margin: 0; font-size: 20px; letter-spacing: -0.02em; }
+    .email-body { padding: 32px; }
+    .email-footer { padding: 24px 32px; background: #F8FAFC; text-align: center; border-top: 1px solid #E2E8F0; }
+    .email-footer p { font-size: 12px; line-height: 1.5; color: #64748B; margin: 4px 0; }
+    .email-footer a { color: #64748B; text-decoration: underline; }
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; padding: 8px !important; }
+      .email-body { padding: 20px !important; }
+      .email-header { padding: 18px 20px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 24px 0; background-color: #F8FAFC;">
+  ${preheaderHtml}
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center">
+        <table class="email-container" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
+          <tr>
+            <td>
+              <div class="email-card">
+                <!-- Header -->
+                <div class="email-header">
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                      <td>
+                        <h2 style="color: #FFFFFF; margin: 0; font-size: 20px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                          TaxFiling<span style="color: #D4AF37;">24</span>
+                        </h2>
+                      </td>
+                      <td align="right">
+                        <span style="color: #94A3B8; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">
+                          ${escapeHtml(fromName)}
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- Main Body Content -->
+                <div class="email-body">
+                  ${content}
+                </div>
+
+                <!-- Footer -->
+                <div class="email-footer">
+                  <p style="font-weight: 600; color: #475569; font-size: 12px;">TaxFiling24 &bull; Business, Tax &amp; Compliance Advisory</p>
+                  <p>You received this message because you are a registered user or newsletter subscriber.</p>
+                  <p style="margin-top: 12px;">
+                    <a href="${unsubscribeUrl}" target="_blank" style="color: #64748B;">Unsubscribe from these emails</a>
+                    &nbsp;&bull;&nbsp;
+                    <a href="${baseUrl}/contact" target="_blank" style="color: #64748B;">Contact Support</a>
+                  </p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 export function withPreheader(html: string, preheader?: string | null): string {
-  if (!preheader?.trim()) {
-    return html;
+  // If content is already a full HTML document, inject preheader
+  if (html.includes("<html") || html.includes("<!DOCTYPE")) {
+    if (!preheader?.trim()) return html;
+    const preheaderDiv = `<div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all;">${escapeHtml(
+      preheader
+    )}</div>`;
+    return html.replace(/<body[^>]*>/i, `$&${preheaderDiv}`);
   }
 
-  return [
-    `<div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all;">${escapeHtml(
-      preheader
-    )}</div>`,
-    html,
-  ].join("");
+  // Otherwise wrap with full email layout
+  return wrapEmailHtml({
+    content: html,
+    preheader,
+  });
 }
 
 export function chunkValues<T>(values: T[], size: number): T[][]

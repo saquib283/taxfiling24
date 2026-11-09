@@ -21,7 +21,7 @@ export default function StatsSection({ settings = {}, content }: StatsSectionPro
   const stats = content?.items?.filter((item) => item.isVisible !== false && item.value && item.label) || fallbackStats;
   return (
     <section className="bg-[var(--primary)] text-white py-14 lg:py-20 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
            variants={staggerContainer}

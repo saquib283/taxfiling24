@@ -6,7 +6,8 @@ const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
 
 export async function POST(request: Request) {
   try {
-    const clientIp = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const rawIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
+    const clientIp = rawIp.slice(0, 45); // Sanitize IPv4/IPv6 length
     const now = Date.now();
     const windowMs = 60 * 1000; // 1 minute
     const maxRequests = 10; // 10 messages per minute
@@ -26,7 +27,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Too many messages. Please wait a minute before trying again." }, { status: 429 });
     }
 
-    const { message, history = [] } = await request.json();
+    const body = await request.json();
+    const rawMessage = body?.message;
+    const rawHistory = body?.history;
+
+    if (typeof rawMessage !== "string" || !rawMessage.trim()) {
+      return NextResponse.json({ error: "A non-empty message string is required." }, { status: 400 });
+    }
+
+    const cleanMessage = rawMessage.trim();
+    if (cleanMessage.length > 1000) {
+      return NextResponse.json({ error: "Message exceeds maximum allowed length of 1,000 characters." }, { status: 400 });
+    }
+
+    // Limit history to last 6 items and cap message length to 1000 chars per item
+    const safeHistory = (Array.isArray(rawHistory) ? rawHistory : [])
+      .slice(-6)
+      .filter((msg: any) => msg && (msg.role === "user" || msg.role === "model") && typeof msg.text === "string")
+      .map((msg: any) => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: String(msg.text).slice(0, 1000) }]
+      }));
     const [setting, contactSettingRows] = await Promise.all([
       prisma.setting.findUnique({ where: { key: "GEMINI_API_KEY" } }),
       prisma.setting.findMany({
@@ -46,7 +67,9 @@ export async function POST(request: Request) {
         },
       }),
     ]);
-    const apiKey = setting?.value || process.env.GEMINI_API_KEY;
+    const apiKey = (setting?.value && setting.value.trim().length > 0)
+      ? setting.value.trim()
+      : (process.env.GEMINI_API_KEY?.trim() || "");
     const contactSettings = contactSettingRows.reduce<Record<string, string>>((acc, row) => {
       acc[row.key] = row.value;
       return acc;
@@ -81,42 +104,50 @@ Guidelines:
 
 
 
-    // Map history to Gemini format
-    const contents = history.map((msg: any) => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.text }]
-    }));
-
-    // Add current user message
+    // Append validated history and current user message
+    const contents = [...safeHistory];
     contents.push({
       role: "user",
-      parts: [{ text: message }]
+      parts: [{ text: cleanMessage }]
     });
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: {
-          parts: [{ text: systemInstruction }]
-        },
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2000,
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+    let data: any = null;
+    let lastError = "Unable to reach Gemini AI service";
+    let success = false;
+
+    for (const model of modelsToTry) {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2000,
+          }
+        })
+      });
+
+      data = await response.json();
+      if (response.ok) {
+        success = true;
+        break;
+      } else {
+        lastError = data.error?.message || `Model ${model} returned error`;
+        if (response.status !== 404) {
+          console.error(`Gemini Chat Error (${model}):`, data);
+          return NextResponse.json({ error: lastError }, { status: response.status });
         }
+      }
+    }
 
-
-
-      })
-    });
-
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      return NextResponse.json({ error: data.error?.message || "Gemini API error" }, { status: response.status });
+    if (!success) {
+      console.error("Gemini Chat Error (All models exhausted):", lastError);
+      return NextResponse.json({ error: lastError }, { status: 500 });
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";

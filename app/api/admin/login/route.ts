@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 import { cookies } from "next/headers";
+import { getJwtSecretKey } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     // Sign JWT
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "secure-admin-secret-key-default-256");
+    const secret = getJwtSecretKey();
     const token = await new SignJWT({ userId: user.id, role: user.role })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
     cookieStore.set("admin_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 2, // 2 hours
       path: "/",
     });

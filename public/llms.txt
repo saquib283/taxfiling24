@@ -1,0 +1,26 @@
+# TaxFiling24
+
+> TaxFiling24 is a premier Chartered Accountancy, corporate compliance, and taxation advisory platform based in India. We help startups, small businesses, corporations, and individual taxpayers manage statutory tax filings, GST compliance, company registration, and legal accounting.
+
+## Primary Services
+
+- [Income Tax Return (ITR) Filing](https://taxfiling24.com/services/taxation-gst-compliance-management): E-filing for salaried employees, capital gains, freelance professionals, business ITR-3/4, and corporate tax ITR-6 under Indian Income Tax Act 1961.
+- [GST Registration & Return Filing](https://taxfiling24.com/services/taxation-gst-compliance-management): New GSTIN registration, monthly GSTR-1 & GSTR-3B filings, annual GSTR-9 reconciliation, and input tax credit (ITC) audits.
+- [Company Registration & Incorporation](https://taxfiling24.com/services/business-setup-registration-services): End-to-end incorporation for Private Limited Company, Limited Liability Partnership (LLP), One Person Company (OPC), and Section 8 NGO.
+- [ROC Statutory Compliance](https://taxfiling24.com/services/business-setup-registration-services): Annual Ministry of Corporate Affairs (MCA) filings (AOC-4, MGT-7), Director KYC (DIR-3 KYC), and secretarial audits.
+- [Trademark & IP Protection](https://taxfiling24.com/services/licences-ip-certifications-legal-registrations): Brand trademark search, class classification, TM application filing, and objection responses.
+
+## Free Interactive Tax Tools
+
+- [Income Tax Calculator FY 2025-26 & AY 2026-27](https://taxfiling24.com/tools/tax-calculator): Instant comparison between Old and New Tax Regimes with Budget ₹75,000 standard deduction, Section 87A rebate, Section 10(13A) HRA exemption, and revised STCG/LTCG capital gains rates.
+- [Online GST & Invoice Calculator](https://taxfiling24.com/tools/gst-calculator): Multi-rate GST calculator supporting 0%, 5%, 12%, 18%, 28% slabs with CGST+SGST / IGST breakdown, HSN/SAC presets, and PDF invoice generation.
+
+## Expert Consultations
+
+- [Book a CA Consultation](https://taxfiling24.com/book): Schedule direct video and phone advisory sessions with certified Chartered Accountants and Company Secretaries.
+
+## Official Resources
+
+- [Taxation & Compliance Articles](https://taxfiling24.com/articles): Authoritative compliance guides, statutory deadlines, and Union Budget tax analysis.
+- [Contact Support](https://taxfiling24.com/contact): Direct assistance via email, phone, and WhatsApp.
+

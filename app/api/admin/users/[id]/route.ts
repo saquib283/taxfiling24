@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { logActivity } from "@/lib/activity-log";
+import { requireAdmin } from "@/lib/auth";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -12,6 +16,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body.name !== undefined) updateData.name = body.name;
     if (body.role !== undefined) updateData.role = body.role;
     if (body.password) {
+      if (body.password.length < 6) {
+        return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+      }
       updateData.password = await bcrypt.hash(body.password, 10);
     }
 
@@ -29,15 +36,30 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { id } = await params;
     if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    // Prevent deleting own account
+    if (admin.userId === id) {
+      return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+    }
+
+    // Ensure at least one admin remains
+    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (targetUser?.role === "ADMIN" && adminCount <= 1) {
+      return NextResponse.json({ error: "Cannot delete the last admin account" }, { status: 400 });
+    }
 
     await prisma.user.delete({ where: { id } });
 
     await logActivity("DELETED", "User", `Deleted user`, id);
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
   }
 }

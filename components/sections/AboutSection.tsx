@@ -17,6 +17,7 @@ type AboutPreviewContent = {
   description?: string;
   primaryCtaLabel?: string;
   secondaryCtaLabel?: string;
+  image?: string;
   introTitle?: string;
   introDescription?: string;
   clientsLabel?: string;
@@ -91,7 +92,7 @@ export function AboutSectionContent({
             <div className="overflow-hidden rounded-[var(--radius-lg)] shadow-[var(--shadow)]">
               <div className="aspect-[4/3]">
                 <Image
-                  src="/images/team_consulting.png"
+                  src={content?.image || settings.about_image || "/images/team_consulting.png"}
                   alt="Business professionals"
                   fill
                   className="object-cover"

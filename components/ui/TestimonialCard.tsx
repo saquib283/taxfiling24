@@ -24,9 +24,9 @@ export default function TestimonialCard({
     >
       <Quote className="mb-5 h-10 w-10 text-[var(--accent-light)] opacity-60" strokeWidth={1.5} />
       <p className="mb-6 flex-1 text-[var(--fg-muted)] leading-relaxed">{text}</p>
-      <div className="mb-6 flex gap-1">
-        {Array.from({ length: rating }).map((_, i) => (
-          <Star key={i} className="h-4 w-4 fill-[var(--star)] text-[var(--star)] drop-shadow-sm" />
+      <div className="mb-6 flex gap-1" role="img" aria-label={`Rating: ${rating} out of 5 stars`}>
+        {Array.from({ length: Math.min(5, Math.max(1, Math.round(rating))) }).map((_, i) => (
+          <Star key={i} className="h-4 w-4 fill-[var(--star)] text-[var(--star)] drop-shadow-sm" aria-hidden="true" />
         ))}
       </div>
       <div className="flex items-center gap-3 border-t border-[var(--border)] pt-4">

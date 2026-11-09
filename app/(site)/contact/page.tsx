@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import ContactSection from "@/components/sections/ContactSection";
 import ContactMap from "@/components/ui/ContactMap";
@@ -107,7 +109,7 @@ export default async function ContactPage() {
             case "contact.cards":
               return (
                 <section key={section.id} className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-                  <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-2">
+                  <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-2">
                     {(Array.isArray(data.items) ? data.items : [])
                       .filter((item) => item.isVisible !== false && item.title)
                       .map((item, index) => {
@@ -139,7 +141,7 @@ export default async function ContactPage() {
             case "contact.address":
               return (
                 <section key={section.id} className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-                  <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="flex gap-4">
                       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500">
                         <MapPin className="h-5 w-5" />
@@ -164,7 +166,7 @@ export default async function ContactPage() {
             case "contact.form":
               return (
                 <section key={section.id} className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-                  <div className="mx-auto max-w-4xl">
+                  <div className="mx-auto max-w-5xl">
                     <ContactSection services={serviceTitles} content={data} />
                   </div>
                 </section>
@@ -173,13 +175,15 @@ export default async function ContactPage() {
             case "contact.map":
               return (
                 <section key={section.id} className="container mx-auto px-4 pt-8 sm:px-6 lg:px-8">
-                  <div className="mb-10 text-center">
-                    <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-                      {data.title}
-                    </h2>
-                    <p className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-500">{data.description}</p>
+                  <div className="mx-auto max-w-5xl">
+                    <div className="mb-10 text-center">
+                      <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                        {data.title}
+                      </h2>
+                      <p className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-500">{data.description}</p>
+                    </div>
+                    <ContactMap address={address} />
                   </div>
-                  <ContactMap address={address} />
                 </section>
               );
 

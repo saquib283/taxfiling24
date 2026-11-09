@@ -2,7 +2,19 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
-export async function GET() {
+function isAuthorized(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false; // Fail closed if secret is not set
+  const headerToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const queryToken = new URL(request.url).searchParams.get("secret");
+  return headerToken === secret || queryToken === secret;
+}
+
+export async function GET(request: Request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const host = process.env.SMTP_HOST;
     const port = process.env.SMTP_PORT;

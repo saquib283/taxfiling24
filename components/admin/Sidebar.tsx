@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +25,7 @@ import {
   Lock,
   Activity,
   Mail,
+  MessageSquare,
 } from "lucide-react";
 
 const menuSections = [
@@ -32,8 +34,10 @@ const menuSections = [
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
       { href: "/admin/appointments", label: "Appointments", icon: Calendar },
-      { href: "/admin/inquiries", label: "Inquiries", icon: Inbox },
+      { href: "/admin/inquiries", label: "Leads & CRM", icon: Inbox },
+      { href: "/admin/whatsapp", label: "WhatsApp Logs", icon: MessageSquare },
       { href: "/admin/campaigns", label: "Campaigns", icon: Mail },
+      { href: "/admin/campaigns/audience", label: "Audience & Leads", icon: Users },
     ],
   },
   {
@@ -71,8 +75,9 @@ const menuSections = [
 ];
 
 import { useState, useEffect } from "react";
+import { X as CloseIcon } from "lucide-react";
 
-export default function Sidebar() {
+export default function Sidebar({ onClose, className = "" }: { onClose?: () => void; className?: string }) {
   const pathname = usePathname();
   const [role, setRole] = useState<string>("ADMIN");
 
@@ -96,13 +101,31 @@ export default function Sidebar() {
   }).filter(Boolean) as typeof menuSections;
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
+    <div className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 ${className}`}>
       {/* Sidebar Header */}
-      <div className="p-6 border-b border-gray-200">
-        <Link href="/admin" className="flex items-center gap-2">
-          <span className="text-xl font-bold text-gray-900">TaxFiling24</span>
+      <div className="p-4 sm:p-5 border-b border-gray-200 flex items-center justify-between">
+        <Link href="/admin" onClick={onClose} className="flex items-center gap-2">
+          <Image
+            src="/brand-logo.png"
+            alt="TaxFiling24"
+            width={140}
+            height={48}
+            unoptimized
+            className="h-9 w-auto object-contain"
+            priority
+          />
           <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">{role}</span>
         </Link>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg md:hidden"
+            aria-label="Close menu"
+          >
+            <CloseIcon className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation Menu */}
@@ -116,7 +139,7 @@ export default function Sidebar() {
                 const Icon = item.icon;
 
                 return (
-                  <Link key={item.href} href={item.href}>
+                  <Link key={item.href} href={item.href} onClick={onClose}>
                     <motion.div
                       whileHover={{ x: 4 }}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${

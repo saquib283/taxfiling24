@@ -1,35 +1,41 @@
-import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-log";
+import fs from "fs";
+import path from "path";
 
-const dataFilePath = path.join(process.cwd(), 'data', 'testimonials.json');
+const dataFilePath = path.join(process.cwd(), "data", "testimonials.json");
 
-function getReviews() {
+function getFallbackReviews() {
   try {
-    if (!fs.existsSync(dataFilePath)) {
-      return [];
+    if (fs.existsSync(dataFilePath)) {
+      const fileData = fs.readFileSync(dataFilePath, "utf8");
+      return JSON.parse(fileData);
     }
-    const fileData = fs.readFileSync(dataFilePath, 'utf8');
-    return JSON.parse(fileData);
   } catch (e) {
-    return [];
+    console.error("Failed to read fallback testimonials:", e);
   }
-}
-
-function saveReviews(reviews: any[]) {
-  const dir = path.dirname(dataFilePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  fs.writeFileSync(dataFilePath, JSON.stringify(reviews, null, 2), 'utf8');
+  return [];
 }
 
 export async function GET() {
   try {
-    const reviews = getReviews();
-    return NextResponse.json(reviews);
+    const dbReviews = await prisma.review.findMany({
+      where: { isApproved: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (dbReviews.length > 0) {
+      return NextResponse.json(dbReviews);
+    }
+
+    // Fallback if no database reviews exist yet
+    const fallback = getFallbackReviews();
+    return NextResponse.json(fallback);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to load reviews" }, { status: 500 });
+    console.error("Failed to load reviews from DB:", error);
+    const fallback = getFallbackReviews();
+    return NextResponse.json(fallback);
   }
 }
 
@@ -38,58 +44,35 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, role, content, rating } = body;
 
-    const reviews = getReviews();
-    const newReview = {
-      id: String(Date.now()),
-      name,
-      role: role || "",
-      content,
-      rating: Number(rating) || 5,
-      isApproved: true, // Defaulting to true so they appear on homepage for now
-      createdAt: new Date().toISOString()
-    };
+    if (!name || !content) {
+      return NextResponse.json(
+        { error: "Name and content are required." },
+        { status: 400 }
+      );
+    }
 
-    reviews.push(newReview);
-    saveReviews(reviews);
+    const review = await prisma.review.create({
+      data: {
+        name: String(name).trim(),
+        role: role ? String(role).trim() : null,
+        content: String(content).trim(),
+        rating: Math.min(5, Math.max(1, Number(rating) || 5)),
+        isApproved: false, // Subject to admin moderation in dashboard
+      },
+    });
 
-    return NextResponse.json(newReview, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to save review" }, { status: 500 });
-  }
-}
+    await logActivity("CREATED", "Review", `New review submitted by ${review.name}`, review.id);
 
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    
-    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-
-    const reviews = getReviews();
-    const filtered = reviews.filter((r: any) => r.id !== id);
-    saveReviews(filtered);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to delete review" }, { status: 500 });
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const body = await request.json();
-    const { id, isApproved } = body;
-    
-    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-
-    const reviews = getReviews();
-    const updated = reviews.map((r: any) => 
-      r.id === id ? { ...r, isApproved: isApproved !== undefined ? isApproved : !r.isApproved } : r
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Thank you for your review! It will appear on the website once approved.",
+        review,
+      },
+      { status: 201 }
     );
-    saveReviews(updated);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to update review" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Failed to save review:", error);
+    return NextResponse.json({ error: "Failed to submit review." }, { status: 500 });
   }
 }

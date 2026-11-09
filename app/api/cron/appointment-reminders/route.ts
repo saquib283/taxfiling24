@@ -9,7 +9,7 @@ function isAuthorized(request: Request) {
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
-    return true;
+    return false; // Fail closed if CRON_SECRET is not configured
   }
 
   const headerToken = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");

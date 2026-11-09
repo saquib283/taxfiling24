@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import TaxCalculator from "@/components/sections/TaxCalculator";
 import type { Metadata } from "next";
 import JsonLd, {

@@ -1,6 +1,7 @@
 import { getSetting, getSettings } from "@/lib/settings";
 import type { Metadata } from "next";
-import { buildPageMetadataFromSettings } from "@/lib/seo";
+import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
+import JsonLd, { breadcrumbSchema } from "@/components/seo/JsonLd";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
@@ -19,7 +20,15 @@ export default async function PrivacyPage() {
   ]);
 
   return (
-    <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8 max-w-3xl">
+    <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8 max-w-4xl">
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", url: absoluteUrl("/") },
+            { name: "Privacy Policy", url: absoluteUrl("/privacy") },
+          ]),
+        ]}
+      />
       <h1 className="text-3xl font-bold text-[var(--fg)] mb-8">{title}</h1>
       {content ? (
         <div className="prose prose-lg max-w-none text-[var(--fg-muted)] leading-relaxed whitespace-pre-wrap">

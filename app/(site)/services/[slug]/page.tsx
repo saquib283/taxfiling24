@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { SERVICES_DETAIL_DATA } from "@/lib/services-detail-data";
 import { notFound } from "next/navigation";
 import {
@@ -79,10 +81,35 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const { whatsapp } = getSiteContact(settings);
   
   let dbData = null;
+  let relatedServices: any[] = [];
   try {
     dbData = await prisma.service.findUnique({ where: { slug } });
+    relatedServices = await prisma.service.findMany({
+      where: { slug: { not: slug } },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        description: true,
+        category: true,
+      },
+      take: 3,
+      orderBy: { createdAt: "desc" },
+    });
   } catch (e) {
     console.error("Failed to fetch service from DB", e);
+  }
+
+  if (relatedServices.length === 0) {
+    relatedServices = Object.entries(SERVICES_DETAIL_DATA)
+      .filter(([s]) => s !== slug)
+      .slice(0, 3)
+      .map(([s, val]) => ({
+        category: "Compliance",
+        description: val.description,
+        slug: s,
+        title: val.title,
+      }));
   }
 
   const data = dbData || SERVICES_DETAIL_DATA[slug];
@@ -390,6 +417,59 @@ export default async function ServiceDetailPage({ params }: PageProps) {
         </section>
       )}
 
+      {/* ─── Complementary Services Interlinking Section ─── */}
+      {relatedServices.length > 0 && (
+        <section className="py-16 bg-slate-50/70 border-t border-slate-200/80">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Complementary Compliance Services
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Founders and taxpayers frequently combine these statutory services for full compliance.
+                </p>
+              </div>
+              <Link
+                href="/services"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition"
+              >
+                <span>View all services directory</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedServices.map((rel) => (
+                <Link
+                  key={rel.slug}
+                  href={`/services/${rel.slug}`}
+                  className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm hover:shadow-md transition duration-200"
+                >
+                  <div>
+                    {rel.category && (
+                      <span className="inline-block px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-3">
+                        {rel.category}
+                      </span>
+                    )}
+                    <h4 className="font-bold text-slate-900 text-base group-hover:text-indigo-600 transition leading-snug line-clamp-2">
+                      {rel.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                      {rel.description}
+                    </p>
+                  </div>
+                  <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-indigo-600">
+                    <span>Explore details</span>
+                    <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ─── Bottom Professional CTA Block ─── */}
       <section className="py-20 bg-[var(--primary)] text-white relative">
         <div className="container mx-auto px-4 text-center">
@@ -411,11 +491,17 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 label={String(ctaTemplate?.primaryButtonText || "Chat with CA on WhatsApp")}
               />
               <Link
+                href="/book"
+                className="inline-flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 border border-indigo-400 text-white px-8 py-4 rounded-xl font-bold transition-all text-base shadow-sm"
+              >
+                <span>Book 1-on-1 CA Session</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
                 href="/contact"
                 className="inline-flex items-center justify-center gap-2 bg-white border border-transparent text-slate-900 px-8 py-4 rounded-xl font-bold hover:bg-slate-50 transition-all text-base shadow-sm"
               >
                 {String(ctaTemplate?.secondaryButtonText || "Book a Callback")}
-                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </AnimatedSection>

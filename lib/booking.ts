@@ -259,10 +259,14 @@ export function getDateKey(value: Date | string): string {
     return value.slice(0, 10);
   }
 
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  // Format explicitly in Asia/Kolkata timezone to avoid UTC day rollover on cloud hosts
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(value);
 }
 
 export function parseTimeToMinutes(value: string): number {
@@ -288,7 +292,9 @@ export function formatTimeLabel(time: string): string {
 }
 
 export function combineDateAndTime(dateKey: string, time: string): Date {
-  return new Date(`${dateKey}T${time}:00`);
+  const normalizedTime = time.length === 5 ? time : time.padStart(5, "0");
+  // Enforce Asia/Kolkata (+05:30) offset so UTC cloud environments do not suffer 5.5-hour time shift
+  return new Date(`${dateKey}T${normalizedTime}:00+05:30`);
 }
 
 export function addMinutes(date: Date, minutes: number): Date {
@@ -358,7 +364,8 @@ export function getAvailableSlots(params: {
     return [];
   }
 
-  const weekday = combineDateAndTime(date, "00:00").getDay();
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
   const activeRules = availabilityRules.filter(
     (rule) => rule.isActive && rule.weekday === weekday
   );

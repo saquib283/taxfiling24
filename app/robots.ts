@@ -7,15 +7,31 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/admin/*", "/api", "/api/*", "/dashboard", "/dashboard/*"],
+        disallow: [
+          "/admin",
+          "/admin/*",
+          "/api",
+          "/api/*",
+          "/dashboard",
+          "/dashboard/*",
+          "/unsubscribe",
+          "/unsubscribe/*",
+        ],
       },
+      // Search-oriented AI discovery crawlers (SearchGPT, Perplexity, Claude Search)
       {
-        userAgent: "Googlebot",
+        userAgent: ["OAI-SearchBot", "PerplexityBot", "Claude-SearchBot"],
         allow: "/",
-        disallow: ["/admin", "/api", "/dashboard"],
+        disallow: [
+          "/admin",
+          "/admin/*",
+          "/api",
+          "/api/*",
+          "/unsubscribe",
+          "/unsubscribe/*",
+        ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
   };
 }

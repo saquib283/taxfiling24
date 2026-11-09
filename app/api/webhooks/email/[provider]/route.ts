@@ -97,6 +97,45 @@ function verifyMailgunSignature(
   return digest === actualSignature;
 }
 
+function verifySvixSignature({
+  secret,
+  svixId,
+  svixTimestamp,
+  svixSignature,
+  rawBody,
+}: {
+  secret?: string;
+  svixId?: string | null;
+  svixTimestamp?: string | null;
+  svixSignature?: string | null;
+  rawBody: string;
+}): boolean {
+  if (!secret || !svixId || !svixTimestamp || !svixSignature) return false;
+
+  // Enforce 5-minute replay tolerance window
+  const now = Math.floor(Date.now() / 1000);
+  const ts = parseInt(svixTimestamp, 10);
+  if (isNaN(ts) || Math.abs(now - ts) > 300) return false;
+
+  const cleanSecret = secret.startsWith("whsec_") ? secret.slice(6) : secret;
+  const secretBytes = Buffer.from(cleanSecret, "base64");
+  const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
+  const expectedSig = crypto.createHmac("sha256", secretBytes).update(signedPayload).digest("base64");
+
+  const signatures = svixSignature.split(" ");
+  for (const sig of signatures) {
+    const parts = sig.split(",");
+    if (parts[0] === "v1" && parts[1]) {
+      const expectedBuf = Buffer.from(expectedSig);
+      const actualBuf = Buffer.from(parts[1]);
+      if (expectedBuf.length === actualBuf.length && crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 async function recordCampaignEvent(params: {
   campaignId: string;
   createdAt: Date;
@@ -174,18 +213,47 @@ export async function POST(
   }
 
   try {
-    const payload = (await request.json()) as JsonRecord;
+    const rawBody = await request.text();
+    let payload: JsonRecord;
+    try {
+      payload = JSON.parse(rawBody) as JsonRecord;
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
+
     const secrets = await getProviderSecrets();
 
-    if (
-      provider === "MAILGUN" &&
-      secrets.mailgunWebhookSigningKey &&
-      !verifyMailgunSignature(secrets.mailgunWebhookSigningKey, payload)
-    ) {
-      return NextResponse.json({ error: "Invalid Mailgun signature." }, { status: 401 });
+    if (provider === "MAILGUN") {
+      if (
+        !secrets.mailgunWebhookSigningKey ||
+        !verifyMailgunSignature(secrets.mailgunWebhookSigningKey, payload)
+      ) {
+        return NextResponse.json({ error: "Invalid or missing Mailgun signature." }, { status: 401 });
+      }
     }
 
     if (provider === "RESEND") {
+      const resendSecret = secrets.resendWebhookSecret || process.env.RESEND_WEBHOOK_SECRET;
+      const svixId = request.headers.get("svix-id");
+      const svixTimestamp = request.headers.get("svix-timestamp");
+      const svixSignature = request.headers.get("svix-signature");
+
+      if (
+        !resendSecret ||
+        !verifySvixSignature({
+          secret: resendSecret,
+          svixId,
+          svixTimestamp,
+          svixSignature,
+          rawBody,
+        })
+      ) {
+        return NextResponse.json(
+          { error: "Invalid or missing Resend webhook signature." },
+          { status: 401 }
+        );
+      }
+
       const data = asRecord(payload.data);
       const eventType = String(payload.type || "");
       const campaignId = getResendCampaignId(payload);

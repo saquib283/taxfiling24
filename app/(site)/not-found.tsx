@@ -11,16 +11,20 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--color-background-light)]">
-      <h1 className="mb-4 text-4xl font-bold text-[var(--color-primary-light)]">
+    <div className="flex min-h-[70vh] flex-col items-center justify-center bg-[var(--bg)] text-center px-4 py-16 sm:px-6 lg:px-8">
+      <h1 className="mb-4 text-6xl font-black text-[var(--primary)] tracking-tight">
         404
       </h1>
-      <p className="mb-8 text-[var(--color-text-secondary)]">
-        Page not found
+      <h2 className="mb-4 text-2xl font-bold text-[var(--fg)]">
+        Page Not Found
+      </h2>
+      <p className="mb-8 max-w-md text-sm text-[var(--fg-muted)] leading-relaxed">
+        The page you are looking for does not exist or has been moved. 
+        Please verify the URL or return to the home page.
       </p>
       <Link
         href="/"
-        className="rounded-lg bg-[var(--color-primary)] px-6 py-3 font-medium text-white hover:opacity-90"
+        className="rounded-xl bg-[var(--primary)] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-md hover:bg-slate-800 transition-all active:scale-95 cursor-pointer"
       >
         Go back home
       </Link>
