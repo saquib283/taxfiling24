@@ -75,26 +75,29 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">Settings</h1>
-        <p className="text-gray-600">Configure your application keys and metadata</p>
+    <div className="space-y-6 max-w-3xl">
+      {/* Studio Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">System Settings</h1>
+          <p className="text-sm text-slate-500 mt-1">Configure brand assets, API keys, contact channels, and site navigation</p>
+        </div>
       </div>
 
       {message.text && (
-        <div className={`p-3 mb-6 rounded-lg text-sm border ${
+        <div className={`p-4 rounded-xl text-xs font-bold border shadow-2xs ${
           message.type === "success" 
-            ? "bg-green-50 text-green-600 border-green-100" 
-            : "bg-red-50 text-red-600 border-red-100"
+            ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+            : "bg-rose-50 text-rose-800 border-rose-200"
         }`}>
           {message.text}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-6">
         {/* Branding & Media Section */}
         <div>
-          <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-4">
+          <h3 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2 mb-4">
             Branding & Visual Media
           </h3>
           <div className="space-y-4">
@@ -110,79 +113,79 @@ export default function SettingsPage() {
         </div>
 
         <div>
-          <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-4">Integrations</h3>
+          <h3 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2 mb-4">Integrations</h3>
           
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Gemini AI API Key</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Gemini AI API Key</label>
               <input
                 type="password"
                 name="GEMINI_API_KEY"
                 value={settings.GEMINI_API_KEY || ""}
                 onChange={handleChange}
                 placeholder="AIzaSy..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-mono"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 shadow-2xs"
               />
-              <p className="text-xs text-gray-400 mt-1">Used for the chatbot assistant model.</p>
+              <p className="text-[11px] text-slate-400 mt-1">Used for the chatbot assistant model and AI drafting tools.</p>
             </div>
           </div>
         </div>
 
         <div>
-          <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-4">Contact Info</h3>
+          <h3 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2 mb-4">Contact Information</h3>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Support Email</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Support Email</label>
               <input
                 type="email"
                 name="contact_email"
                 value={settings.contact_email || ""}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 shadow-2xs"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Support Phone/WhatsApp</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Support Phone / Hotline</label>
               <input
                 type="text"
                 name="contact_phone"
                 value={settings.contact_phone || ""}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 shadow-2xs"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Office Address</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Office Address</label>
               <input
                 type="text"
                 name="contact_address"
                 value={settings.contact_address || ""}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 shadow-2xs"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Link</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">WhatsApp Chat Link</label>
               <input
                 type="text"
                 name="contact_whatsapp"
                 value={settings.contact_whatsapp || ""}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 shadow-2xs"
               />
             </div>
           </div>
         </div>
 
-        <div className="pt-6 border-t border-gray-100">
-          <div className="flex items-center justify-between mb-6">
+        <div className="pt-6 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-gray-900 text-lg">Navigation Manager</h3>
-              <p className="text-xs text-gray-400">Manage links and visibility of your site menu</p>
+              <h3 className="font-bold text-slate-900 text-sm">Navigation Manager</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Manage links and visibility of your site menu</p>
             </div>
             <button
               type="button"
@@ -216,7 +219,7 @@ export default function SettingsPage() {
                 ];
                 setSettings((prev: any) => ({ ...prev, NAVBAR_CONFIG: JSON.stringify(defaultConfig) }));
               }}
-              className="text-xs text-blue-600 hover:text-blue-700 font-semibold px-3 py-1 bg-blue-50 rounded-full transition-colors"
+              className="text-xs text-indigo-700 hover:text-indigo-800 font-bold px-3 py-1 bg-indigo-50 border border-indigo-200/60 rounded-lg transition"
             >
               Reset to Defaults
             </button>
@@ -269,57 +272,57 @@ export default function SettingsPage() {
 
                 return (
                   <>
-                    <div className="grid grid-cols-12 gap-4 px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="grid grid-cols-12 gap-4 px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       <div className="col-span-1 text-center">Show</div>
                       <div className="col-span-4">Label</div>
                       <div className="col-span-5">Link / URL</div>
                       <div className="col-span-2 text-right">Action</div>
                     </div>
                     {navItems.map((item: any, idx: number) => (
-                      <div key={idx} className={`rounded-xl border p-3 transition-all ${item.visible ? 'bg-white border-gray-100 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+                      <div key={idx} className={`rounded-xl border p-3 transition ${item.visible ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
                         <div className="grid grid-cols-12 gap-3 items-center">
-                        <div className="col-span-1 flex justify-center">
-                          <input
-                            type="checkbox"
-                            checked={item.visible !== false}
-                            onChange={(e) => updateNavItem(idx, { visible: e.target.checked })}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                          />
-                        </div>
-                        <div className="col-span-4">
-                          <input
-                            type="text"
-                            value={item.label}
-                            onChange={(e) => updateNavItem(idx, { label: e.target.value })}
-                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 outline-none"
-                          />
-                        </div>
-                        <div className="col-span-5">
-                          <input
-                            type="text"
-                            value={item.href}
-                            onChange={(e) => updateNavItem(idx, { href: e.target.value })}
-                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500/10 outline-none"
-                          />
-                        </div>
-                        <div className="col-span-2 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => deleteNavItem(idx)}
-                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
+                          <div className="col-span-1 flex justify-center">
+                            <input
+                              type="checkbox"
+                              checked={item.visible !== false}
+                              onChange={(e) => updateNavItem(idx, { visible: e.target.checked })}
+                              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <input
+                              type="text"
+                              value={item.label}
+                              onChange={(e) => updateNavItem(idx, { label: e.target.value })}
+                              className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-900 focus:border-indigo-500 outline-none"
+                            />
+                          </div>
+                          <div className="col-span-5">
+                            <input
+                              type="text"
+                              value={item.href}
+                              onChange={(e) => updateNavItem(idx, { href: e.target.value })}
+                              className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:border-indigo-500 outline-none"
+                            />
+                          </div>
+                          <div className="col-span-2 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => deleteNavItem(idx)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="mt-3 rounded-lg bg-gray-50/70 p-3">
+                        <div className="mt-3 rounded-lg bg-slate-50 border border-slate-100 p-3">
                           <div className="mb-2 flex items-center justify-between">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Submenu Items</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Submenu Items</p>
                             <button
                               type="button"
                               onClick={() => addChildItem(idx)}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                              className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
                             >
                               + Add submenu
                             </button>
@@ -334,7 +337,7 @@ export default function SettingsPage() {
                                       type="checkbox"
                                       checked={child.visible !== false}
                                       onChange={(e) => updateChildItem(idx, childIndex, { visible: e.target.checked })}
-                                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                     />
                                   </div>
                                   <div className="col-span-4">
@@ -342,7 +345,7 @@ export default function SettingsPage() {
                                       type="text"
                                       value={child.label || ""}
                                       onChange={(e) => updateChildItem(idx, childIndex, { label: e.target.value })}
-                                      className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 outline-none"
+                                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-900 focus:border-indigo-500 outline-none"
                                     />
                                   </div>
                                   <div className="col-span-6">
@@ -350,23 +353,23 @@ export default function SettingsPage() {
                                       type="text"
                                       value={child.href || ""}
                                       onChange={(e) => updateChildItem(idx, childIndex, { href: e.target.value })}
-                                      className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500/10 outline-none"
+                                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:border-indigo-500 outline-none"
                                     />
                                   </div>
                                   <div className="col-span-1 flex justify-end">
                                     <button
                                       type="button"
                                       onClick={() => deleteChildItem(idx, childIndex)}
-                                      className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                                      className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition"
                                     >
-                                      <X className="h-4 w-4" />
+                                      <X className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <p className="text-xs text-gray-400">No submenu items yet.</p>
+                            <p className="text-xs text-slate-400">No submenu items yet.</p>
                           )}
                         </div>
                       </div>
@@ -374,7 +377,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={addNavItem}
-                      className="w-full py-2.5 border-2 border-dashed border-gray-100 rounded-xl text-sm text-gray-400 hover:text-blue-500 hover:border-blue-100 hover:bg-blue-50/30 transition-all flex items-center justify-center gap-2"
+                      className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/40 transition flex items-center justify-center gap-2"
                     >
                       + Add Menu Item
                     </button>
@@ -382,7 +385,7 @@ export default function SettingsPage() {
                 );
               } catch (e) {
                 return (
-                  <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600">
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-bold">
                     Configuration Error: Your navigation data is corrupted. Click "Reset to Defaults" to fix it.
                   </div>
                 );
@@ -396,7 +399,7 @@ export default function SettingsPage() {
           whileTap={{ scale: 0.99 }}
           type="submit"
           disabled={saving}
-          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs transition active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {saving ? "Saving..." : "Save Settings"}

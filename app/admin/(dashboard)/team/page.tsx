@@ -174,14 +174,17 @@ export default function TeamManagerPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-6 bg-slate-50/50 min-h-screen">
-      {/* Header section */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6">
+    <div className="space-y-6">
+      {/* Studio Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Team Members
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Team Members</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+              {members.length} members
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
             Manage chartered accountants, tax consultants, and partner profiles displayed on the About page.
           </p>
         </div>
@@ -193,11 +196,11 @@ export default function TeamManagerPage() {
             setForm({ designation: "", image: "", isActive: true, name: "" });
             setFeedback(null);
           }}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer self-start sm:self-center shadow-xs"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-bold transition active:scale-98 cursor-pointer shrink-0 shadow-xs"
         >
           <Plus className="h-4 w-4" /> Add Team Member
         </button>
-      </header>
+      </div>
 
       {/* Floating feedback alert */}
       {feedback && (
@@ -302,7 +305,7 @@ export default function TeamManagerPage() {
                 type="button"
                 onClick={handleAdd}
                 disabled={saving || !form.name.trim() || !form.designation.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Save Member
@@ -385,7 +388,7 @@ export default function TeamManagerPage() {
                 type="button"
                 onClick={() => handleUpdate(editingId)}
                 disabled={saving || !form.name.trim() || !form.designation.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Update Member

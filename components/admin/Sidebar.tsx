@@ -101,9 +101,9 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
   }).filter(Boolean) as typeof menuSections;
 
   return (
-    <div className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 ${className}`}>
+    <div className={`w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 ${className}`}>
       {/* Sidebar Header */}
-      <div className="p-4 sm:p-5 border-b border-gray-200 flex items-center justify-between">
+      <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between">
         <Link href="/admin" onClick={onClose} className="flex items-center gap-2">
           <Image
             src="/brand-logo.png"
@@ -114,13 +114,15 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
             className="h-9 w-auto object-contain"
             priority
           />
-          <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">{role}</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+            {role}
+          </span>
         </Link>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg md:hidden"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg md:hidden"
             aria-label="Close menu"
           >
             <CloseIcon className="h-5 w-5" />
@@ -132,7 +134,9 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
       <nav className="flex-1 p-3 space-y-5 overflow-y-auto">
         {filteredSections.map((section) => (
           <div key={section.title}>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-3 mb-1.5">{section.title}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 mb-1.5">
+              {section.title}
+            </p>
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive = pathname === item.href;
@@ -141,15 +145,15 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
                 return (
                   <Link key={item.href} href={item.href} onClick={onClose}>
                     <motion.div
-                      whileHover={{ x: 4 }}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      whileHover={{ x: 3 }}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition ${
                         isActive
-                          ? "bg-blue-50 text-blue-600"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          ? "bg-indigo-50 text-indigo-700 border-r-2 border-indigo-600 shadow-2xs"
+                          : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
                       }`}
                     >
-                      <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
-                      {item.label}
+                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+                      <span className="truncate">{item.label}</span>
                     </motion.div>
                   </Link>
                 );
@@ -160,13 +164,13 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
       </nav>
 
       {/* Sidebar Footer */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-3.5 border-t border-slate-200">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 w-full transition cursor-pointer"
         >
-          <LogOut className="h-5 w-5 text-red-500" />
-          Logout
+          <LogOut className="h-4 w-4" />
+          <span>Sign Out</span>
         </button>
       </div>
     </div>

@@ -118,7 +118,7 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
     }
   };
   return (
-    <form onSubmit={handleSubmit} className="p-6 md:p-8 max-w-4xl mx-auto space-y-8 bg-slate-50/30 min-h-screen">
+    <form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-6">
       {/* Action Header */}
       <header className="flex items-center justify-between border-b border-slate-200 pb-5">
         <div className="flex items-center gap-3">

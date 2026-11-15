@@ -192,7 +192,7 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 md:p-8 max-w-5xl mx-auto space-y-6 bg-slate-50/20 min-h-screen">
+    <form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-6">
       {/* Header element */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5">
         <div className="flex items-center gap-3">

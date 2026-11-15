@@ -195,33 +195,33 @@ export default function ThemePage() {
   ];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+    <div className="space-y-6 max-w-5xl">
+      {/* Studio Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-0.5">Theme & Styles</h1>
-          <p className="text-sm text-gray-500">
-            Customize the look and feel of your website
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Theme & Styles</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Customize typography, brand palettes, card radius, and theme presets
           </p>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={resetToDefaults}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition shadow-2xs cursor-pointer"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Reset
+            Reset Defaults
           </button>
         </div>
       </div>
 
       {message.text && (
         <div
-          className={`p-3 mb-5 rounded-lg text-sm border ${
+          className={`p-4 rounded-xl text-xs font-bold border shadow-2xs ${
             message.type === "success"
-              ? "bg-green-50 text-green-600 border-green-100"
-              : "bg-red-50 text-red-600 border-red-100"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-rose-50 text-rose-800 border-rose-200"
           }`}
         >
           {message.text}
@@ -233,16 +233,16 @@ export default function ThemePage() {
           {/* ─── Left: Controls ─── */}
           <div className="lg:col-span-2 space-y-0">
             {/* Tabs */}
-            <div className="flex bg-gray-100 rounded-t-xl p-1 gap-0.5">
+            <div className="flex bg-slate-100 rounded-t-xl p-1 gap-1 border border-slate-200 border-b-0">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition ${
                     activeTab === tab.id
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-white text-indigo-700 shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
                   <tab.icon className="h-3.5 w-3.5" />
@@ -252,7 +252,7 @@ export default function ThemePage() {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-white border border-gray-200 border-t-0 rounded-b-xl shadow-sm p-6">
+            <div className="bg-white border border-slate-200 border-t-0 rounded-b-2xl shadow-2xs p-6">
               {/* ─── Presets Tab ─── */}
               {activeTab === "presets" && (
                 <div>
@@ -570,7 +570,7 @@ export default function ThemePage() {
                 whileTap={{ scale: 0.99 }}
                 type="submit"
                 disabled={saving}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs transition active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50 text-sm cursor-pointer"
               >
                 {saving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -585,13 +585,13 @@ export default function ThemePage() {
           {/* ─── Right: Live Preview ─── */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
                 <Eye className="h-3.5 w-3.5" />
                 Live Preview
               </div>
 
               <div
-                className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden"
+                className="bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden"
                 style={previewStyle}
               >
                 {/* Mini Navbar */}

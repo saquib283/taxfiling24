@@ -20,34 +20,37 @@ export default async function ReviewsListPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-8 bg-slate-50/50 min-h-screen">
-      {/* Header section */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6">
+    <div className="space-y-6">
+      {/* Studio Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 bg-clip-text text-transparent">
-            Testimonial Reviews
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Testimonial Reviews</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+              {reviews.length} reviews
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
             Moderate and approve client reviews, verify star ratings, and publish active testimonials.
           </p>
         </div>
         <div className="shrink-0 self-start sm:self-center">
           <AddReviewForm />
         </div>
-      </header>
+      </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 text-rose-800 rounded-xl text-xs font-bold border border-rose-100/80 shadow-sm flex items-center gap-2">
+        <div className="p-4 bg-rose-50 text-rose-800 rounded-xl text-xs font-bold border border-rose-200 shadow-2xs flex items-center gap-2">
           <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
           {error}
         </div>
       )}
 
       {/* Main Reviews Container */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
         {reviews.length === 0 ? (
           <div className="p-12 text-center max-w-sm mx-auto">
-            <div className="p-4 bg-slate-50 rounded-2xl inline-block mb-4 border border-slate-100">
+            <div className="p-4 bg-slate-50 rounded-2xl inline-block mb-4 border border-slate-200">
               <MessageCircle className="h-8 w-8 text-slate-400" />
             </div>
             <h3 className="text-sm font-bold text-slate-900">No reviews found</h3>
@@ -59,12 +62,12 @@ export default async function ReviewsListPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
-                <tr className="bg-slate-50/75 border-b border-slate-200/80">
-                  <th className="p-4 pl-6 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Name & Designation</th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Testimonial Quote</th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Star Rating</th>
-                  <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Moderation Status</th>
-                  <th className="p-4 pr-6 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                <tr className="bg-slate-50/80 border-b border-slate-200">
+                  <th className="p-4 pl-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Client Name & Designation</th>
+                  <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Testimonial Quote</th>
+                  <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Star Rating</th>
+                  <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Moderation Status</th>
+                  <th className="p-4 pr-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -98,10 +101,10 @@ export default async function ReviewsListPage() {
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${
                         review.isApproved 
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
                           : "bg-slate-50 text-slate-500 border-slate-200"
                       }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${review.isApproved ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${review.isApproved ? "bg-emerald-500" : "bg-slate-400"}`} />
                         {review.isApproved ? "Approved" : "Pending"}
                       </span>
                     </td>

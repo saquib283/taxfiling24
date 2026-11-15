@@ -51,14 +51,17 @@ export default function PagesEditorPage() {
   const page = PAGES[activeTab];
 
   return (
-    <div className="p-6 md:p-8 space-y-8 bg-slate-50/50 min-h-screen">
-      {/* Header section */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6">
+    <div className="space-y-6">
+      {/* Studio Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 bg-clip-text text-transparent">
-            Static Pages
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Static Pages</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+              {PAGES.length} policies
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
             Publish custom terms, privacy statements, policy guidelines, and legal content blocks.
           </p>
         </div>
@@ -73,7 +76,7 @@ export default function PagesEditorPage() {
             href={page.path}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs shadow-sm transition active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs shadow-2xs transition active:scale-95 cursor-pointer"
           >
             <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
             View Live
@@ -82,13 +85,13 @@ export default function PagesEditorPage() {
             type="button"
             onClick={handleSave} 
             disabled={saving} 
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-sm transition active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-xs transition active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Main content grid split */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -99,9 +102,9 @@ export default function PagesEditorPage() {
               type="button"
               key={p.titleKey} 
               onClick={() => { setActiveTab(i); setPreviewMode(false); }} 
-              className={`w-full text-left px-4 py-3.5 rounded-2xl text-xs font-bold transition duration-150 cursor-pointer flex items-center justify-between group ${
+              className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition duration-150 cursor-pointer flex items-center justify-between group ${
                 activeTab === i 
-                  ? "bg-slate-950 text-white shadow-md" 
+                  ? "bg-indigo-600 text-white shadow-xs" 
                   : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
@@ -115,7 +118,7 @@ export default function PagesEditorPage() {
         </div>
 
         {/* Right editor box */}
-        <div className="flex-1 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-5 w-full">
+        <div className="flex-1 bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-5 w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
               <h2 className="text-base font-bold text-slate-950">{page.label} Settings</h2>
