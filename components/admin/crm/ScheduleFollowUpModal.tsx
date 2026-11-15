@@ -198,7 +198,7 @@ export default function ScheduleFollowUpModal({
               className="px-5 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition flex items-center gap-1.5 disabled:opacity-50 shadow-sm shadow-amber-600/30"
             >
               {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calendar className="w-3.5 h-3.5" />}
-              Set Reminder
+              Schedule Task & Set Reminder
             </button>
           </div>
         </form>

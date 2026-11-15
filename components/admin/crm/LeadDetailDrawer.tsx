@@ -420,8 +420,9 @@ export default function LeadDetailDrawer({
                 setShowLogModal(true);
               }}
               className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition shrink-0 shadow-2xs"
+              title="Record phone call, WhatsApp chat, or staff note into activity logs"
             >
-              + Note
+              + Record Interaction
             </button>
           </div>
         )}
@@ -476,7 +477,7 @@ export default function LeadDetailDrawer({
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
-            Activity Timeline
+            Activity Logs & History
             {lead?.activities && (
               <span className="text-[10px] text-slate-400">({lead.activities.length})</span>
             )}
@@ -891,12 +892,12 @@ export default function LeadDetailDrawer({
                 </div>
               )}
 
-              {/* TAB 4: CHRONOLOGICAL TIMELINE */}
+              {/* TAB 4: CHRONOLOGICAL ACTIVITY LOGS */}
               {activeTab === "TIMELINE" && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                      Audit Trail & Activity Log
+                      Activity Logs & Audit History
                     </h4>
                     <button
                       onClick={() => {
@@ -905,7 +906,7 @@ export default function LeadDetailDrawer({
                       }}
                       className="text-xs font-bold text-indigo-600 hover:underline"
                     >
-                      + Add Log
+                      + Record Interaction
                     </button>
                   </div>
 

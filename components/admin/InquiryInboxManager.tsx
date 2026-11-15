@@ -831,8 +831,9 @@ export default function InquiryInboxManager({
                       <Link
                         href={`/admin/inquiries/${lead.id}`}
                         className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1"
+                        title="Open complete lead dossier, proposals, follow-ups, and activity logs"
                       >
-                        View Lead <ChevronRight className="w-3.5 h-3.5" />
+                        View Lead & Logs <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
 
                       <button
@@ -1074,7 +1075,7 @@ export default function InquiryInboxManager({
                   className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                 />
                 <span className="text-xs text-slate-700 font-medium">
-                  Automatically move inquiry to RESOLVED after sending
+                  Mark as RESOLVED after sending (otherwise advances to CONTACTED in pipeline)
                 </span>
               </label>
 

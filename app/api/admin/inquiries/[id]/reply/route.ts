@@ -31,7 +31,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { subject, message, markAsResolved = true } = body;
+    const { subject, message, markAsResolved, targetStage } = body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json(
@@ -127,12 +127,24 @@ export async function POST(
       to: inquiry.email,
     });
 
-    // Optionally mark status as RESOLVED
-    if (markAsResolved && inquiry.status !== "RESOLVED") {
+    // Update lead status based on targetStage or markAsResolved flag
+    const newStage = targetStage || (markAsResolved ? "RESOLVED" : (inquiry.status === "NEW" || inquiry.status === "PENDING" ? "CONTACTED" : undefined));
+    if (newStage && newStage !== inquiry.status) {
       await prisma.inquiry.update({
-        data: { status: "RESOLVED" },
+        data: { status: newStage },
         where: { id },
       });
+
+      // Audit log the stage transition
+      await prisma.leadActivity.create({
+        data: {
+          inquiryId: inquiry.id,
+          type: "STATUS_CHANGE",
+          title: `Stage Changed: ${inquiry.status} -> ${newStage}`,
+          description: `Automatically advanced following outbound client email dispatch.`,
+          performedBy: (admin as any).name || admin.role || "Admin",
+        },
+      }).catch((e) => console.warn("Failed to log status change activity:", e));
     }
 
     await logActivity(

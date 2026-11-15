@@ -208,7 +208,7 @@ export default function LeadDetailPageClient({
 
       if (!res.ok) throw new Error("Failed to save note");
       setQuickNote("");
-      setFeedback({ text: "Note recorded in activity timeline.", type: "success" });
+      setFeedback({ text: "Note recorded in lead activity logs.", type: "success" });
       refreshLead();
     } catch (err: any) {
       setFeedback({ text: err.message || "Failed to save note", type: "error" });
@@ -594,8 +594,9 @@ export default function LeadDetailPageClient({
                 setShowLogModal(true);
               }}
               className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition shadow-2xs"
+              title="Record phone call, WhatsApp chat, or staff note into activity logs"
             >
-              + Log Activity
+              + Record Interaction
             </button>
           </div>
 
@@ -674,9 +675,11 @@ export default function LeadDetailPageClient({
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>Activity Timeline</span>
+              <span>Activity Logs & History</span>
               {lead.activities && (
-                <span className="text-[10px] opacity-70">({lead.activities.length})</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === "TIMELINE" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700 font-bold"}`}>
+                  {lead.activities.length}
+                </span>
               )}
             </button>
 
@@ -688,7 +691,7 @@ export default function LeadDetailPageClient({
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
-              <span>Client Message</span>
+              <span>Original Inquiry</span>
             </button>
           </div>
 
@@ -977,16 +980,16 @@ export default function LeadDetailPageClient({
             </div>
           )}
 
-          {/* TAB 3: AUDIT TIMELINE */}
+          {/* TAB 3: ACTIVITY LOGS & AUDIT HISTORY */}
           {activeTab === "TIMELINE" && (
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-2xs space-y-5">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900">
-                    Activity & Interaction Audit Trail
+                    Lead Activity Logs & Audit History
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Chronological record of phone calls, WhatsApp chats, emails, stage transitions, and team notes.
+                    Chronological audit trail of phone calls, WhatsApp messages, outbound emails, quotation milestones, and staff notes.
                   </p>
                 </div>
                 <button
@@ -994,9 +997,9 @@ export default function LeadDetailPageClient({
                     setLogModalType("NOTE");
                     setShowLogModal(true);
                   }}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 flex items-center gap-1.5 shadow-sm transition"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Log Touchpoint
+                  <Plus className="w-3.5 h-3.5" /> Record Interaction
                 </button>
               </div>
 
@@ -1114,7 +1117,7 @@ export default function LeadDetailPageClient({
                 </div>
               ) : (
                 <div className="p-12 text-center rounded-2xl border border-dashed border-slate-300 text-xs text-slate-400">
-                  No logged touchpoints yet. Calls, emails, and quotations will appear here automatically.
+                  No activity logs recorded yet. Phone calls, WhatsApp messages, emails, and quotations will appear here automatically.
                 </div>
               )}
             </div>
@@ -1222,7 +1225,7 @@ export default function LeadDetailPageClient({
                 className="w-full py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {savingNote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Save to Timeline
+                Save to Activity Logs
               </button>
             </form>
           </div>
@@ -1328,7 +1331,7 @@ export default function LeadDetailPageClient({
                   className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                 />
                 <span className="text-xs text-slate-700 font-medium">
-                  Automatically mark inquiry as RESOLVED upon dispatch
+                  Mark as RESOLVED upon dispatch (otherwise advances to CONTACTED in pipeline)
                 </span>
               </label>
 

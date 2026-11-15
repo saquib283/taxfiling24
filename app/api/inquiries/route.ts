@@ -63,9 +63,21 @@ export async function POST(request: Request) {
         email: clientEmail || "no-email-provided@taxfiling24.com",
         service: clientService || null,
         message: clientMessage || "Inquiry from website contact form",
-        status: "PENDING",
+        status: "NEW",
+        source: "WEBSITE_FORM",
       },
     });
+
+    // Create initial LeadActivity log entry for CRM timeline
+    await prisma.leadActivity.create({
+      data: {
+        inquiryId: inquiry.id,
+        type: "NOTE",
+        title: "Inbound Lead Submitted via Website",
+        description: `Client submitted inquiry for ${clientService || "General Services"}.\nRequirement: "${clientMessage || "N/A"}"`,
+        performedBy: "Website Client",
+      },
+    }).catch((e) => console.warn("[CRM] Failed to create initial lead activity:", e));
 
     await logActivity(
       "CREATED",

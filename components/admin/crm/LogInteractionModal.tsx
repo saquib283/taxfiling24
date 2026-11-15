@@ -106,8 +106,8 @@ export default function LogInteractionModal({
               {type === "CALL" ? <Phone className="w-5 h-5" /> : type === "WHATSAPP" ? <MessageSquare className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">Log Interaction / Touchpoint</h3>
-              <p className="text-xs text-slate-400">Record calls, WhatsApp messages, or private staff notes</p>
+              <h3 className="font-bold text-base text-white">Record Client Interaction</h3>
+              <p className="text-xs text-slate-400">Save calls, WhatsApp chats, or staff discussion notes to the lead's activity logs</p>
             </div>
           </div>
           <button
@@ -224,7 +224,7 @@ export default function LogInteractionModal({
               className="px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              Save Activity Log
+              Save Interaction to Logs
             </button>
           </div>
         </form>

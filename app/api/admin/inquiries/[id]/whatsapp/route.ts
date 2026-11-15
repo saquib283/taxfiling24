@@ -111,6 +111,23 @@ export async function POST(request: Request, context: RouteContext) {
       },
     });
 
+    // Automatically advance lead stage from NEW to CONTACTED
+    if (lead.status === "NEW" || lead.status === "PENDING") {
+      await prisma.inquiry.update({
+        where: { id: lead.id },
+        data: { status: "CONTACTED" },
+      });
+      await prisma.leadActivity.create({
+        data: {
+          inquiryId: lead.id,
+          type: "STATUS_CHANGE",
+          title: `Stage Changed: ${lead.status} -> CONTACTED`,
+          description: "Automatically advanced after WhatsApp interaction.",
+          performedBy: (admin as any).name || admin.role || "Admin",
+        },
+      }).catch((e) => console.warn("Failed to log WA status change:", e));
+    }
+
     return NextResponse.json({
       success: true,
       messageId: sendResult.messageId,
