@@ -208,30 +208,37 @@ export async function POST(req: Request) {
       });
     });
 
-    // Send customer notification outside transaction
-    try {
-      const notification = config.settings.autoConfirmNewBookings ? "CONFIRMATION" : "BOOKING_RECEIVED";
-      const sendResult = await sendAppointmentNotification({
-        appointment,
-        service,
-        settings: config.settings,
-        settingsMap,
-        type: notification,
-      });
-
-      if (notification === "CONFIRMATION") {
-        await prisma.appointment.update({
-          where: { id: appointment.id },
-          data: {
-            confirmationSentAt: new Date(),
-          },
+    // Send customer notification outside transaction (never blocks booking response)
+    const notification = config.settings.autoConfirmNewBookings ? "CONFIRMATION" : "BOOKING_RECEIVED";
+    const dispatchCustomerNotification = async () => {
+      try {
+        const sendResult = await sendAppointmentNotification({
+          appointment,
+          service,
+          settings: config.settings,
+          settingsMap,
+          type: notification,
         });
-      }
 
-      console.info("Appointment email sent via", sendResult.provider);
-    } catch (emailError) {
-      console.warn("Appointment email could not be sent:", emailError);
-    }
+        if (notification === "CONFIRMATION") {
+          await prisma.appointment.update({
+            where: { id: appointment.id },
+            data: {
+              confirmationSentAt: new Date(),
+            },
+          });
+        }
+
+        console.info("Appointment email sent via", sendResult.provider);
+      } catch (emailError) {
+        console.warn("Appointment email could not be sent:", emailError);
+      }
+    };
+
+    await Promise.race([
+      dispatchCustomerNotification(),
+      new Promise((resolve) => setTimeout(resolve, 2500)),
+    ]);
 
     await logActivity(
       "CREATED",

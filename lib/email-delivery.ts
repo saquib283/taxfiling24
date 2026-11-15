@@ -40,6 +40,9 @@ async function sendWithSmtp(
     host: config.smtpHost,
     port,
     secure: port === 465,
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 8000,
   });
 
   const result = await transporter.sendMail({
@@ -73,6 +76,7 @@ async function sendWithResend(
       "Content-Type": "application/json",
     },
     method: "POST",
+    signal: AbortSignal.timeout(8000),
   });
 
   const data = (await response.json()) as {
@@ -123,6 +127,7 @@ async function sendWithMailgun(
       Authorization: `Basic ${auth}`,
     },
     method: "POST",
+    signal: AbortSignal.timeout(8000),
   });
 
   const data = (await response.json()) as { id?: string; message?: string };

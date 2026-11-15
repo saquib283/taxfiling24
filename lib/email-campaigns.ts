@@ -86,20 +86,27 @@ export function resolveEmailProviderConfig(
     rawSettings.contact_email ||
     fromEmail;
 
+  const resendApiKey =
+    rawSettings.RESEND_API_KEY ||
+    process.env.RESEND_API_KEY ||
+    (rawSettings.SMTP_PASS?.startsWith("re_") ? rawSettings.SMTP_PASS : "") ||
+    (process.env.SMTP_PASS?.startsWith("re_") ? process.env.SMTP_PASS : "") ||
+    "";
+
+  const configuredProvider = rawSettings.EMAIL_PROVIDER || process.env.EMAIL_PROVIDER;
+  const selectedProvider = configuredProvider
+    ? normalizeEmailProvider(configuredProvider)
+    : resendApiKey
+    ? "RESEND"
+    : "SMTP";
+
   return {
-    selectedProvider: normalizeEmailProvider(
-      rawSettings.EMAIL_PROVIDER || process.env.EMAIL_PROVIDER
-    ),
+    selectedProvider,
     fromName:
       rawSettings.EMAIL_FROM_NAME || process.env.EMAIL_FROM_NAME || DEFAULT_FROM_NAME,
     fromEmail,
     replyTo,
-    resendApiKey:
-      rawSettings.RESEND_API_KEY ||
-      process.env.RESEND_API_KEY ||
-      (rawSettings.SMTP_PASS?.startsWith("re_") ? rawSettings.SMTP_PASS : "") ||
-      (process.env.SMTP_PASS?.startsWith("re_") ? process.env.SMTP_PASS : "") ||
-      "",
+    resendApiKey,
     resendAudienceId:
       rawSettings.RESEND_AUDIENCE_ID || process.env.RESEND_AUDIENCE_ID || "",
     resendWebhookSecret:

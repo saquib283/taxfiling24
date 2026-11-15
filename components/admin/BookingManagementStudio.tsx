@@ -612,7 +612,13 @@ export default function BookingManagementStudio() {
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
-      const data = (await response.json()) as { error?: string };
+      let data: { error?: string } = {};
+      try {
+        data = (await response.json()) as { error?: string };
+      } catch {
+        data = { error: `Server response error (${response.status}: ${response.statusText || "Timeout"})` };
+      }
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to schedule appointment.");
       }

@@ -190,22 +190,31 @@ export async function POST(req: Request) {
     });
 
     if (notifyClient && cleanEmail) {
-      try {
-        await sendAppointmentNotification({
-          appointment,
-          service,
-          settings: config.settings,
-          settingsMap,
-          type: "CONFIRMATION",
-        });
+      const dispatchNotification = async () => {
+        try {
+          await sendAppointmentNotification({
+            appointment,
+            service,
+            settings: config.settings,
+            settingsMap,
+            type: "CONFIRMATION",
+          });
 
-        await prisma.appointment.update({
-          where: { id: appointment.id },
-          data: { confirmationSentAt: new Date() },
-        });
-      } catch (err) {
-        console.warn("Could not dispatch confirmation email for admin-created booking:", err);
-      }
+          await prisma.appointment.update({
+            where: { id: appointment.id },
+            data: { confirmationSentAt: new Date() },
+          });
+        } catch (err) {
+          console.warn("Could not dispatch confirmation email for admin-created booking:", err);
+        }
+      };
+
+      // Ensure notification never blocks or exceeds gateway timeout:
+      // Give it up to 2.5s inline; if it takes longer, it continues in background
+      await Promise.race([
+        dispatchNotification(),
+        new Promise((resolve) => setTimeout(resolve, 2500)),
+      ]);
     }
 
     await logActivity(
@@ -336,38 +345,45 @@ export async function PUT(req: Request) {
 
     // Proactive customer notifications
     if (body.notifyClient !== false && updated.email && !updated.email.includes("walkin@")) {
-      try {
-        if (isNowCancelled) {
-          await sendAppointmentNotification({
-            appointment: {
-              ...updated,
-              cancellationReason: updated.cancellationReason,
-            },
-            service,
-            settings: config.settings,
-            settingsMap,
-            type: "CANCELLED",
-          });
-        } else if (isNowRescheduled && hasScheduleChanged) {
-          await sendAppointmentNotification({
-            appointment: updated,
-            service,
-            settings: config.settings,
-            settingsMap,
-            type: "RESCHEDULED",
-          });
-        } else if (isNowConfirmed) {
-          await sendAppointmentNotification({
-            appointment: updated,
-            service,
-            settings: config.settings,
-            settingsMap,
-            type: "CONFIRMATION",
-          });
+      const dispatchUpdateNotification = async () => {
+        try {
+          if (isNowCancelled) {
+            await sendAppointmentNotification({
+              appointment: {
+                ...updated,
+                cancellationReason: updated.cancellationReason,
+              },
+              service,
+              settings: config.settings,
+              settingsMap,
+              type: "CANCELLED",
+            });
+          } else if (isNowRescheduled && hasScheduleChanged) {
+            await sendAppointmentNotification({
+              appointment: updated,
+              service,
+              settings: config.settings,
+              settingsMap,
+              type: "RESCHEDULED",
+            });
+          } else if (isNowConfirmed) {
+            await sendAppointmentNotification({
+              appointment: updated,
+              service,
+              settings: config.settings,
+              settingsMap,
+              type: "CONFIRMATION",
+            });
+          }
+        } catch (notifyErr) {
+          console.warn("Could not dispatch status update email to customer:", notifyErr);
         }
-      } catch (notifyErr) {
-        console.warn("Could not dispatch status update email to customer:", notifyErr);
-      }
+      };
+
+      await Promise.race([
+        dispatchUpdateNotification(),
+        new Promise((resolve) => setTimeout(resolve, 2500)),
+      ]);
     }
 
     await logActivity(
