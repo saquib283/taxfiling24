@@ -1,30 +1,32 @@
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from "pdf-lib";
 
-// ── Color Palette ──────────────────────────────────────────────────
-const COLORS = {
-  primary: rgb(0.29, 0.33, 0.55),       // Deep indigo
-  primaryLight: rgb(0.42, 0.45, 0.75),   // Lighter indigo
-  accent: rgb(0.35, 0.45, 0.92),         // Bright indigo-blue
-  dark: rgb(0.08, 0.09, 0.16),           // Near-black
-  text: rgb(0.15, 0.16, 0.22),           // Body text
-  muted: rgb(0.45, 0.47, 0.55),          // Muted gray
-  light: rgb(0.65, 0.67, 0.72),          // Lighter muted
+// ── Corporate Clean Color Palette (No Dark Fills) ──────────────────
+const C = {
+  primary: rgb(0.12, 0.22, 0.36),        // Deep Slate Navy
+  primaryLight: rgb(0.24, 0.38, 0.58),   // Soft Slate
+  accent: rgb(0.16, 0.44, 0.82),         // CA Professional Blue
+  textDark: rgb(0.12, 0.16, 0.24),       // Near-black text
+  textBody: rgb(0.26, 0.32, 0.42),       // Readable body
+  textMuted: rgb(0.48, 0.54, 0.64),      // Subtle text
+  textLight: rgb(0.62, 0.68, 0.76),      // Light text
   white: rgb(1, 1, 1),
-  bgLight: rgb(0.96, 0.965, 0.98),       // Light background fill
-  bgAccent: rgb(0.93, 0.94, 0.98),       // Accent background fill
-  border: rgb(0.85, 0.86, 0.9),          // Border lines
-  success: rgb(0.13, 0.58, 0.34),        // Green
-  danger: rgb(0.78, 0.17, 0.22),         // Red
-  gold: rgb(0.72, 0.58, 0.18),           // Gold accent
-  headerBg: rgb(0.07, 0.08, 0.14),       // Dark header background
-  stripeBg: rgb(0.97, 0.975, 0.99),      // Alternating row
+  bgLight: rgb(0.97, 0.98, 0.99),        // Light table header
+  bgCard: rgb(0.985, 0.99, 1),           // Light card fill
+  border: rgb(0.86, 0.89, 0.93),         // Subtle border
+  borderStrong: rgb(0.72, 0.78, 0.86),   // Stronger separator
+  success: rgb(0.08, 0.52, 0.32),        // Emerald
+  successBg: rgb(0.94, 0.98, 0.95),      // Soft emerald tint
+  successBorder: rgb(0.70, 0.88, 0.76),  // Emerald border
+  danger: rgb(0.78, 0.17, 0.22),
+  dangerBg: rgb(0.99, 0.94, 0.94),
+  stripeBg: rgb(0.985, 0.988, 0.995),    // Table alternating row
+  accentBar: rgb(0.16, 0.44, 0.82),
 };
 
-// ── Page dimensions ────────────────────────────────────────────────
-const PAGE_W = 595.28;  // A4
+const PAGE_W = 595.28;
 const PAGE_H = 841.89;
-const MARGIN_L = 48;
-const MARGIN_R = 48;
+const MARGIN_L = 44;
+const MARGIN_R = 44;
 const CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R;
 
 interface TaxReportData {
@@ -66,22 +68,33 @@ interface TaxReportData {
   };
 }
 
-// ── Helpers ────────────────────────────────────────────────────────
+// ── Text sanitizer: Replaces non-WinAnsi characters to prevent pdf-lib crash ──
+function clean(str: string | number | undefined | null): string {
+  if (str === undefined || str === null) return "";
+  return String(str)
+    .replace(/₹/g, "Rs. ")
+    .replace(/[—–]/g, "-")
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    .replace(/[^\x20-\x7E]/g, " ")
+    .trim();
+}
+
 function formatINR(val: number): string {
   const formatted = new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
-  }).format(val);
+  }).format(Math.round(val));
   return `Rs. ${formatted}`;
 }
 
 function ageLabel(group: string): string {
   if (group === "senior") return "Senior Citizen (60-80)";
-  if (group === "super-senior") return "Super Senior Citizen (80+)";
+  if (group === "super-senior") return "Super Senior (80+)";
   return "Individual (Below 60)";
 }
 
 // ── Draw helpers ───────────────────────────────────────────────────
-function drawLine(page: PDFPage, y: number, color = COLORS.border, thickness = 0.5) {
+function drawLine(page: PDFPage, y: number, color = C.border, thickness = 0.5) {
   page.drawLine({
     start: { x: MARGIN_L, y },
     end: { x: PAGE_W - MARGIN_R, y },
@@ -94,81 +107,108 @@ function drawRect(page: PDFPage, x: number, y: number, w: number, h: number, col
   page.drawRectangle({ x, y, width: w, height: h, color });
 }
 
-function drawRoundedRect(page: PDFPage, x: number, y: number, w: number, h: number, color: ReturnType<typeof rgb>, borderColor?: ReturnType<typeof rgb>) {
-  page.drawRectangle({ x, y, width: w, height: h, color, borderColor, borderWidth: borderColor ? 0.5 : 0 });
+function drawBorderedBox(
+  page: PDFPage,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  bg: ReturnType<typeof rgb>,
+  border: ReturnType<typeof rgb>
+) {
+  page.drawRectangle({
+    x,
+    y,
+    width: w,
+    height: h,
+    color: bg,
+    borderColor: border,
+    borderWidth: 0.75,
+  });
 }
 
-function textRight(page: PDFPage, text: string, y: number, font: PDFFont, size: number, color: ReturnType<typeof rgb>) {
-  const tw = font.widthOfTextAtSize(text, size);
-  page.drawText(text, { x: PAGE_W - MARGIN_R - tw, y, size, font, color });
-}
-
-function textCenter(page: PDFPage, text: string, y: number, font: PDFFont, size: number, color: ReturnType<typeof rgb>) {
-  const tw = font.widthOfTextAtSize(text, size);
-  page.drawText(text, { x: (PAGE_W - tw) / 2, y, size, font, color });
-}
-
-// ── Section Header ─────────────────────────────────────────────────
 function drawSectionHeader(page: PDFPage, title: string, y: number, fontBold: PDFFont): number {
-  // Accent bar
-  drawRect(page, MARGIN_L, y - 2, 3, 14, COLORS.accent);
-  page.drawText(title.toUpperCase(), { x: MARGIN_L + 12, y, size: 8.5, font: fontBold, color: COLORS.primary });
-  return y - 24;
+  drawRect(page, MARGIN_L, y - 2, 3, 13, C.accent);
+  page.drawText(clean(title.toUpperCase()), {
+    x: MARGIN_L + 10,
+    y,
+    size: 8.5,
+    font: fontBold,
+    color: C.primary,
+  });
+  return y - 22;
 }
 
-// ── Table row ──────────────────────────────────────────────────────
 function drawTableRow(
-  page: PDFPage, label: string, val1: string, val2: string, y: number,
-  font: PDFFont, fontBold: PDFFont, isHeader = false, isTotal = false, isStriped = false
+  page: PDFPage,
+  label: string,
+  val1: string,
+  val2: string,
+  y: number,
+  font: PDFFont,
+  fontBold: PDFFont,
+  isHeader = false,
+  isTotal = false,
+  isStriped = false
 ): number {
-  const rowH = isHeader ? 22 : 18;
+  const rowH = isHeader ? 20 : 18;
   const colLabel = MARGIN_L + 8;
   const colMid = MARGIN_L + CONTENT_W * 0.55;
   const colRight = PAGE_W - MARGIN_R - 8;
 
   if (isHeader) {
-    drawRect(page, MARGIN_L, y - 4, CONTENT_W, rowH, COLORS.headerBg);
-    page.drawText(label, { x: colLabel, y: y + 3, size: 7, font: fontBold, color: COLORS.white });
-    const tw1 = fontBold.widthOfTextAtSize(val1, 7);
-    page.drawText(val1, { x: colMid - tw1, y: y + 3, size: 7, font: fontBold, color: COLORS.white });
-    const tw2 = fontBold.widthOfTextAtSize(val2, 7);
-    page.drawText(val2, { x: colRight - tw2, y: y + 3, size: 7, font: fontBold, color: COLORS.white });
-    return y - rowH - 1;
+    drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.bgLight, C.border);
+    page.drawText(clean(label), { x: colLabel, y: y + 2, size: 7.2, font: fontBold, color: C.primary });
+    const tw1 = fontBold.widthOfTextAtSize(clean(val1), 7.2);
+    page.drawText(clean(val1), { x: colMid - tw1, y: y + 2, size: 7.2, font: fontBold, color: C.primary });
+    const tw2 = fontBold.widthOfTextAtSize(clean(val2), 7.2);
+    page.drawText(clean(val2), { x: colRight - tw2, y: y + 2, size: 7.2, font: fontBold, color: C.primary });
+    return y - rowH - 2;
   }
 
   if (isStriped) {
-    drawRect(page, MARGIN_L, y - 4, CONTENT_W, rowH, COLORS.stripeBg);
+    drawRect(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.stripeBg);
   }
 
   if (isTotal) {
-    drawRect(page, MARGIN_L, y - 4, CONTENT_W, rowH, COLORS.bgAccent);
-    drawLine(page, y + rowH - 4, COLORS.primary, 1);
+    drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.bgCard, C.borderStrong);
   }
 
   const usedFont = isTotal ? fontBold : font;
-  const usedColor = isTotal ? COLORS.primary : COLORS.text;
-  const fontSize = isTotal ? 8.5 : 8;
+  const usedColor = isTotal ? C.primary : C.textDark;
+  const fontSize = isTotal ? 8.5 : 7.8;
 
-  page.drawText(label, { x: colLabel, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
-  const tw1 = usedFont.widthOfTextAtSize(val1, fontSize);
-  page.drawText(val1, { x: colMid - tw1, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
-  const tw2 = usedFont.widthOfTextAtSize(val2, fontSize);
-  page.drawText(val2, { x: colRight - tw2, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
+  page.drawText(clean(label), { x: colLabel, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
+  const cVal1 = clean(val1);
+  const tw1 = usedFont.widthOfTextAtSize(cVal1, fontSize);
+  page.drawText(cVal1, { x: colMid - tw1, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
+
+  const cVal2 = clean(val2);
+  const tw2 = usedFont.widthOfTextAtSize(cVal2, fontSize);
+  page.drawText(cVal2, { x: colRight - tw2, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
 
   return y - rowH;
 }
 
-// ── Key-Value row (for single-column detail) ───────────────────────
-function drawKVRow(page: PDFPage, label: string, value: string, y: number, font: PDFFont, fontBold: PDFFont, isStriped = false): number {
-  if (isStriped) drawRect(page, MARGIN_L, y - 4, CONTENT_W, 18, COLORS.stripeBg);
-  page.drawText(label, { x: MARGIN_L + 8, y: y + 2, size: 8, font, color: COLORS.text });
-  const tw = fontBold.widthOfTextAtSize(value, 8);
-  page.drawText(value, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8, font: fontBold, color: COLORS.text });
+function drawKVRow(
+  page: PDFPage,
+  label: string,
+  value: string,
+  y: number,
+  font: PDFFont,
+  fontBold: PDFFont,
+  isStriped = false
+): number {
+  if (isStriped) drawRect(page, MARGIN_L, y - 4, CONTENT_W, 18, C.stripeBg);
+  page.drawText(clean(label), { x: MARGIN_L + 8, y: y + 2, size: 8, font, color: C.textDark });
+  const cleanedVal = clean(value);
+  const tw = fontBold.widthOfTextAtSize(cleanedVal, 8);
+  page.drawText(cleanedVal, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8, font: fontBold, color: C.textDark });
   return y - 18;
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// Main PDF Generation
+// Main Clean Income Tax PDF Builder
 // ══════════════════════════════════════════════════════════════════════
 export async function generateTaxReportPdf(data: TaxReportData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -179,78 +219,92 @@ export async function generateTaxReportPdf(data: TaxReportData): Promise<Uint8Ar
   let page = doc.addPage([PAGE_W, PAGE_H]);
   let y = PAGE_H;
 
-  const addPageIfNeeded = (needed: number) => {
-    if (y - needed < 50) {
-      // Draw footer bar on bottom of current page before flipping
-      drawRect(page, 0, 0, PAGE_W, 28, COLORS.headerBg);
-      page.drawText("Generated by TaxFiling24", { x: MARGIN_L, y: 10, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.7) });
-      const urlText = "www.taxfiling24.com";
-      const uTw = fontRegular.widthOfTextAtSize(urlText, 7);
-      page.drawText(urlText, { x: PAGE_W - MARGIN_R - uTw, y: 10, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.7) });
+  const drawPageFooter = (p: PDFPage, pageNum: number, total: number) => {
+    drawLine(p, 36, C.border, 0.5);
+    p.drawText("TaxFiling24 - Chartered Tax Practice", { x: MARGIN_L, y: 22, size: 7, font: fontBold, color: C.textMuted });
+    const disclaimer = "Computer-generated tax estimation. Consult a CA before filing.";
+    p.drawText(disclaimer, { x: MARGIN_L, y: 12, size: 6, font: fontItalic, color: C.textLight });
 
+    const pgText = `Page ${pageNum} of ${total}`;
+    const pgW = fontRegular.widthOfTextAtSize(pgText, 7);
+    p.drawText(pgText, { x: PAGE_W - MARGIN_R - pgW, y: 22, size: 7, font: fontRegular, color: C.textMuted });
+    const urlText = "www.taxfiling24.com";
+    const uW = fontRegular.widthOfTextAtSize(urlText, 6.5);
+    p.drawText(urlText, { x: PAGE_W - MARGIN_R - uW, y: 12, size: 6.5, font: fontRegular, color: C.accent });
+  };
+
+  const addPageIfNeeded = (needed: number) => {
+    if (y - needed < 70) {
       page = doc.addPage([PAGE_W, PAGE_H]);
-      y = PAGE_H - 40;
+      y = PAGE_H - 44;
     }
   };
 
-  // ═══════════════════════════════════════════════════════════════════
-  // HEADER BANNER
-  // ═══════════════════════════════════════════════════════════════════
-  const headerH = 88;
-  drawRect(page, 0, PAGE_H - headerH, PAGE_W, headerH, COLORS.headerBg);
-  // Subtle accent stripe at bottom of header
-  drawRect(page, 0, PAGE_H - headerH, PAGE_W, 3, COLORS.accent);
+  // ─────────────────────────────────────────────────────────────────
+  // TOP ACCENT BRAND BAR
+  // ─────────────────────────────────────────────────────────────────
+  drawRect(page, 0, PAGE_H - 4, PAGE_W, 4, C.accentBar);
 
-  // Brand name
-  page.drawText("TaxFiling24", { x: MARGIN_L, y: PAGE_H - 36, size: 18, font: fontBold, color: COLORS.white });
-  page.drawText("Income Tax Computation Report", { x: MARGIN_L, y: PAGE_H - 54, size: 10, font: fontRegular, color: rgb(0.65, 0.7, 0.85) });
+  // ─────────────────────────────────────────────────────────────────
+  // HEADER (Pure Clean White Paper Letterhead)
+  // ─────────────────────────────────────────────────────────────────
+  y = PAGE_H - 38;
+  page.drawText("TaxFiling24", { x: MARGIN_L, y, size: 18, font: fontBold, color: C.primary });
+  const brandSub = "INCOME TAX COMPUTATION & REGIME ANALYSIS";
+  page.drawText(brandSub, { x: MARGIN_L, y: y - 14, size: 8, font: fontBold, color: C.accent });
 
-  // Right side: FY + AY + Date
-  const fyText = `FY ${data.financialYear}`;
-  const ayText = `AY ${data.assessmentYear}`;
-  const dateText = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  // FY & AY on Right
+  const fyText = `FY ${data.financialYear} | AY ${data.assessmentYear}`;
+  const dateStr = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const refCode = `REF-ITR-${Date.now().toString().slice(-6)}`;
 
-  let tw = fontBold.widthOfTextAtSize(fyText, 12);
-  page.drawText(fyText, { x: PAGE_W - MARGIN_R - tw, y: PAGE_H - 34, size: 12, font: fontBold, color: COLORS.white });
-  tw = fontRegular.widthOfTextAtSize(ayText, 8);
-  page.drawText(ayText, { x: PAGE_W - MARGIN_R - tw, y: PAGE_H - 48, size: 8, font: fontRegular, color: rgb(0.55, 0.6, 0.75) });
-  tw = fontRegular.widthOfTextAtSize(dateText, 7);
-  page.drawText(dateText, { x: PAGE_W - MARGIN_R - tw, y: PAGE_H - 62, size: 7, font: fontRegular, color: rgb(0.45, 0.5, 0.65) });
+  let tw = fontBold.widthOfTextAtSize(fyText, 9.5);
+  page.drawText(fyText, { x: PAGE_W - MARGIN_R - tw, y, size: 9.5, font: fontBold, color: C.primary });
 
-  y = PAGE_H - headerH - 18;
+  const dateLine = `Generated: ${dateStr}`;
+  tw = fontRegular.widthOfTextAtSize(dateLine, 7.5);
+  page.drawText(dateLine, { x: PAGE_W - MARGIN_R - tw, y: y - 12, size: 7.5, font: fontRegular, color: C.textMuted });
 
-  // ═══════════════════════════════════════════════════════════════════
-  // ASSESSMENT DETAILS STRIP
-  // ═══════════════════════════════════════════════════════════════════
-  drawRect(page, MARGIN_L, y - 12, CONTENT_W, 28, COLORS.bgLight);
-  drawLine(page, y - 12, COLORS.border, 0.5);
+  tw = fontRegular.widthOfTextAtSize(refCode, 7);
+  page.drawText(refCode, { x: PAGE_W - MARGIN_R - tw, y: y - 22, size: 7, font: fontRegular, color: C.textLight });
+
+  y -= 34;
+  drawLine(page, y, C.border, 0.75);
+  y -= 16;
+
+  // ─────────────────────────────────────────────────────────────────
+  // ASSESSMENT DETAILS STRIP (Light subtle container)
+  // ─────────────────────────────────────────────────────────────────
+  drawBorderedBox(page, MARGIN_L, y - 16, CONTENT_W, 26, C.bgLight, C.border);
 
   const detailItems = [
     { label: "Category:", value: ageLabel(data.ageGroup) },
     { label: "Status:", value: "Individual / HUF" },
-    { label: "Regime:", value: `${data.results.better} (Recommended)` },
+    { label: "Recommended:", value: `${data.results.better} (Saves ${formatINR(data.results.savings)})` },
   ];
 
   let detailX = MARGIN_L + 10;
   detailItems.forEach((item) => {
-    page.drawText(item.label, { x: detailX, y: y - 3, size: 6.5, font: fontRegular, color: COLORS.muted });
-    detailX += fontRegular.widthOfTextAtSize(item.label, 6.5) + 3;
-    page.drawText(item.value, { x: detailX, y: y - 3, size: 7, font: fontBold, color: COLORS.text });
-    detailX += fontBold.widthOfTextAtSize(item.value, 7) + 24;
+    const lClean = clean(item.label);
+    const vClean = clean(item.value);
+    page.drawText(lClean, { x: detailX, y: y - 7, size: 7, font: fontRegular, color: C.textMuted });
+    detailX += fontRegular.widthOfTextAtSize(lClean, 7) + 3;
+    page.drawText(vClean, { x: detailX, y: y - 7, size: 7.2, font: fontBold, color: C.primary });
+    detailX += fontBold.widthOfTextAtSize(vClean, 7.2) + 20;
   });
 
-  y -= 42;
+  y -= 34;
 
-  // ═══════════════════════════════════════════════════════════════════
+  // ─────────────────────────────────────────────────────────────────
   // SECTION 1: GROSS TOTAL INCOME
-  // ═══════════════════════════════════════════════════════════════════
-  addPageIfNeeded(120);
-  y = drawSectionHeader(page, "Gross Total Income", y, fontBold);
+  // ─────────────────────────────────────────────────────────────────
+  addPageIfNeeded(110);
+  y = drawSectionHeader(page, "Gross Total Income Breakdown", y, fontBold);
 
   const incomeItems: [string, number][] = [
     ["Salary / Pension Income", data.salary],
     ["Net Rental Income (after 30% std deduction)", data.rentalIncome * 0.7],
-    ["Interest / Other Income", data.otherIncome],
+    ["Interest & Other Income", data.otherIncome],
     ["Professional / Business Income (Net)", Math.max(0, data.professionalIncome - data.businessExpenses)],
   ];
 
@@ -259,101 +313,119 @@ export async function generateTaxReportPdf(data: TaxReportData): Promise<Uint8Ar
     y = drawKVRow(page, label, formatINR(val), y, fontRegular, fontBold, i % 2 === 1);
   });
 
-  // GTI total bar
-  addPageIfNeeded(30);
-  drawRect(page, MARGIN_L, y - 4, CONTENT_W, 22, COLORS.bgAccent);
-  page.drawText("Gross Total Income", { x: MARGIN_L + 8, y: y + 3, size: 9, font: fontBold, color: COLORS.primary });
+  // GTI Total Bar
+  addPageIfNeeded(24);
+  drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, 20, C.bgCard, C.border);
+  page.drawText("Gross Total Income (GTI)", {
+    x: MARGIN_L + 8,
+    y: y + 2,
+    size: 8,
+    font: fontBold,
+    color: C.primary,
+  });
   const gtiStr = formatINR(data.results.grossTotalIncome);
-  tw = fontBold.widthOfTextAtSize(gtiStr, 10);
-  page.drawText(gtiStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 10, font: fontBold, color: COLORS.primary });
-  y -= 32;
+  tw = fontBold.widthOfTextAtSize(gtiStr, 8.5);
+  page.drawText(gtiStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8.5, font: fontBold, color: C.primary });
+  y -= 28;
 
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 2: DEDUCTIONS (Old Regime)
-  // ═══════════════════════════════════════════════════════════════════
-  addPageIfNeeded(120);
-  y = drawSectionHeader(page, "Deductions Under Old Regime", y, fontBold);
+  // ─────────────────────────────────────────────────────────────────
+  // SECTION 2: DEDUCTIONS (Old Regime Chapter VI-A)
+  // ─────────────────────────────────────────────────────────────────
+  addPageIfNeeded(110);
+  y = drawSectionHeader(page, "Eligible Deductions (Old Regime)", y, fontBold);
 
   const deductionItems: [string, number][] = [
     ["Standard Deduction (u/s 16)", 50000],
     ["Section 80C (PPF, ELSS, EPF, LIC)", Math.min(data.deduction80C, 150000)],
-    ["Section 80D — Self Health Insurance", Math.min(data.deduction80D, 25000)],
-    ["Section 80D — Parents Health Insurance", Math.min(data.deduction80D_Parents, 50000)],
-    ["Section 80CCD(1B) — NPS", Math.min(data.deductionNPS, 50000)],
-    ["Section 24(b) — Home Loan Interest", Math.min(data.homeLoanInterest, 200000)],
+    ["Section 80D - Self Health Insurance", Math.min(data.deduction80D, 25000)],
+    ["Section 80D - Parents Health Insurance", Math.min(data.deduction80D_Parents, 50000)],
+    ["Section 80CCD(1B) - NPS", Math.min(data.deductionNPS, 50000)],
+    ["Section 24(b) - Home Loan Interest", Math.min(data.homeLoanInterest, 200000)],
     ["HRA Exemption (u/s 10)", data.hra],
-    ["Other Deductions (80G, 80E, 80TTA, etc.)", data.otherDeductions],
+    ["Other Chapter VI-A (80G, 80E, 80TTA, etc.)", data.otherDeductions],
   ];
 
+  let hasDeductions = false;
   deductionItems.forEach(([label, val], i) => {
     if (val > 0) {
+      hasDeductions = true;
       addPageIfNeeded(20);
       y = drawKVRow(page, label, formatINR(val), y, fontRegular, fontBold, i % 2 === 1);
     }
   });
 
-  // Total deductions bar
-  addPageIfNeeded(30);
-  drawRect(page, MARGIN_L, y - 4, CONTENT_W, 22, COLORS.bgAccent);
-  page.drawText("Total Deductions", { x: MARGIN_L + 8, y: y + 3, size: 9, font: fontBold, color: COLORS.primary });
-  const tdStr = formatINR(data.results.totalDeductions);
-  tw = fontBold.widthOfTextAtSize(tdStr, 10);
-  page.drawText(tdStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 10, font: fontBold, color: COLORS.primary });
-  y -= 32;
+  if (!hasDeductions) {
+    y = drawKVRow(page, "No optional Chapter VI-A deductions claimed", formatINR(0), y, fontRegular, fontBold);
+  }
 
-  // ═══════════════════════════════════════════════════════════════════
+  // Total Deductions Bar
+  addPageIfNeeded(24);
+  drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, 20, C.bgCard, C.border);
+  page.drawText("Total Deductions (Old Regime)", {
+    x: MARGIN_L + 8,
+    y: y + 2,
+    size: 8,
+    font: fontBold,
+    color: C.primary,
+  });
+  const tdStr = formatINR(data.results.totalDeductions);
+  tw = fontBold.widthOfTextAtSize(tdStr, 8.5);
+  page.drawText(tdStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8.5, font: fontBold, color: C.primary });
+  y -= 28;
+
+  // ─────────────────────────────────────────────────────────────────
   // SECTION 3: REGIME COMPARISON TABLE
-  // ═══════════════════════════════════════════════════════════════════
-  addPageIfNeeded(160);
-  y = drawSectionHeader(page, "Tax Computation — Regime Comparison", y, fontBold);
+  // ─────────────────────────────────────────────────────────────────
+  addPageIfNeeded(150);
+  y = drawSectionHeader(page, "Tax Computation - Regime Comparison", y, fontBold);
 
   // Table header
   y = drawTableRow(page, "Particulars", "Old Regime", "New Regime", y, fontRegular, fontBold, true);
 
-  // Table rows
+  // Base rows
+  const stdDedNew = data.financialYear === "2024-25" ? 75000 : 75000;
   const compRows: [string, string, string, boolean][] = [
     ["Gross Total Income", formatINR(data.results.grossTotalIncome), formatINR(data.results.grossTotalIncome), false],
-    ["Less: Total Deductions", `(${formatINR(data.results.totalDeductions)})`, `(${formatINR(75000)} Std Ded)`, true],
+    ["Less: Total Deductions", `(${formatINR(data.results.totalDeductions)})`, `(${formatINR(stdDedNew)} Std Ded)`, true],
     ["Net Taxable Income", formatINR(data.results.taxableOld), formatINR(data.results.taxableNew), false],
   ];
 
-  compRows.forEach(([label, v1, v2, striped], _i) => {
+  compRows.forEach(([label, v1, v2, striped]) => {
     addPageIfNeeded(20);
     y = drawTableRow(page, label, v1, v2, y, fontRegular, fontBold, false, false, striped);
   });
 
-  // Separator
-  drawLine(page, y + 16, COLORS.border, 0.3);
-
-  // Slab-wise breakdown header
+  // Slab Breakdown Subtitle
   y -= 4;
-  page.drawText("Slab-wise Tax Computation", { x: MARGIN_L + 8, y: y + 2, size: 7, font: fontItalic, color: COLORS.muted });
+  page.drawText("Slab-wise Tax Computation:", { x: MARGIN_L + 8, y: y + 2, size: 7, font: fontItalic, color: C.textMuted });
   y -= 14;
 
-  // Old regime slabs
-  const maxSlabs = Math.max(data.results.breakdownOld.length, data.results.breakdownNew.length);
+  const maxSlabs = Math.max(data.results.breakdownOld?.length || 0, data.results.breakdownNew?.length || 0);
   for (let i = 0; i < maxSlabs; i++) {
     addPageIfNeeded(20);
-    const oldSlab = data.results.breakdownOld[i];
-    const newSlab = data.results.breakdownNew[i];
+    const oldSlab = data.results.breakdownOld?.[i];
+    const newSlab = data.results.breakdownNew?.[i];
     y = drawTableRow(
       page,
       oldSlab?.slab || newSlab?.slab || "",
-      oldSlab ? formatINR(oldSlab.tax) : "—",
-      newSlab ? formatINR(newSlab.tax) : "—",
-      y, fontRegular, fontBold, false, false, i % 2 === 1
+      oldSlab ? formatINR(oldSlab.tax) : "Rs. 0",
+      newSlab ? formatINR(newSlab.tax) : "Rs. 0",
+      y,
+      fontRegular,
+      fontBold,
+      false,
+      false,
+      i % 2 === 1
     );
   }
 
-  // Subtotals
-  addPageIfNeeded(50);
-  y -= 2;
-  y = drawTableRow(page, "Tax Before Cess", formatINR(data.results.oldTax / 1.04), formatINR(data.results.newTax / 1.04), y, fontRegular, fontBold, false, false, false);
-  y = drawTableRow(page, "Health & Education Cess (4%)", formatINR(data.results.oldTax - data.results.oldTax / 1.04), formatINR(data.results.newTax - data.results.newTax / 1.04), y, fontRegular, fontBold, false, false, true);
+  // Cess & Surcharge Rows
+  addPageIfNeeded(40);
+  y = drawTableRow(page, "Health & Education Cess (4%)", formatINR(data.results.oldTax - data.results.oldTax / 1.04), formatINR(data.results.newTax - data.results.newTax / 1.04), y, fontRegular, fontBold, false, false, false);
 
   if (data.results.surchargeOld > 0 || data.results.surchargeNew > 0) {
     addPageIfNeeded(20);
-    y = drawTableRow(page, "Surcharge", formatINR(data.results.surchargeOld), formatINR(data.results.surchargeNew), y, fontRegular, fontBold, false, false, false);
+    y = drawTableRow(page, "Surcharge", formatINR(data.results.surchargeOld), formatINR(data.results.surchargeNew), y, fontRegular, fontBold, false, false, true);
   }
 
   if (data.results.capitalGainsTax > 0) {
@@ -361,119 +433,66 @@ export async function generateTaxReportPdf(data: TaxReportData): Promise<Uint8Ar
     y = drawTableRow(page, "Capital Gains Tax (incl. in above)", formatINR(data.results.capitalGainsTax), formatINR(data.results.capitalGainsTax), y, fontRegular, fontBold, false, false, true);
   }
 
-  // Total row
-  addPageIfNeeded(30);
+  // Total Tax Liability Row
+  addPageIfNeeded(26);
   y -= 2;
   y = drawTableRow(page, "Total Tax Liability (incl. Cess)", formatINR(data.results.oldTax), formatINR(data.results.newTax), y, fontRegular, fontBold, false, true);
 
-  // Savings highlight box
-  addPageIfNeeded(50);
-  y -= 8;
-  const savingsH = 34;
-  drawRect(page, MARGIN_L, y - savingsH + 16, CONTENT_W, savingsH, COLORS.primary);
+  // Recommendation & Savings Box (Clean Light Emerald Card)
+  addPageIfNeeded(46);
+  y -= 6;
+  const savH = 34;
+  drawBorderedBox(page, MARGIN_L, y - savH + 16, CONTENT_W, savH, C.successBg, C.successBorder);
+
   const recText = `${data.results.better} saves you ${formatINR(data.results.savings)}`;
-  const recW = fontBold.widthOfTextAtSize(recText, 11);
-  page.drawText(recText, { x: (PAGE_W - recW) / 2, y: y - 4, size: 11, font: fontBold, color: COLORS.white });
-  const subRecText = "Recommended regime based on your income and deduction profile";
-  const subRecW = fontRegular.widthOfTextAtSize(subRecText, 7);
-  page.drawText(subRecText, { x: (PAGE_W - subRecW) / 2, y: y - 16, size: 7, font: fontRegular, color: rgb(0.78, 0.82, 0.95) });
-  y -= savingsH + 14;
+  const recW = fontBold.widthOfTextAtSize(clean(recText), 10.5);
+  page.drawText(clean(recText), { x: (PAGE_W - recW) / 2, y: y - 3, size: 10.5, font: fontBold, color: C.success });
 
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 4: COMPLIANCE & INTEREST (if applicable)
-  // ═══════════════════════════════════════════════════════════════════
-  if (data.results.interest234A > 0 || data.results.interest234B > 0) {
+  const subRecText = "Recommended optimal regime based on your declared deductions profile";
+  const subRecW = fontRegular.widthOfTextAtSize(clean(subRecText), 7);
+  page.drawText(clean(subRecText), { x: (PAGE_W - subRecW) / 2, y: y - 15, size: 7, font: fontRegular, color: C.textBody });
+  y -= savH + 16;
+
+  // ─────────────────────────────────────────────────────────────────
+  // SECTION 4: ADVANCE TAX SCHEDULE
+  // ─────────────────────────────────────────────────────────────────
+  if (data.results.advanceTax) {
     addPageIfNeeded(110);
-    y = drawSectionHeader(page, "Interest on Delayed Payment (Sec 234)", y, fontBold);
+    y = drawSectionHeader(page, "Advance Tax Installment Schedule", y, fontBold);
 
-    if (data.results.interest234A > 0) {
-      addPageIfNeeded(20);
-      y = drawKVRow(page, "Interest u/s 234A — Return Filing Delay", formatINR(data.results.interest234A), y, fontRegular, fontBold);
-    }
-    if (data.results.interest234B > 0) {
-      addPageIfNeeded(20);
-      y = drawKVRow(page, "Interest u/s 234B — Advance Tax Shortfall", formatINR(data.results.interest234B), y, fontRegular, fontBold, true);
-    }
+    const advTax = data.results.advanceTax;
+    const installments: [string, string, number][] = [
+      ["15th June", "15% of Cumulative Tax Liability", advTax.june],
+      ["15th September", "45% of Cumulative Tax Liability", advTax.sept],
+      ["15th December", "75% of Cumulative Tax Liability", advTax.dec],
+      ["15th March", "100% of Cumulative Tax Liability", advTax.march],
+    ];
 
-    // Total payable
-    addPageIfNeeded(30);
-    drawRect(page, MARGIN_L, y - 4, CONTENT_W, 22, COLORS.bgAccent);
-    page.drawText("Total Tax + Interest Payable", { x: MARGIN_L + 8, y: y + 3, size: 9, font: fontBold, color: COLORS.danger });
-    const tpStr = formatINR(data.results.totalPayable);
-    tw = fontBold.widthOfTextAtSize(tpStr, 10);
-    page.drawText(tpStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 10, font: fontBold, color: COLORS.danger });
-    y -= 32;
+    drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, 18, C.bgLight, C.border);
+    page.drawText("Due Date", { x: MARGIN_L + 8, y: y + 2, size: 7, font: fontBold, color: C.primary });
+    page.drawText("Description", { x: MARGIN_L + 120, y: y + 2, size: 7, font: fontBold, color: C.primary });
+    const amtLbl = "Amount";
+    tw = fontBold.widthOfTextAtSize(amtLbl, 7);
+    page.drawText(amtLbl, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 7, font: fontBold, color: C.primary });
+    y -= 20;
+
+    installments.forEach(([date, desc, amt], i) => {
+      addPageIfNeeded(20);
+      if (i % 2 === 1) drawRect(page, MARGIN_L, y - 4, CONTENT_W, 18, C.stripeBg);
+      page.drawText(clean(date), { x: MARGIN_L + 8, y: y + 2, size: 7.8, font: fontBold, color: C.textDark });
+      page.drawText(clean(desc), { x: MARGIN_L + 120, y: y + 2, size: 7.5, font: fontRegular, color: C.textMuted });
+      const amtStr = formatINR(amt);
+      tw = fontBold.widthOfTextAtSize(amtStr, 7.8);
+      page.drawText(amtStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 7.8, font: fontBold, color: C.textDark });
+      y -= 18;
+    });
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 5: ADVANCE TAX SCHEDULE
-  // ═══════════════════════════════════════════════════════════════════
-  addPageIfNeeded(130);
-  y = drawSectionHeader(page, "Advance Tax Installment Schedule", y, fontBold);
-
-  const advTax = data.results.advanceTax;
-  const installments: [string, string, number][] = [
-    ["15th June", "15% of Total Tax", advTax.june],
-    ["15th September", "45% of Total Tax (Cumulative)", advTax.sept],
-    ["15th December", "75% of Total Tax (Cumulative)", advTax.dec],
-    ["15th March", "100% of Total Tax (Cumulative)", advTax.march],
-  ];
-
-  // Header
-  drawRect(page, MARGIN_L, y - 4, CONTENT_W, 20, COLORS.headerBg);
-  page.drawText("Due Date", { x: MARGIN_L + 8, y: y + 2, size: 7, font: fontBold, color: COLORS.white });
-  page.drawText("Description", { x: MARGIN_L + 130, y: y + 2, size: 7, font: fontBold, color: COLORS.white });
-  const amtLabel = "Amount";
-  tw = fontBold.widthOfTextAtSize(amtLabel, 7);
-  page.drawText(amtLabel, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 7, font: fontBold, color: COLORS.white });
-  y -= 22;
-
-  installments.forEach(([date, desc, amt], i) => {
-    addPageIfNeeded(20);
-    if (i % 2 === 1) drawRect(page, MARGIN_L, y - 4, CONTENT_W, 18, COLORS.stripeBg);
-    page.drawText(date, { x: MARGIN_L + 8, y: y + 2, size: 8, font: fontBold, color: COLORS.text });
-    page.drawText(desc, { x: MARGIN_L + 130, y: y + 2, size: 7.5, font: fontRegular, color: COLORS.muted });
-    const amtStr = formatINR(amt);
-    tw = fontBold.widthOfTextAtSize(amtStr, 8);
-    page.drawText(amtStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8, font: fontBold, color: COLORS.text });
-    y -= 18;
-  });
-
-  y -= 12;
-
-  // ═══════════════════════════════════════════════════════════════════
-  // FOOTER
-  // ═══════════════════════════════════════════════════════════════════
-  addPageIfNeeded(80);
-  drawLine(page, y, COLORS.border, 0.5);
-  y -= 14;
-  page.drawText("Disclaimer:", { x: MARGIN_L, y, size: 6.5, font: fontBold, color: COLORS.muted });
-  y -= 11;
-  page.drawText(
-    "This is a computer-generated estimate for informational purposes only. Actual tax liability may differ based on your complete",
-    { x: MARGIN_L, y, size: 6, font: fontItalic, color: COLORS.light }
-  );
-  y -= 9;
-  page.drawText(
-    "financial details and applicable tax laws. Please consult a qualified Chartered Accountant for professional tax advice.",
-    { x: MARGIN_L, y, size: 6, font: fontItalic, color: COLORS.light }
-  );
-  y -= 18;
-
-  // Draw footer bar on active page
-  drawRect(page, 0, 0, PAGE_W, 28, COLORS.headerBg);
-  page.drawText("Generated by TaxFiling24", { x: MARGIN_L, y: 10, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.7) });
-  const urlText = "www.taxfiling24.com";
-  tw = fontRegular.widthOfTextAtSize(urlText, 7);
-  page.drawText(urlText, { x: PAGE_W - MARGIN_R - tw, y: 10, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.7) });
-
-  // Add page numbers across all pages
+  // Stamp all pages with page footers
   const pages = doc.getPages();
   const totalPages = pages.length;
   pages.forEach((p, idx) => {
-    const pgText = `Page ${idx + 1} of ${totalPages}`;
-    const pgW = fontRegular.widthOfTextAtSize(pgText, 6.5);
-    p.drawText(pgText, { x: (PAGE_W - pgW) / 2, y: 10, size: 6.5, font: fontRegular, color: rgb(0.4, 0.45, 0.6) });
+    drawPageFooter(p, idx + 1, totalPages);
   });
 
   return await doc.save();

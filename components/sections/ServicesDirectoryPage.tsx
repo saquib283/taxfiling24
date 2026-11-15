@@ -1,20 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowRight,
   Briefcase,
   Building2,
   ChevronRight,
   ExternalLink,
-  HelpCircle,
   Percent,
   Search,
   SearchCode,
-  SendHorizontal,
   ShieldCheck,
+  X,
 } from "lucide-react";
-import AnimatedSection from "@/components/ui/AnimatedSection";
 import Link from "next/link";
 
 interface DirectoryService {
@@ -34,102 +33,62 @@ const categoryIcons: Record<string, typeof Briefcase> = {
   advisory: Briefcase,
 };
 
-const categoryColors: Record<string, string> = {
-  tax: "from-emerald-400 to-teal-500",
-  gst: "from-blue-400 to-indigo-500",
-  audit: "from-violet-400 to-purple-500",
-  compliance: "from-amber-400 to-orange-500",
-  advisory: "from-rose-400 to-pink-500",
-};
+/* ─── Service Card ─── */
 
 function ServiceCard({
   service,
-  index,
   defaultCategoryLabel,
-  messagePlaceholder,
   exploreButtonText,
-  whatsappUrl,
 }: {
   service: DirectoryService;
-  index: number;
   defaultCategoryLabel: string;
-  messagePlaceholder: string;
   exploreButtonText: string;
-  whatsappUrl?: string;
 }) {
-  const defaultMessage = `Hi TaxFiling24, I am interested in the "${service.title}" service. Please provide more details.`;
-  const [message, setMessage] = useState(defaultMessage);
-
   const categoryKey = service.category?.toLowerCase() || "default";
   const IconComponent = categoryIcons[categoryKey] || Briefcase;
-  const gradient = categoryColors[categoryKey] || "from-slate-400 to-slate-600";
-
-  const handleWhatsApp = () => {
-    if (!whatsappUrl) {
-      return;
-    }
-    const waLink = `${whatsappUrl}?text=${encodeURIComponent(message)}`;
-    window.open(waLink, "_blank");
-  };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.05 }}
-      className="group"
+    <Link
+      href={service.href || `/services/${service.slug || service.id}`}
+      className="group relative flex flex-col bg-white rounded-2xl border border-slate-200/60 transition-all duration-300 hover:border-[var(--primary)]/20 hover:shadow-[0_8px_30px_-12px_rgba(10,37,64,0.15)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:ring-offset-2"
     >
-      <div className="flex h-full flex-col rounded-3xl border border-slate-100 bg-white p-6 transition-all duration-300 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5">
-        <div className="mb-6 flex items-center justify-between">
-          <div className={`rounded-2xl bg-gradient-to-br p-4 text-white shadow-sm ${gradient}`}>
-            <IconComponent size={22} strokeWidth={2.5} />
+      {/* Top color bar */}
+      <div className="h-1 w-0 rounded-t-2xl bg-[var(--primary)] transition-all duration-500 group-hover:w-full" />
+
+      <div className="flex flex-col flex-1 p-6 sm:p-7">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-[var(--primary)] transition-colors duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-[var(--primary)]">
+            <IconComponent className="h-5 w-5" strokeWidth={2} />
           </div>
-          <span className="rounded-lg bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+          <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
             {service.category || defaultCategoryLabel}
           </span>
         </div>
 
-        <div className="flex-1">
-          <h3 className="mb-3 text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-600">
-            {service.title}
-          </h3>
-          <p className="mb-8 line-clamp-3 text-sm leading-relaxed text-slate-500">
-            {service.description}
-          </p>
-        </div>
+        {/* Content */}
+        <h3 className="text-[1.05rem] font-semibold leading-snug text-slate-900 mb-2.5 transition-colors duration-300 group-hover:text-[var(--primary)]">
+          {service.title}
+        </h3>
+        <p className="text-[0.8rem] leading-relaxed text-slate-500 line-clamp-3 flex-1">
+          {service.description}
+        </p>
 
-        <div className="mt-auto space-y-3">
-          <div className="group/wa relative">
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={messagePlaceholder}
-              className="w-full rounded-xl border border-slate-100 bg-slate-50 py-4 pl-5 pr-14 text-xs text-slate-900 outline-none transition-all placeholder:text-slate-300 focus:border-emerald-200 focus:bg-white focus:ring-4 focus:ring-emerald-500/5"
-            />
-            <button
-              onClick={handleWhatsApp}
-              disabled={!whatsappUrl}
-              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-700 active:scale-90"
-              title="Send on WhatsApp"
-            >
-              <SendHorizontal className="h-4 w-4" />
-            </button>
-          </div>
-
-          <Link
-            href={service.href || `/services/${service.slug || service.id}`}
-            className="flex items-center justify-center gap-2 rounded-xl border border-slate-100 bg-white py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all hover:bg-slate-50 hover:text-slate-900 group/btn"
-          >
+        {/* Footer */}
+        <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-xs font-semibold text-slate-900 group-hover:text-[var(--primary)] transition-colors">
             {exploreButtonText}
-            <ChevronRight size={14} className="transition-transform group-hover/btn:translate-x-1" />
-          </Link>
+          </span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:translate-x-0.5">
+            <ArrowRight className="h-3.5 w-3.5" />
+          </div>
         </div>
       </div>
-    </motion.div>
+    </Link>
   );
 }
+
+/* ─── Main Page ─── */
 
 export default function ServicesDirectoryPage({
   services,
@@ -186,15 +145,15 @@ export default function ServicesDirectoryPage({
     { id: "all", name: directoryContent?.allServicesLabel || "All Services" },
     ...uniqueCategories.map((category) => ({ id: category as string, name: category as string })),
   ];
-  const messagePlaceholder = directoryContent?.messagePlaceholder || "Your message...";
-  const exploreButtonText = directoryContent?.exploreButtonText || "Explore Full Service";
+
+  const exploreButtonText = directoryContent?.exploreButtonText || "View details";
   const defaultCategoryLabel = directoryContent?.defaultCategoryLabel || "Consultancy";
-  const noResultsTitle = directoryContent?.noResultsTitle || "Service Not Found";
+  const noResultsTitle = directoryContent?.noResultsTitle || "No matching services";
   const noResultsDescription =
     directoryContent?.noResultsDescription ||
-    "We're expanding our portfolio. Try another keyword or reach out for custom requirements.";
-  const clearFiltersText = directoryContent?.clearFiltersText || "Clear all filters";
-  const searchPlaceholder = directoryContent?.searchPlaceholder || "Search services...";
+    "Try a different keyword or category, or reach out for custom requirements.";
+  const clearFiltersText = directoryContent?.clearFiltersText || "Reset filters";
+  const searchPlaceholder = directoryContent?.searchPlaceholder || "Search services…";
 
   const filteredServices = services.filter((service) => {
     const matchesSearch =
@@ -206,81 +165,138 @@ export default function ServicesDirectoryPage({
 
   const heroStats =
     heroContent?.stats?.filter((item) => item.isVisible !== false && item.label && item.value) || [
-      { id: "trust", label: "Trust", value: "2.5K+" },
-      { id: "speed", label: "Speed", value: "24h" },
-      { id: "accuracy", label: "Accuracy", value: "100%" },
+      { id: "trust", label: "Clients Served", value: "2,500+" },
+      { id: "speed", label: "Avg. Turnaround", value: "24h" },
+      { id: "accuracy", label: "Compliance Rate", value: "100%" },
     ];
 
+  const hasActiveFilters = searchTerm !== "" || selectedCategory !== "all";
+
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[var(--bg)] selection:bg-[var(--primary)]/10">
+    <div className="min-h-screen bg-[var(--bg)]">
       {showHero === false ? <h1 className="sr-only">Services</h1> : null}
+
+      {/* ─── Hero ─── */}
       {showHero !== false ? (
-        <section className="relative overflow-hidden border-b border-slate-100 bg-slate-50/30 pt-12 pb-6 lg:pt-16 lg:pb-8">
-          <div className="container relative mx-auto px-6">
-            <div className="flex flex-col items-center justify-between gap-6 lg:flex-row">
-              <AnimatedSection className="max-w-xl text-center lg:text-left">
-                <h1 className="mb-2 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-                  {heroContent?.titlePrefix || "Specialized"}{" "}
-                  <span className="text-blue-600">{heroContent?.titleHighlight || "Financial"}</span>{" "}
+        <section className="relative bg-[var(--primary)] overflow-hidden border-b border-white/10">
+          {/* Subtle texture */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+              backgroundSize: "24px 24px",
+            }}
+          />
+          {/* Glow */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--accent)]/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
+
+          <div className="container relative mx-auto px-6 py-8 sm:py-10 lg:py-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="max-w-2xl">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight mb-2.5">
+                  {heroContent?.titlePrefix || "Professional"}{" "}
+                  <span className="text-[var(--accent)]">
+                    {heroContent?.titleHighlight || "Tax & Compliance"}
+                  </span>{" "}
                   Services
                 </h1>
-                <p className="mx-auto max-w-lg text-sm text-slate-500 lg:mx-0">
+                <p className="text-sm sm:text-base text-white/60 max-w-xl leading-relaxed">
                   {heroContent?.description ||
-                    "Professional solutions for business scaling and regulatory compliance."}
+                    "End-to-end solutions for business registration, taxation, audit, and regulatory compliance across India."}
                 </p>
-              </AnimatedSection>
- 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-1 px-3 shadow-sm"
-              >
+              </div>
+
+              {/* Stats pill block */}
+              <div className="flex items-center gap-6 sm:gap-8 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 backdrop-blur-xs shrink-0">
                 {heroStats.map((item) => (
-                  <div key={item.id || item.label} className="flex flex-col items-center border-r border-slate-100 px-4 py-2 last:border-0">
-                    <h4 className="text-sm font-bold text-slate-900">{item.value}</h4>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{item.label}</p>
+                  <div key={item.id || item.label}>
+                    <div className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                      {item.value}
+                    </div>
+                    <div className="text-[10px] text-white/50 font-medium uppercase tracking-wider mt-0.5">
+                      {item.label}
+                    </div>
                   </div>
                 ))}
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>
       ) : null}
 
-      <div className="border-b border-slate-100 bg-white py-4 sm:py-5">
+      {/* ─── Filter Bar ─── */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/60">
         <div className="container mx-auto px-6">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 sm:w-auto sm:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            {/* Categories */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`whitespace-nowrap rounded-xl border px-5 py-2 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-medium transition-all duration-200 ${
                     selectedCategory === category.id
-                      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                      : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200 hover:text-slate-600"
+                      ? "bg-[var(--primary)] text-white shadow-sm"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
                   {category.name}
                 </button>
               ))}
             </div>
- 
-            <div className="group relative w-full sm:w-72">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300 transition-colors group-focus-within:text-slate-900" />
+
+            {/* Search */}
+            <div className="relative w-full sm:w-64 lg:w-72">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full rounded-xl border border-slate-100 bg-slate-50 pl-10 pr-4 py-2.5 text-xs text-slate-900 outline-none transition-all placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-900/5 focus:border-slate-200"
+                className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-[var(--primary)]/30 focus:ring-2 focus:ring-[var(--primary)]/8"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <section className="py-12">
+      {/* ─── Results Meta ─── */}
+      {hasActiveFilters && (
+        <div className="container mx-auto px-6 pt-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-500">
+              <span className="font-semibold text-slate-900 tabular-nums">
+                {filteredServices.length}
+              </span>{" "}
+              {filteredServices.length === 1 ? "service" : "services"} found
+            </p>
+            <button
+              onClick={clearAllFilters}
+              className="text-xs font-medium text-[var(--primary)] hover:underline transition-colors"
+            >
+              {clearFiltersText}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Grid ─── */}
+      <section className="py-8 sm:py-10 lg:py-12">
         <div className="container mx-auto px-6">
           <AnimatePresence mode="wait">
             {filteredServices.length > 0 ? (
@@ -289,40 +305,41 @@ export default function ServicesDirectoryPage({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3"
+                transition={{ duration: 0.2 }}
+                className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
               >
                 {filteredServices.map((service, index) => (
-                  <ServiceCard
+                  <motion.div
                     key={service.id || service.title}
-                    service={service}
-                    index={index}
-                    defaultCategoryLabel={defaultCategoryLabel}
-                    messagePlaceholder={messagePlaceholder}
-                    exploreButtonText={exploreButtonText}
-                    whatsappUrl={whatsappUrl}
-                  />
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.3) }}
+                  >
+                    <ServiceCard
+                      service={service}
+                      defaultCategoryLabel={defaultCategoryLabel}
+                      exploreButtonText={exploreButtonText}
+                    />
+                  </motion.div>
                 ))}
               </motion.div>
             ) : (
               <motion.div
                 key="no-results"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="rounded-[3rem] border-2 border-dashed border-slate-100 py-40 text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-24 sm:py-32"
               >
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-50 text-slate-200">
-                  <HelpCircle size={40} />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-300 mb-5">
+                  <Search className="h-7 w-7" />
                 </div>
-                <h3 className="mb-2 text-2xl font-bold text-slate-900">{noResultsTitle}</h3>
-                <p className="mx-auto max-w-xs text-sm text-slate-500">
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{noResultsTitle}</h3>
+                <p className="max-w-sm text-center text-sm text-slate-500 leading-relaxed mb-6">
                   {noResultsDescription}
                 </p>
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedCategory("all");
-                  }}
-                  className="mt-8 text-xs font-bold uppercase tracking-widest text-blue-600 underline"
+                  onClick={clearAllFilters}
+                  className="text-sm font-semibold text-[var(--primary)] hover:underline"
                 >
                   {clearFiltersText}
                 </button>
@@ -332,40 +349,51 @@ export default function ServicesDirectoryPage({
         </div>
       </section>
 
+      {/* ─── CTA ─── */}
       {showCta !== false ? (
-        <section className="container mx-auto px-4 pb-20 md:px-6">
-          <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-10 shadow-xl sm:p-16">
-            <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-            
-            <div className="relative z-10 flex flex-col items-center justify-between gap-10 lg:flex-row">
-              <div className="max-w-2xl text-center lg:text-left">
-                <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                  {ctaContent?.titlePrefix || "Don't See What You're"}{" "}
-                  <span className="text-blue-400">
-                    {ctaContent?.titleHighlight || "Looking For?"}
-                  </span>
+        <section className="container mx-auto px-6 pb-16 sm:pb-20">
+          <div className="relative overflow-hidden rounded-2xl bg-[var(--primary)]">
+            {/* Texture */}
+            <div
+              className="absolute inset-0 opacity-[0.03]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                backgroundSize: "20px 20px",
+              }}
+            />
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-[var(--accent)]/10 rounded-full blur-[80px]" />
+
+            <div className="relative z-10 flex flex-col items-start gap-8 p-8 sm:p-12 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-xl">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3">
+                  {ctaContent?.titlePrefix || "Can't find what you need?"}
                 </h2>
-                <p className="text-base font-light text-slate-400">
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
                   {ctaContent?.description ||
-                    "Our consultancy services are highly customizable. Speak with a Senior Advisor for a structure that perfectly fits your business scale."}
+                    "Our advisory services are fully customizable. Speak with a Senior Chartered Accountant for a solution tailored to your business."}
                 </p>
               </div>
- 
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row shrink-0">
                 <Link
                   href="/contact"
-                  className="rounded-xl bg-white px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-slate-900 transition-all hover:bg-blue-50 active:scale-95"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[var(--primary)] transition-all hover:bg-white/90 active:scale-[0.97]"
                 >
-                  {ctaContent?.primaryButtonText || "Schedule Consultation"}
+                  {ctaContent?.primaryButtonText || "Get in touch"}
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
-                <a
-                  href={whatsappUrl || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-4 text-center text-xs font-bold uppercase tracking-widest text-white backdrop-blur-sm transition-all hover:bg-white/10 active:scale-95"
-                >
-                  {ctaContent?.secondaryButtonText || "Quick Connect"} <ExternalLink size={14} />
-                </a>
+                {whatsappUrl && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10 active:scale-[0.97]"
+                  >
+                    {ctaContent?.secondaryButtonText || "WhatsApp us"}{" "}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
               </div>
             </div>
           </div>

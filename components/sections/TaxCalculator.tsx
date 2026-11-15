@@ -1,32 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
-  Calculator,
-  AlertCircle,
-  HelpCircle,
-  TrendingUp,
-  Home,
   Briefcase,
-  Wallet,
-  PieChart,
   ShieldCheck,
   Landmark,
-  Plus,
-  Minus,
-  Smartphone,
-  Users,
-  Glasses,
   Target,
   FileDown,
   FileText,
-  Check,
   CheckCircle2,
   ChevronDown,
   Sparkles,
   ArrowRight,
   Info,
-  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { generateTaxReportPdf } from "@/lib/generateTaxPdf";
@@ -182,12 +168,12 @@ export default function TaxCalculator({
       bNew.push({ slab: "Up to ₹7 Lakhs (Rebate u/s 87A)", tax: 0 });
     } else {
       const slabsNew = [
-        { limit: 300000, rate: 0, label: "₹0 - ₹3 Lakhs" },
-        { limit: 400000, rate: 0.05, label: "₹3 - ₹7 Lakhs" },
-        { limit: 300000, rate: 0.1, label: "₹7 - ₹10 Lakhs" },
-        { limit: 200000, rate: 0.15, label: "₹10 - ₹12 Lakhs" },
-        { limit: 300000, rate: 0.2, label: "₹12 - ₹15 Lakhs" },
-        { limit: Infinity, rate: 0.3, label: "Above ₹15 Lakhs" },
+        { label: "₹0 - ₹3 Lakhs", limit: 300000, rate: 0 },
+        { label: "₹3 - ₹7 Lakhs", limit: 400000, rate: 0.05 },
+        { label: "₹7 - ₹10 Lakhs", limit: 300000, rate: 0.1 },
+        { label: "₹10 - ₹12 Lakhs", limit: 200000, rate: 0.15 },
+        { label: "₹12 - ₹15 Lakhs", limit: 300000, rate: 0.2 },
+        { label: "Above ₹15 Lakhs", limit: Infinity, rate: 0.3 },
       ];
 
       let tempTaxable = taxableNew;
@@ -398,7 +384,10 @@ export default function TaxCalculator({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Defer revoking so browser streams the file reliably
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 4000);
     } catch (err) {
       console.error("PDF generation failed:", err);
     } finally {
@@ -454,7 +443,9 @@ export default function TaxCalculator({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 4000);
     } catch (err) {
       console.error("Excel generation failed:", err);
     } finally {
@@ -473,7 +464,7 @@ export default function TaxCalculator({
   const heroCopy = content?.hero || {};
 
   return (
-    <section className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-8 sm:py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Breadcrumb & Context */}
       <nav className="flex items-center gap-2 text-xs text-slate-500 mb-6">
         <Link href="/" className="hover:text-slate-800 transition">
@@ -487,12 +478,12 @@ export default function TaxCalculator({
         <span className="text-slate-900 font-semibold">Income Tax Calculator</span>
       </nav>
 
-      {/* Hero Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-slate-200">
+      {/* Hero Header (Light, Clean, CA Authority) */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-slate-200">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 mb-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Budget FY 2025-26 & AY 2026-27 Compliant
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/70 mb-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+            Budget FY 2025-26 &amp; AY 2026-27 Compliant
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
             {heroCopy.titlePrefix || "Income Tax"}{" "}
@@ -513,7 +504,7 @@ export default function TaxCalculator({
               onClick={() => setFinancialYear("2025-26")}
               className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
                 financialYear === "2025-26"
-                  ? "bg-white text-slate-900 font-bold shadow-xs"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -524,7 +515,7 @@ export default function TaxCalculator({
               onClick={() => setFinancialYear("2024-25")}
               className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
                 financialYear === "2024-25"
-                  ? "bg-white text-slate-900 font-bold shadow-xs"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -539,7 +530,7 @@ export default function TaxCalculator({
               onClick={() => setAgeGroup("citizen")}
               className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
                 ageGroup === "citizen"
-                  ? "bg-white text-slate-900 font-bold shadow-xs"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -550,7 +541,7 @@ export default function TaxCalculator({
               onClick={() => setAgeGroup("senior")}
               className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
                 ageGroup === "senior"
-                  ? "bg-white text-slate-900 font-bold shadow-xs"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -561,7 +552,7 @@ export default function TaxCalculator({
               onClick={() => setAgeGroup("super-senior")}
               className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
                 ageGroup === "super-senior"
-                  ? "bg-white text-slate-900 font-bold shadow-xs"
+                  ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/60"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -573,8 +564,8 @@ export default function TaxCalculator({
 
       {/* Quick Presets Strip */}
       <div className="py-4 flex flex-wrap items-center gap-2 border-b border-slate-100 text-xs">
-        <span className="text-slate-400 font-medium mr-1 flex items-center gap-1">
-          <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+        <span className="text-slate-500 font-medium mr-1 flex items-center gap-1">
+          <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
           Quick CTC Presets:
         </span>
         {[600000, 900000, 1200000, 1500000, 2000000, 3000000, 5000000].map((ctc) => (
@@ -588,7 +579,7 @@ export default function TaxCalculator({
             }}
             className={`px-2.5 py-1 rounded-lg border transition cursor-pointer ${
               salary === ctc
-                ? "bg-indigo-600 text-white border-indigo-600 font-bold shadow-2xs"
+                ? "bg-indigo-50 text-indigo-700 border-indigo-300 font-bold shadow-2xs"
                 : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -608,8 +599,8 @@ export default function TaxCalculator({
               onClick={() => setActiveInputTab("income")}
               className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition cursor-pointer ${
                 activeInputTab === "income"
-                  ? "border-slate-900 text-slate-900"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
+                  ? "border-indigo-600 text-indigo-700 font-bold"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
               <Briefcase className="h-4 w-4" />
@@ -620,8 +611,8 @@ export default function TaxCalculator({
               onClick={() => setActiveInputTab("deductions")}
               className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition cursor-pointer ${
                 activeInputTab === "deductions"
-                  ? "border-slate-900 text-slate-900"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
+                  ? "border-indigo-600 text-indigo-700 font-bold"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
               <ShieldCheck className="h-4 w-4" />
@@ -632,22 +623,22 @@ export default function TaxCalculator({
               onClick={() => setActiveInputTab("taxes")}
               className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition cursor-pointer ${
                 activeInputTab === "taxes"
-                  ? "border-slate-900 text-slate-900"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
+                  ? "border-indigo-600 text-indigo-700 font-bold"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
               <Target className="h-4 w-4" />
-              3. TDS & Penalties
+              3. TDS &amp; Penalties
             </button>
           </div>
 
           {/* TAB 1: INCOME SOURCES */}
           {activeInputTab === "income" && (
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-900">Salaried & Recurring Income</h3>
-                  <span className="text-xs text-slate-500">FY {financialYear}</span>
+                  <h3 className="text-sm font-bold text-slate-900">Salaried &amp; Recurring Income</h3>
+                  <span className="text-xs text-slate-500 font-medium">FY {financialYear}</span>
                 </div>
 
                 {/* Primary Salary Input */}
@@ -664,7 +655,7 @@ export default function TaxCalculator({
                       value={salary || ""}
                       onChange={(e) => setSalary(Number(e.target.value))}
                       placeholder="12,00,000"
-                      className="w-full rounded-xl border border-slate-200 pl-8 pr-4 py-2.5 text-base font-bold text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition"
+                      className="w-full rounded-xl border border-slate-200 pl-8 pr-4 py-2.5 text-base font-bold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition"
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-slate-500">
@@ -691,14 +682,14 @@ export default function TaxCalculator({
                         className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500 transition"
                       />
                     </div>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500">
                       30% standard maintenance deduction auto-applied
                     </span>
                   </div>
 
                   <div>
                     <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                      Interest & Other Income
+                      Interest &amp; Other Income
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
@@ -712,7 +703,7 @@ export default function TaxCalculator({
                         className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500 transition"
                       />
                     </div>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500">
                       Savings account, FD interest, dividends
                     </span>
                   </div>
@@ -720,7 +711,7 @@ export default function TaxCalculator({
               </div>
 
               {/* Freelance & Business Income */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">
@@ -770,14 +761,14 @@ export default function TaxCalculator({
               </div>
 
               {/* Capital Gains (Equities) */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">
                       Capital Gains (Stocks, Mutual Funds)
                     </h3>
                     <p className="text-[11px] text-slate-500">
-                      Revised Budget 2024 rates: STCG @ 20%, LTCG @ 12.5% above ₹1.25 Lakhs
+                      Revised Budget rates: STCG @ 20%, LTCG @ 12.5% above ₹1.25 Lakhs
                     </p>
                   </div>
                   <button
@@ -812,7 +803,7 @@ export default function TaxCalculator({
                         onChange={(e) => setLtcgEquity(Number(e.target.value))}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                       />
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500">
                         First ₹1.25L exempt automatically
                       </span>
                     </div>
@@ -825,17 +816,17 @@ export default function TaxCalculator({
           {/* TAB 2: DEDUCTIONS & EXEMPTIONS */}
           {activeInputTab === "deductions" && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
-                <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 text-xs text-amber-900 flex items-start gap-2.5">
+                <Info className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
                 <p>
                   <strong>Regime Note:</strong> Deductions below apply exclusively under the{" "}
                   <strong>Old Tax Regime</strong>. Under the New Regime, standard deductions are
-                  granted with flat progressive slabs and zero paperwork.
+                  granted with progressive slabs.
                 </p>
               </div>
 
               {/* 80C and 80D */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
                   Standard Tax Deductions (Section 80C &amp; 80D)
                 </h3>
@@ -856,7 +847,7 @@ export default function TaxCalculator({
                         className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <span className="text-[10px] text-slate-400">EPF, PPF, ELSS, Term Life</span>
+                    <span className="text-[10px] text-slate-500">EPF, PPF, ELSS, Term Life</span>
                   </div>
 
                   <div>
@@ -874,7 +865,7 @@ export default function TaxCalculator({
                         className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <span className="text-[10px] text-slate-400">Max ₹25,000 for non-seniors</span>
+                    <span className="text-[10px] text-slate-500">Max ₹25,000 for non-seniors</span>
                   </div>
                 </div>
 
@@ -890,7 +881,7 @@ export default function TaxCalculator({
                       placeholder="0"
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                     />
-                    <span className="text-[10px] text-slate-400">Max ₹50,000 for senior parents</span>
+                    <span className="text-[10px] text-slate-500">Max ₹50,000 for senior parents</span>
                   </div>
 
                   <div>
@@ -904,13 +895,13 @@ export default function TaxCalculator({
                       placeholder="0"
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                     />
-                    <span className="text-[10px] text-slate-400">Max ₹50,000 extra deduction</span>
+                    <span className="text-[10px] text-slate-500">Max ₹50,000 extra deduction</span>
                   </div>
                 </div>
               </div>
 
               {/* HRA Assistant */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">
@@ -964,19 +955,19 @@ export default function TaxCalculator({
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800"
                       />
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                       <div>
                         <span className="text-xs font-semibold text-slate-800 block">
                           Metro City?
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-500">
                           Delhi, Mumbai, Kolkata, Chennai (50% basic)
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsMetro(!isMetro)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                           isMetro
                             ? "bg-indigo-600 text-white"
                             : "bg-slate-200 text-slate-700 hover:bg-slate-300"
@@ -990,7 +981,7 @@ export default function TaxCalculator({
               </div>
 
               {/* Home Loan & Others */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
                   Home Loan &amp; Other Deductions
                 </h3>
@@ -1006,7 +997,7 @@ export default function TaxCalculator({
                       placeholder="0"
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                     />
-                    <span className="text-[10px] text-slate-400">Max ₹2,00,000 for self-occupied</span>
+                    <span className="text-[10px] text-slate-500">Max ₹2,00,000 for self-occupied</span>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-700 block mb-1">
@@ -1019,7 +1010,7 @@ export default function TaxCalculator({
                       placeholder="0"
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                     />
-                    <span className="text-[10px] text-slate-400">Education loan, donations</span>
+                    <span className="text-[10px] text-slate-500">Education loan, donations</span>
                   </div>
                 </div>
               </div>
@@ -1028,7 +1019,7 @@ export default function TaxCalculator({
 
           {/* TAB 3: TAXES PAID & PENALTIES */}
           {activeInputTab === "taxes" && (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
               <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
                 TDS Credits &amp; Delay Interest (Section 234A/B)
               </h3>
@@ -1044,7 +1035,7 @@ export default function TaxCalculator({
                     placeholder="0"
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                   />
-                  <span className="text-[10px] text-slate-400">As shown in Form 26AS / AIS</span>
+                  <span className="text-[10px] text-slate-500">As shown in Form 26AS / AIS</span>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">
@@ -1057,7 +1048,7 @@ export default function TaxCalculator({
                     placeholder="0"
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                   />
-                  <span className="text-[10px] text-slate-400">1% per month for late return</span>
+                  <span className="text-[10px] text-slate-500">1% per month for late return</span>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">
@@ -1070,29 +1061,31 @@ export default function TaxCalculator({
                     placeholder="0"
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
                   />
-                  <span className="text-[10px] text-slate-400">1% per month for short advance tax</span>
+                  <span className="text-[10px] text-slate-500">1% per month for short advance tax</span>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Right Column: Executive Computation Studio */}
+        {/* Right Column: Executive Computation Studio (Pure Light Card) */}
         <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-6">
-          <div className="rounded-2xl border border-slate-900 bg-slate-950 text-white p-6 shadow-xl space-y-6">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <span className="text-xs font-medium text-slate-400 block">Assessment Year</span>
-                <span className="text-sm font-bold text-white">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">
+                  Assessment Year
+                </span>
+                <span className="text-sm font-bold text-slate-900">
                   AY {financialYear === "2024-25" ? "2025-26" : "2026-27"}
                 </span>
               </div>
               <div
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
                   results.better === "New Regime"
-                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                    : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200/80"
+                    : "bg-indigo-50 text-indigo-800 border-indigo-200/80"
                 }`}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -1102,61 +1095,61 @@ export default function TaxCalculator({
 
             {/* Savings Callout */}
             <div className="text-center py-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                 Estimated Net Savings
               </span>
-              <div className="text-4xl font-extrabold text-emerald-400 mt-1 tracking-tight">
+              <div className="text-4xl font-extrabold text-emerald-700 mt-1 tracking-tight">
                 {fmt(results.savings)}
               </div>
-              <p className="text-xs text-slate-400 mt-1">
-                by opting for the <strong>{results.better}</strong>
+              <p className="text-xs text-slate-500 mt-1">
+                by opting for the <strong className="text-slate-800">{results.better}</strong>
               </p>
             </div>
 
             {/* Side-by-side Regime Comparison Grid */}
-            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10 text-center">
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
               <div
-                className={`p-3 rounded-lg transition ${
+                className={`p-3 rounded-lg border transition ${
                   results.better === "Old Regime"
-                    ? "bg-indigo-500/20 border border-indigo-500/40"
-                    : "opacity-80"
+                    ? "bg-white border-indigo-400 ring-2 ring-indigo-500/20 shadow-xs"
+                    : "bg-white/80 border-slate-200"
                 }`}
               >
-                <span className="text-[11px] font-semibold text-slate-300 block">Old Regime Tax</span>
-                <span className="text-lg font-bold text-white mt-1 block">
+                <span className="text-[11px] font-semibold text-slate-600 block">Old Regime Tax</span>
+                <span className="text-lg font-bold text-slate-900 mt-1 block">
                   {fmt(results.oldTax)}
                 </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">
+                <span className="text-[10px] text-slate-500 block mt-0.5">
                   Taxable: {fmt(results.taxableOld)}
                 </span>
               </div>
 
               <div
-                className={`p-3 rounded-lg transition ${
+                className={`p-3 rounded-lg border transition ${
                   results.better === "New Regime"
-                    ? "bg-emerald-500/20 border border-emerald-500/40"
-                    : "opacity-80"
+                    ? "bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs"
+                    : "bg-white/80 border-slate-200"
                 }`}
               >
-                <span className="text-[11px] font-semibold text-slate-300 block">New Regime Tax</span>
-                <span className="text-lg font-bold text-emerald-400 mt-1 block">
+                <span className="text-[11px] font-semibold text-slate-600 block">New Regime Tax</span>
+                <span className="text-lg font-bold text-emerald-800 mt-1 block">
                   {fmt(results.newTax)}
                 </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">
+                <span className="text-[10px] text-slate-500 block mt-0.5">
                   Taxable: {fmt(results.taxableNew)}
                 </span>
               </div>
             </div>
 
             {/* Monthly Take-Home & Payable */}
-            <div className="space-y-2.5 pt-2 border-t border-white/10 text-xs">
-              <div className="flex justify-between items-center text-slate-300">
+            <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
+              <div className="flex justify-between items-center text-slate-600">
                 <span>Gross Income</span>
-                <span className="font-semibold text-white">{fmt(results.grossTotalIncome)}</span>
+                <span className="font-semibold text-slate-900">{fmt(results.grossTotalIncome)}</span>
               </div>
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-slate-600">
                 <span>Deductions Applied ({results.better})</span>
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-slate-900">
                   -
                   {fmt(
                     results.better === "New Regime"
@@ -1167,13 +1160,13 @@ export default function TaxCalculator({
                   )}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-slate-300">
+              <div className="flex justify-between items-center text-slate-600">
                 <span>Estimated Monthly In-Hand</span>
-                <span className="font-bold text-indigo-300">{fmt(results.monthlyTakeHome)} / mo</span>
+                <span className="font-bold text-indigo-700">{fmt(results.monthlyTakeHome)} / mo</span>
               </div>
 
               {(results.interest234A > 0 || results.interest234B > 0) && (
-                <div className="flex justify-between items-center text-rose-400 pt-1">
+                <div className="flex justify-between items-center text-rose-600 pt-1">
                   <span>Late Interest (234A/B)</span>
                   <span className="font-bold">
                     +{fmt(results.interest234A + results.interest234B)}
@@ -1182,34 +1175,34 @@ export default function TaxCalculator({
               )}
 
               {taxPaid > 0 && (
-                <div className="flex justify-between items-center text-emerald-400 pt-1">
+                <div className="flex justify-between items-center text-emerald-700 pt-1">
                   <span>Prepaid Tax (TDS/Advance)</span>
                   <span className="font-bold">-{fmt(taxPaid)}</span>
                 </div>
               )}
 
-              <div className="flex justify-between items-center pt-3 border-t border-white/10 text-sm">
-                <span className="font-bold text-white">Final Net Payable</span>
-                <span className="text-xl font-extrabold text-white">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center mt-2">
+                <span className="font-bold text-slate-900 text-sm">Final Net Payable</span>
+                <span className="text-xl font-black text-slate-950">
                   {fmt(results.totalPayable)}
                 </span>
               </div>
             </div>
 
             {/* Slab Breakdown Details */}
-            <details className="group pt-2 border-t border-white/10 text-xs">
-              <summary className="cursor-pointer text-slate-400 hover:text-white flex items-center justify-between font-medium select-none">
+            <details className="group pt-2 border-t border-slate-100 text-xs">
+              <summary className="cursor-pointer text-slate-600 hover:text-slate-900 flex items-center justify-between font-semibold select-none">
                 <span>View {results.better} Slab Breakdown</span>
-                <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
+                <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180 text-slate-500" />
               </summary>
-              <div className="mt-3 space-y-1.5 p-3 rounded-lg bg-white/5 border border-white/5">
+              <div className="mt-3 space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
                 {(results.better === "New Regime"
                   ? results.breakdownNew
                   : results.breakdownOld
                 ).map((b, i) => (
-                  <div key={i} className="flex justify-between text-slate-300">
+                  <div key={i} className="flex justify-between text-slate-600">
                     <span className="truncate max-w-[180px]">{b.slab}</span>
-                    <span className="font-semibold text-white">{fmt(b.tax)}</span>
+                    <span className="font-semibold text-slate-900">{fmt(b.tax)}</span>
                   </div>
                 ))}
               </div>
@@ -1221,7 +1214,7 @@ export default function TaxCalculator({
                 type="button"
                 onClick={downloadExcel}
                 disabled={isGeneratingExcel}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white transition disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition disabled:opacity-50 cursor-pointer shadow-2xs"
               >
                 <FileText className="h-3.5 w-3.5" />
                 {isGeneratingExcel ? "Generating..." : "Export Excel"}
@@ -1231,7 +1224,7 @@ export default function TaxCalculator({
                 type="button"
                 onClick={downloadPdf}
                 disabled={isGeneratingPdf}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition shadow-sm disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 <FileDown className="h-3.5 w-3.5" />
                 {isGeneratingPdf ? "Generating..." : "Download PDF"}

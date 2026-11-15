@@ -94,36 +94,39 @@ export default async function AboutPage() {
           switch (section.type) {
             case "about.hero":
               return (
-                <section key={section.id} className="relative overflow-hidden py-14 text-white sm:py-18 lg:py-24">
-                  {/* Dedicated High-Quality Background Banner (Clearly Visible) */}
+                <section key={section.id} className="relative overflow-hidden bg-[var(--primary)] border-b border-white/10 py-12 sm:py-16 lg:py-20 text-white">
+                  {/* Atmospheric background blend */}
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={data.backgroundImage || "/images/about_hero_bg.jpg"}
-                      alt="Taxfiling24 Corporate Advisory"
+                      alt="TaxFiling24 Corporate Advisory"
                       fill
-                      className="object-cover object-center"
+                      className="object-cover object-center opacity-20 mix-blend-luminosity"
                       priority
-                      quality={95}
+                      quality={90}
                       sizes="100vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-[var(--primary)]/80 via-[var(--primary)]/90 to-[var(--primary)]" />
+                    <div
+                      className="absolute inset-0 opacity-[0.035]"
+                      style={{
+                        backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                        backgroundSize: "24px 24px",
+                      }}
                     />
                   </div>
 
-                  {/* Light subtle tint so image remains vivid and fully visible */}
-                  <div className="absolute inset-0 z-[1] bg-slate-950/25" />
+                  {/* Ambient Gold Glow */}
+                  <div className="absolute top-0 right-0 h-96 w-96 -translate-y-1/2 translate-x-1/3 rounded-full bg-[var(--accent)]/15 blur-[120px] pointer-events-none" />
 
-                  {/* Hero Content with Frosted Glass Scrim for 100% Crisp Text Contrast */}
-                  <div className="container relative z-10 mx-auto px-4 text-center sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-3xl rounded-3xl border border-white/20 bg-slate-950/65 p-6 sm:p-8 md:p-10 backdrop-blur-md shadow-2xl shadow-black/50">
-                      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-indigo-200 backdrop-blur-md shadow-xs">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                        Premier Corporate Advisory & Tax Practice
-                      </div>
-
-                      <h1 className="mb-3 text-3xl font-black tracking-tight text-white drop-shadow-md sm:text-4xl lg:text-5xl">
+                  {/* Editorial Hero Content */}
+                  <div className="container relative z-10 mx-auto px-6 text-center">
+                    <div className="mx-auto max-w-3xl">
+                      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight mb-4">
                         {typeof data.title === "string" && data.highlight && data.title.includes(data.highlight) ? (
                           <>
                             {data.title.split(data.highlight)[0]}
-                            <span className="text-amber-400 font-black">{data.highlight}</span>
+                            <span className="text-[var(--accent)] font-bold">{data.highlight}</span>
                             {data.title.split(data.highlight).slice(1).join(data.highlight)}
                           </>
                         ) : (
@@ -131,9 +134,25 @@ export default async function AboutPage() {
                         )}
                       </h1>
 
-                      <p className="mx-auto max-w-2xl text-sm font-medium text-slate-100 sm:text-base lg:text-lg leading-relaxed">
+                      <p className="mx-auto max-w-2xl text-base sm:text-lg text-white/70 leading-relaxed font-normal mb-8">
                         {data.description}
                       </p>
+
+                      {/* Editorial Trust Markers */}
+                      <div className="inline-flex flex-wrap items-center justify-center gap-6 sm:gap-10 pt-6 border-t border-white/10 text-xs sm:text-sm font-medium text-white/80">
+                        <div className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                          <span>Est. 2020</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                          <span>Certified CA & CS Advisors</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                          <span>Pan-India Statutory Practice</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>
