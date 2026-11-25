@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        allow: ["/", "/api/og", "/api/uploads"],
         disallow: [
           "/admin",
           "/admin/*",
@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
       // Search-oriented AI discovery crawlers (SearchGPT, Perplexity, Claude Search)
       {
         userAgent: ["OAI-SearchBot", "PerplexityBot", "Claude-SearchBot"],
-        allow: "/",
+        allow: ["/", "/api/og", "/api/uploads"],
         disallow: [
           "/admin",
           "/admin/*",
@@ -33,5 +33,6 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }

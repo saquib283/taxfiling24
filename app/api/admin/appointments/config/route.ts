@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import {
   getBookingConfig,
   serializeBookingConfig,
@@ -20,8 +20,8 @@ type BookingConfigPayload = {
 };
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const settingsMap = await getSettings();
@@ -37,8 +37,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const body = (await request.json()) as BookingConfigPayload;
@@ -63,7 +63,9 @@ export async function POST(request: Request) {
     await logActivity(
       "UPDATED",
       "BookingConfig",
-      `Updated booking configuration with ${normalized.services.length} services`
+      `Updated booking configuration with ${normalized.services.length} services`,
+      undefined,
+      auth.user.userId
     );
 
     return NextResponse.json(normalized);

@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { syncWebsiteLeads } from "@/lib/audience-service";
+import { logActivity } from "@/lib/activity-log";
 
 export async function POST() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const result = await syncWebsiteLeads();
+    await logActivity(
+      "UPDATED",
+      "Subscriber",
+      `Synced website leads into audience: ${result.totalSynced} contacts synced`,
+      undefined,
+      auth.user.userId
+    );
     return NextResponse.json({
       success: true,
       ...result,
@@ -16,9 +24,8 @@ export async function POST() {
   } catch (error: any) {
     console.error("Failed to sync website leads:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to sync website leads." },
+      { error: "Failed to sync website leads." },
       { status: 500 }
     );
   }
 }
-

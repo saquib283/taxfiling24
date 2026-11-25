@@ -1,34 +1,35 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { SERVICES_DETAIL_DATA } from "@/lib/services-detail-data";
-import { SERVICES } from "@/lib/constants";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { logActivity } from "@/lib/activity-log";
 
-export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function resolveServiceCategory(slug: string): string {
+  if (slug.includes("business-setup") || slug.includes("licences")) return "registration";
+  if (slug.includes("taxation") || slug.includes("gst")) return "taxation";
+  if (slug.includes("roc") || slug.includes("compliance")) return "compliance";
+  if (slug.includes("accounting")) return "accounting";
+  if (slug.includes("audit")) return "audit";
+  if (slug.includes("cfo") || slug.includes("special-services")) return "advisory";
+  return "General";
+}
+
+export async function POST() {
+  const auth = await requireRole(["ADMIN"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const createdServices = [];
-    
+
     for (const [slug, data] of Object.entries(SERVICES_DETAIL_DATA)) {
-      const existing = await prisma.service.findUnique({
-        where: { slug }
-      });
-      
+      const existing = await prisma.service.findUnique({ where: { slug } });
+
       if (!existing) {
-        const baseDoc = SERVICES.find(s => s.href?.endsWith(slug));
-        
-        let categoryAssigned = "General";
-        if (slug.includes("business-setup")) categoryAssigned = "tax"; // Based on page.tsx category maps
-        if (slug.includes("gst") || slug.includes("it")) categoryAssigned = "gst";
-        if (slug.includes("audit")) categoryAssigned = "audit";
-        if (slug.includes("compliance") || slug.includes("roc")) categoryAssigned = "compliance";
-        
         const newService = await prisma.service.create({
           data: {
             title: data.title,
-            slug: slug,
+            slug,
             description: data.description,
             overview: data.overview,
             heroBg: data.heroBg,
@@ -37,18 +38,35 @@ export async function GET() {
             documentsRequired: data.documentsRequired as any,
             process: data.process as any,
             faqs: data.faqs as any,
-            icon: "Briefcase", 
-            category: categoryAssigned,
-            href: `/services/${slug}`
-          }
+            icon: "Briefcase",
+            category: resolveServiceCategory(slug),
+            href: `/services/${slug}`,
+          },
         });
         createdServices.push(newService);
       }
     }
-    
-    return NextResponse.json({ message: "Seeded successfully", count: createdServices.length, services: createdServices });
-  } catch (error: any) {
-    console.error("Seed error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    if (createdServices.length > 0) {
+      revalidatePath("/");
+      revalidatePath("/services");
+      revalidatePath("/sitemap.xml");
+      await logActivity(
+        "CREATED",
+        "Service",
+        `Seeded ${createdServices.length} default services`,
+        undefined,
+        auth.user.userId
+      );
+    }
+
+    return NextResponse.json({
+      message: "Seeded successfully",
+      count: createdServices.length,
+      services: createdServices,
+    });
+  } catch (error) {
+    console.error("Seed services error:", error);
+    return NextResponse.json({ error: "Failed to seed services" }, { status: 500 });
   }
 }

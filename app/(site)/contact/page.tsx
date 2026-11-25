@@ -10,6 +10,7 @@ import JsonLd, { webPageSchema, breadcrumbSchema } from "@/components/seo/JsonLd
 import type { Metadata } from "next";
 import { getSiteContact } from "@/lib/site-contact";
 import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
+import { sanitizeHref } from "@/lib/url-safety";
 
 interface ContactCardItem {
   id: string;
@@ -128,7 +129,7 @@ export default async function ContactPage() {
                                 <p className="mt-0.5 text-xs font-medium text-slate-500">{item.value}</p>
                               </div>
                             </div>
-                            <a href={item.href} className="text-xs font-bold text-[var(--primary)] hover:underline">
+                            <a href={sanitizeHref(item.href)} className="text-xs font-bold text-[var(--primary)] hover:underline">
                               {item.buttonText}
                             </a>
                           </div>
@@ -150,7 +151,7 @@ export default async function ContactPage() {
                         <h2 className="text-sm font-bold text-slate-800">{data.title}</h2>
                         <p className="mt-1 text-sm leading-relaxed text-slate-500">{data.description || address}</p>
                         <a
-                          href={whatsapp}
+                          href={sanitizeHref(whatsapp)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-3 inline-flex items-center gap-1 rounded-lg border border-emerald-200/50 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600 transition-colors hover:bg-emerald-100/50"

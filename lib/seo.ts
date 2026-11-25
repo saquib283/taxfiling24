@@ -59,6 +59,36 @@ const DEFAULT_KEYWORDS = [
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://taxfiling24.com";
 
+export const SITE_DOMAIN = (() => {
+  try {
+    return new URL(SITE_URL).hostname;
+  } catch {
+    return "taxfiling24.com";
+  }
+})();
+
+export function normalizeGoogleVerification(value?: string | null): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return trimmed.replace(/^google-site-verification=/i, "").trim() || undefined;
+}
+
+export function buildOgImageUrl(params: {
+  title: string;
+  description?: string;
+  category?: string;
+}): string {
+  const search = new URLSearchParams();
+  search.set("title", params.title.slice(0, 120));
+  if (params.description) {
+    search.set("description", params.description.slice(0, 180));
+  }
+  if (params.category) {
+    search.set("category", params.category.slice(0, 40));
+  }
+  return absoluteUrl(`/api/og?${search.toString()}`);
+}
+
 function uniqueStrings(values: Array<string | null | undefined>) {
   return [...new Set(values.map((value) => value?.trim()).filter(Boolean) as string[])];
 }
@@ -80,9 +110,19 @@ export function absoluteUrl(pathOrUrl: string = "/") {
   return `${SITE_URL}${path}`;
 }
 
-export function resolveSeoImage(image?: string | null, settings: SiteSettings = {}) {
-  const fallback = settings.seo_default_og_image || DEFAULT_OG_IMAGE;
-  return absoluteUrl(image || fallback);
+export function resolveSeoImage(
+  image?: string | null,
+  settings: SiteSettings = {},
+  fallbackOgParams?: { title: string; description?: string; category?: string }
+) {
+  const configured = image?.trim() || settings.seo_default_og_image?.trim();
+  if (configured) {
+    return absoluteUrl(configured);
+  }
+  if (fallbackOgParams) {
+    return buildOgImageUrl(fallbackOgParams);
+  }
+  return absoluteUrl(DEFAULT_OG_IMAGE);
 }
 
 export function getSiteName(settings: SiteSettings = {}) {
@@ -115,8 +155,25 @@ export function buildMetadata({
 }: BuildMetadataInput): Metadata {
   const siteName = getSiteName(settings);
   const canonicalUrl = absoluteUrl(canonical || path);
-  const imageUrl = resolveSeoImage(image, settings);
+  const hasExplicitImage = Boolean(image?.trim() || settings.seo_default_og_image?.trim());
+  const imageUrl = resolveSeoImage(image, settings, {
+    title,
+    description,
+    category: type === "article" ? "Article" : "Advisory",
+  });
   const metadataKeywords = mergeKeywords(settings, keywords);
+
+  const ogImageEntry = hasExplicitImage
+    ? {
+        url: imageUrl,
+        alt: title,
+      }
+    : {
+        url: imageUrl,
+        width: 1200,
+        height: 630,
+        alt: title,
+      };
 
   return {
     title,
@@ -155,14 +212,7 @@ export function buildMetadata({
       title: openGraphTitle || `${title} | ${siteName}`,
       description,
       url: canonicalUrl,
-      images: [
-        {
-          url: imageUrl,
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
+      images: [ogImageEntry],
       ...(type === "article"
         ? {
             authors,

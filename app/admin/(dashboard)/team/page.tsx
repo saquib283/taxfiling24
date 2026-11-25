@@ -9,8 +9,6 @@ import {
   X,
   Loader2,
   Users,
-  Upload,
-  Check,
   AlertTriangle,
   Search,
 } from "lucide-react";
@@ -32,7 +30,6 @@ export default function TeamManagerPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", designation: "", image: "", isActive: true });
   const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -41,8 +38,11 @@ export default function TeamManagerPage() {
   const fetchMembers = async () => {
     try {
       const res = await fetch("/api/admin/team");
-      if (res.ok) {
-        setMembers(await res.json());
+      const data = await res.json().catch(() => null);
+      if (res.ok && Array.isArray(data)) {
+        setMembers(data);
+      } else {
+        setFeedback({ text: data?.error || "Failed to load team members.", type: "error" });
       }
     } catch {
       setFeedback({ text: "Failed to load team members.", type: "error" });
@@ -55,38 +55,6 @@ export default function TeamManagerPage() {
     void fetchMembers();
   }, []);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingImage(true);
-    setFeedback(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/admin/upload", {
-        body: formData,
-        method: "POST",
-      });
-
-      const data = (await res.json()) as { error?: string; url?: string };
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || "Image upload failed");
-      }
-
-      setForm((prev) => ({ ...prev, image: data.url! }));
-      setFeedback({ text: "Photo uploaded successfully.", type: "success" });
-    } catch (err) {
-      setFeedback({
-        text: err instanceof Error ? err.message : "Failed to upload image.",
-        type: "error",
-      });
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
   const handleAdd = async () => {
     if (!form.name.trim() || !form.designation.trim()) return;
     setSaving(true);
@@ -97,7 +65,8 @@ export default function TeamManagerPage() {
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
-      if (!res.ok) throw new Error("Failed to create team member");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to create team member");
 
       setForm({ designation: "", image: "", isActive: true, name: "" });
       setShowAdd(false);
@@ -123,7 +92,8 @@ export default function TeamManagerPage() {
         headers: { "Content-Type": "application/json" },
         method: "PATCH",
       });
-      if (!res.ok) throw new Error("Failed to update team member");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to update team member");
 
       setEditingId(null);
       setFeedback({ text: "Team member updated successfully.", type: "success" });
@@ -143,7 +113,8 @@ export default function TeamManagerPage() {
     setFeedback(null);
     try {
       const res = await fetch(`/api/admin/team/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete member");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to delete member");
 
       setConfirmDeleteId(null);
       setFeedback({ text: "Team member removed.", type: "success" });

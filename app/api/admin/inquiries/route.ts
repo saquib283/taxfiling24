@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { getLeadCrmMetrics, logLeadActivity } from "@/lib/lead-crm";
+import { logActivity } from "@/lib/activity-log";
+
+const ALLOWED_STAGES = new Set([
+  "NEW",
+  "CONTACTED",
+  "FOLLOW_UP_SCHEDULED",
+  "CONSULTATION_BOOKED",
+  "PROPOSAL_SENT",
+  "WON",
+  "LOST",
+  "ARCHIVED",
+]);
+
+const ALLOWED_PRIORITIES = new Set(["LOW", "MEDIUM", "HIGH", "URGENT"]);
 
 export async function GET(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -15,7 +29,7 @@ export async function GET(request: Request) {
     const search = searchParams.get("search");
     const format = searchParams.get("format"); // "raw" | "full"
 
-    const where: any = {};
+    const where: Record<string, any> = {};
 
     if (status && status !== "ALL") {
       if (status === "ACTIVE") {
@@ -47,6 +61,7 @@ export async function GET(request: Request) {
     const inquiries = await prisma.inquiry.findMany({
       where,
       orderBy: { createdAt: "desc" },
+      take: 500,
       include: {
         followUps: {
           where: { status: "PENDING" },
@@ -74,13 +89,14 @@ export async function GET(request: Request) {
       metrics,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to load inquiries:", error);
+    return NextResponse.json({ error: "Failed to load leads" }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const body = await request.json();
@@ -100,25 +116,37 @@ export async function POST(request: Request) {
       assignedTo,
     } = body;
 
-    if (!name || !name.trim()) {
+    if (!name || !String(name).trim()) {
       return NextResponse.json({ error: "Client name is required" }, { status: 400 });
     }
 
+    const cleanStatus = ALLOWED_STAGES.has(String(status)) ? String(status) : "NEW";
+    const cleanPriority = ALLOWED_PRIORITIES.has(String(priority)) ? String(priority) : "MEDIUM";
+    const parsedVal =
+      estimatedValue !== undefined && estimatedValue !== null && estimatedValue !== ""
+        ? Number(estimatedValue)
+        : null;
+    if (parsedVal !== null && (!Number.isFinite(parsedVal) || parsedVal < 0)) {
+      return NextResponse.json({ error: "Invalid estimated deal value" }, { status: 400 });
+    }
+
+    const actor = auth.user.name || auth.user.username || auth.user.role;
+
     const inquiry = await prisma.inquiry.create({
       data: {
-        name: name.trim(),
-        email: email?.trim() || "",
-        phone: phone?.trim() || null,
-        service: service?.trim() || null,
-        message: message?.trim() || "Lead created directly in CRM.",
-        status,
-        priority,
-        estimatedValue: estimatedValue ? Number(estimatedValue) : null,
-        company: company?.trim() || null,
-        city: city?.trim() || null,
-        source,
+        name: String(name).trim(),
+        email: email ? String(email).trim() : "",
+        phone: phone ? String(phone).trim() || null : null,
+        service: service ? String(service).trim() || null : null,
+        message: message ? String(message).trim() || "Lead created directly in CRM." : "Lead created directly in CRM.",
+        status: cleanStatus,
+        priority: cleanPriority,
+        estimatedValue: parsedVal,
+        company: company ? String(company).trim() || null : null,
+        city: city ? String(city).trim() || null : null,
+        source: String(source || "MANUAL").trim(),
         tags: tags || undefined,
-        assignedTo: assignedTo || null,
+        assignedTo: assignedTo ? String(assignedTo).trim() || null : null,
       },
       include: {
         followUps: true,
@@ -127,19 +155,27 @@ export async function POST(request: Request) {
       },
     });
 
-    // Automatically audit log creation
     await logLeadActivity({
       inquiryId: inquiry.id,
       type: "NOTE",
       title: "Lead Created in CRM",
-      description: `Source: ${source} | Priority: ${priority}${
-        estimatedValue ? ` | Deal Value: ₹${Number(estimatedValue).toLocaleString("en-IN")}` : ""
+      description: `Source: ${inquiry.source} | Priority: ${cleanPriority}${
+        parsedVal !== null ? ` | Deal Value: ₹${parsedVal.toLocaleString("en-IN")}` : ""
       }`,
-      performedBy: (admin as any).name || admin.role || "Admin",
+      performedBy: actor,
     });
+
+    await logActivity(
+      "CREATED",
+      "Inquiry",
+      `Created CRM lead: ${inquiry.name}`,
+      inquiry.id,
+      auth.user.userId
+    );
 
     return NextResponse.json(inquiry, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to create lead:", error);
+    return NextResponse.json({ error: "Failed to create lead" }, { status: 500 });
   }
 }

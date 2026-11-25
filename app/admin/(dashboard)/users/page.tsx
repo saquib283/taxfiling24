@@ -15,7 +15,7 @@ const getRoleStyle = (role: string) => {
   const r = role || "";
   if (r === "ADMIN") return "bg-purple-50 text-purple-700 border-purple-100";
   if (r === "EDITOR") return "bg-blue-50 text-blue-700 border-blue-100";
-  return "bg-slate-150 text-slate-700 border-slate-200/80";
+  return "bg-slate-100 text-slate-700 border-slate-200/80";
 };
 
 export default function UsersPage() {
@@ -24,47 +24,94 @@ export default function UsersPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", username: "", password: "", role: "ADMIN" });
-  const [editForm, setEditForm] = useState({ name: "", role: "ADMIN" });
+  const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [form, setForm] = useState({ name: "", username: "", password: "", role: "EDITOR" });
+  const [editForm, setEditForm] = useState({ name: "", role: "EDITOR" });
 
   const fetchUsers = async () => {
-    const res = await fetch("/api/admin/users");
-    setUsers(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(data)) {
+        setFeedback({ text: data?.error || "Failed to load user accounts.", type: "error" });
+        setUsers([]);
+      } else {
+        setUsers(data);
+      }
+    } catch {
+      setFeedback({ text: "Network error loading user accounts.", type: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchUsers(); }, []);
 
   const handleCreate = async () => {
     setSaving(true);
-    await fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setForm({ name: "", username: "", password: "", role: "ADMIN" });
-    setShowAdd(false);
-    setSaving(false);
-    fetchUsers();
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFeedback({ text: data.error || "Failed to create user.", type: "error" });
+      } else {
+        setForm({ name: "", username: "", password: "", role: "EDITOR" });
+        setShowAdd(false);
+        setFeedback({ text: "User account created successfully.", type: "success" });
+        await fetchUsers();
+      }
+    } catch {
+      setFeedback({ text: "Network error creating user.", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = async () => {
     if (!editingId) return;
     setSaving(true);
-    await fetch(`/api/admin/users/${editingId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editForm),
-    });
-    setEditingId(null);
-    setSaving(false);
-    fetchUsers();
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/users/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFeedback({ text: data.error || "Failed to update user.", type: "error" });
+      } else {
+        setEditingId(null);
+        setFeedback({ text: "User account updated.", type: "success" });
+        await fetchUsers();
+      }
+    } catch {
+      setFeedback({ text: "Network error updating user.", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this user?")) return;
-    await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-    fetchUsers();
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFeedback({ text: data.error || "Failed to delete user.", type: "error" });
+      } else {
+        setFeedback({ text: "User deleted.", type: "success" });
+        await fetchUsers();
+      }
+    } catch {
+      setFeedback({ text: "Network error deleting user.", type: "error" });
+    }
   };
 
   if (loading) {
@@ -100,6 +147,18 @@ export default function UsersPage() {
           <Plus className="h-3.5 w-3.5" /> Add User
         </button>
       </div>
+
+      {feedback && (
+        <div
+          className={`p-3.5 rounded-xl text-xs font-bold border shadow-2xs ${
+            feedback.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-rose-50 text-rose-800 border-rose-200"
+          }`}
+        >
+          {feedback.text}
+        </div>
+      )}
 
       {/* Add User overlay card */}
       {showAdd && (

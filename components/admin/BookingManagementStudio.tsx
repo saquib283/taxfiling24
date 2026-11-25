@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -42,6 +42,7 @@ import {
   getDateKey,
   getMeetingTypeLabel,
   getNextReminderPreview,
+  isSafeHttpUrl,
   type BookingAvailabilityRule,
   type BookingBlockedDate,
   type BookingServiceConfig,
@@ -181,7 +182,7 @@ function appointmentToEditor(
   return {
     adminNotes: appointment.adminNotes || "",
     cancellationReason: appointment.cancellationReason || "",
-    date: appointment.date.slice(0, 10),
+    date: getDateKey(appointment.date),
     id: appointment.id,
     meetingLink: appointment.meetingLink || "",
     serviceId: appointment.serviceId || fallbackServiceId,
@@ -310,6 +311,12 @@ export default function BookingManagementStudio() {
   const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
   const [creatingBooking, setCreatingBooking] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [reminderDrafts, setReminderDrafts] = useState<Record<string, string>>({});
+  const selectedAppointmentIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedAppointmentIdRef.current = selectedAppointmentId;
+  }, [selectedAppointmentId]);
 
   const [newBookingForm, setNewBookingForm] = useState({
     adminNotes: "",
@@ -338,12 +345,18 @@ export default function BookingManagementStudio() {
       const data = (await response.json()) as AppointmentWorkspace;
       setWorkspace(data);
       setServices(data.services);
+      setReminderDrafts(
+        Object.fromEntries(
+          data.services.map((s) => [s.id, reminderOffsetsToValue(s.reminderOffsetsMinutes)])
+        )
+      );
       setAvailabilityRules(data.availabilityRules);
       setBlockedDates(data.blockedDates);
       setBookingSettings(data.settings);
 
-      if (selectedAppointmentId) {
-        const found = data.appointments.find((item) => item.id === selectedAppointmentId);
+      const currentSelectedId = selectedAppointmentIdRef.current;
+      if (currentSelectedId) {
+        const found = data.appointments.find((item) => item.id === currentSelectedId);
         if (found) {
           setAppointmentEditor(appointmentToEditor(found, data.services[0]?.id || ""));
         } else {
@@ -360,7 +373,7 @@ export default function BookingManagementStudio() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedAppointmentId]);
+  }, []);
 
   useEffect(() => {
     void loadWorkspace(true);
@@ -397,7 +410,7 @@ export default function BookingManagementStudio() {
     [slotOptions]
   );
 
-  const fetchSlots = useCallback(async (serviceId: string, date: string) => {
+  const fetchSlots = useCallback(async (serviceId: string, date: string, excludeId?: string) => {
     if (!serviceId || !date) {
       setSlotOptions([]);
       return;
@@ -405,7 +418,9 @@ export default function BookingManagementStudio() {
 
     setSlotsLoading(true);
     try {
-      const response = await fetch(`/api/appointments?serviceId=${serviceId}&date=${date}`);
+      const params = new URLSearchParams({ serviceId, date });
+      if (excludeId) params.set("excludeAppointmentId", excludeId);
+      const response = await fetch(`/api/appointments?${params.toString()}`);
       const data = (await response.json()) as { availableSlots?: SlotOption[] };
       setSlotOptions(Array.isArray(data.availableSlots) ? data.availableSlots : []);
     } catch {
@@ -417,9 +432,9 @@ export default function BookingManagementStudio() {
 
   useEffect(() => {
     if (appointmentEditor?.serviceId && appointmentEditor.date) {
-      void fetchSlots(appointmentEditor.serviceId, appointmentEditor.date);
+      void fetchSlots(appointmentEditor.serviceId, appointmentEditor.date, appointmentEditor.id);
     }
-  }, [appointmentEditor?.date, appointmentEditor?.serviceId, fetchSlots]);
+  }, [appointmentEditor?.date, appointmentEditor?.serviceId, appointmentEditor?.id, fetchSlots]);
 
   const openAppointmentDrawer = (appointment: AppointmentRecord) => {
     setSelectedAppointmentId(appointment.id);
@@ -478,7 +493,13 @@ export default function BookingManagementStudio() {
       const response = await fetch("/api/admin/appointments/reminders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appointmentId: selectedAppointment.id, type }),
+        body: JSON.stringify({
+          appointmentId: selectedAppointment.id,
+          type,
+          ...(type === "MEETING_LINK" && appointmentEditor?.meetingLink
+            ? { meetingLink: appointmentEditor.meetingLink.trim() }
+            : {}),
+        }),
       });
       const data = (await response.json()) as { error?: string };
 
@@ -655,13 +676,18 @@ export default function BookingManagementStudio() {
     setFeedback(null);
 
     try {
+      const mergedServices = services.map((s) =>
+        reminderDrafts[s.id] !== undefined
+          ? { ...s, reminderOffsetsMinutes: parseReminderOffsets(reminderDrafts[s.id]) }
+          : s
+      );
       const response = await fetch("/api/admin/appointments/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           availabilityRules,
           blockedDates,
-          services,
+          services: mergedServices,
           settings: bookingSettings,
         }),
       });
@@ -1150,15 +1176,17 @@ export default function BookingManagementStudio() {
                                 >
                                   <Copy className="h-3 w-3" />
                                 </button>
-                                <a
-                                  href={appointment.meetingLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="hover:text-indigo-800 p-0.5 rounded"
-                                  title="Open in new window"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
+                                {isSafeHttpUrl(appointment.meetingLink) && (
+                                  <a
+                                    href={appointment.meetingLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-indigo-800 p-0.5 rounded"
+                                    title="Open in new window"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                )}
                               </div>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
@@ -1387,14 +1415,29 @@ export default function BookingManagementStudio() {
                       Automated Reminder Offsets (Minutes before start)
                     </label>
                     <input
-                      value={reminderOffsetsToValue(service.reminderOffsetsMinutes)}
-                      onChange={(e) =>
+                      value={
+                        reminderDrafts[service.id] !== undefined
+                          ? reminderDrafts[service.id]
+                          : reminderOffsetsToValue(service.reminderOffsetsMinutes)
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setReminderDrafts((prev) => ({ ...prev, [service.id]: raw }));
+                      }}
+                      onBlur={() => {
+                        const raw = reminderDrafts[service.id];
+                        if (raw === undefined) return;
+                        const parsed = parseReminderOffsets(raw);
                         setServices((curr) =>
                           curr.map((item, i) =>
-                            i === index ? { ...item, reminderOffsetsMinutes: parseReminderOffsets(e.target.value) } : item
+                            i === index ? { ...item, reminderOffsetsMinutes: parsed } : item
                           )
-                        )
-                      }
+                        );
+                        setReminderDrafts((prev) => ({
+                          ...prev,
+                          [service.id]: reminderOffsetsToValue(parsed),
+                        }));
+                      }}
                       placeholder="1440, 120 (24h and 2h prior)"
                       className="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-700 outline-none focus:border-indigo-500 font-mono"
                     />
@@ -1928,7 +1971,7 @@ export default function BookingManagementStudio() {
                       placeholder="https://meet.google.com/xyz-abcd-efg"
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500 pr-9"
                     />
-                    {appointmentEditor.meetingLink && (
+                    {appointmentEditor.meetingLink && isSafeHttpUrl(appointmentEditor.meetingLink) && (
                       <a
                         href={appointmentEditor.meetingLink}
                         target="_blank"

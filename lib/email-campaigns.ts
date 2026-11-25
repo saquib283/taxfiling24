@@ -60,6 +60,14 @@ export function normalizeEmailProvider(value?: string | null): EmailProvider {
   return "SMTP";
 }
 
+export function normalizeCampaignProvider(
+  value?: string | null
+): EmailProvider | "WHATSAPP" {
+  const normalized = value?.toUpperCase();
+  if (normalized === "WHATSAPP") return "WHATSAPP";
+  return normalizeEmailProvider(normalized);
+}
+
 export function settingsToMap(
   rows: Array<{ key: string; value: string }>
 ): Record<string, string> {
@@ -113,11 +121,11 @@ export function resolveEmailProviderConfig(
       rawSettings.RESEND_WEBHOOK_SECRET || process.env.RESEND_WEBHOOK_SECRET || "",
     mailgunApiKey: rawSettings.MAILGUN_API_KEY || process.env.MAILGUN_API_KEY || "",
     mailgunDomain: rawSettings.MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN || "",
-    mailgunRegion: (rawSettings.MAILGUN_REGION ||
-      process.env.MAILGUN_REGION ||
-      "US").toUpperCase() === "EU"
-      ? "EU"
-      : "US",
+    mailgunRegion:
+      (rawSettings.MAILGUN_REGION || process.env.MAILGUN_REGION || "US").toUpperCase() ===
+      "EU"
+        ? "EU"
+        : "US",
     mailgunWebhookSigningKey:
       rawSettings.MAILGUN_WEBHOOK_SIGNING_KEY ||
       process.env.MAILGUN_WEBHOOK_SIGNING_KEY ||
@@ -129,9 +137,7 @@ export function resolveEmailProviderConfig(
   };
 }
 
-export function getProviderStatuses(
-  config: EmailProviderConfig
-): ProviderStatuses {
+export function getProviderStatuses(config: EmailProviderConfig): ProviderStatuses {
   return {
     SMTP: Boolean(
       config.smtpHost && config.smtpPort && config.smtpUser && config.smtpPass
@@ -155,17 +161,28 @@ export function getProviderLabel(provider: EmailProvider | "WHATSAPP" | string):
   }
 }
 
-export function getBaseUrl(request: Request): string {
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const host = forwardedHost || request.headers.get("host");
-  const protocol = forwardedProto || "http";
+export function getBaseUrl(request?: Request): string {
+  const configured =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_APP_URL?.trim();
 
-  if (host) {
-    return `${protocol}://${host}`;
+  if (configured && /^https?:\/\//i.test(configured)) {
+    return configured.replace(/\/+$/, "");
   }
 
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  // Never trust incoming Host/X-Forwarded-Host headers in production
+  if (request && process.env.NODE_ENV !== "production") {
+    const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+    const host = (forwardedHost || request.headers.get("host") || "").trim();
+    const protocol = forwardedProto === "https" ? "https" : "http";
+
+    if (host && /^[a-zA-Z0-9.-]+(:\d+)?$/.test(host)) {
+      return `${protocol}://${host}`;
+    }
+  }
+
+  return "https://taxfiling24.com";
 }
 
 export function buildWebhookUrls(request: Request): Record<EmailProvider, string> {
@@ -262,18 +279,67 @@ export interface WrapEmailOptions {
   baseUrl?: string;
 }
 
+function getUnsubscribeKey(): Buffer {
+  const dedicated = process.env.UNSUBSCRIBE_SECRET?.trim();
+  if (dedicated) {
+    return Buffer.from(dedicated, "utf8");
+  }
+  const jwtSecret = process.env.JWT_SECRET?.trim();
+  if (!jwtSecret) {
+    throw new Error("UNSUBSCRIBE_SECRET or JWT_SECRET environment variable is required to sign unsubscribe tokens.");
+  }
+  // Domain-separated derived key so raw JWT_SECRET is never reused directly
+  return crypto
+    .createHmac("sha256", jwtSecret)
+    .update("taxfiling24:unsubscribe-key:v1")
+    .digest();
+}
+
 export function createUnsubscribeToken(email: string): string {
-  const secret = process.env.JWT_SECRET || "tf24-unsubscribe-fallback-salt";
-  return crypto.createHmac("sha256", secret).update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
+  const key = getUnsubscribeKey();
+  return crypto
+    .createHmac("sha256", key)
+    .update(`unsubscribe:${email.trim().toLowerCase()}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+export function buildUnsubscribeUrl(recipientEmail: string, baseUrl?: string): string {
+  const origin = (baseUrl || getBaseUrl()).replace(/\/+$/, "");
+  const normalized = recipientEmail.trim().toLowerCase();
+  const token = createUnsubscribeToken(normalized);
+  return `${origin}/unsubscribe?email=${encodeURIComponent(normalized)}&token=${token}`;
 }
 
 export function verifyUnsubscribeToken(email: string, token: string): boolean {
   if (!email || !token) return false;
-  const expected = createUnsubscribeToken(email);
-  const expectedBuf = Buffer.from(expected);
-  const actualBuf = Buffer.from(token);
-  if (expectedBuf.length !== actualBuf.length) return false;
-  return crypto.timingSafeEqual(expectedBuf, actualBuf);
+  try {
+    const cleanToken = token.trim();
+    const expected = createUnsubscribeToken(email);
+    const expectedBuf = Buffer.from(expected, "utf8");
+    const actualBuf = Buffer.from(cleanToken, "utf8");
+    if (expectedBuf.length === actualBuf.length && crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+      return true;
+    }
+
+    // Backwards-compatible fallback for already-sent emails when dedicated UNSUBSCRIBE_SECRET is not set
+    const jwtSecret = process.env.JWT_SECRET?.trim();
+    if (!process.env.UNSUBSCRIBE_SECRET?.trim() && jwtSecret) {
+      const legacy = crypto
+        .createHmac("sha256", jwtSecret)
+        .update(`unsubscribe:${email.trim().toLowerCase()}`)
+        .digest("hex")
+        .slice(0, 32);
+      const legacyBuf = Buffer.from(legacy, "utf8");
+      if (legacyBuf.length === actualBuf.length && crypto.timingSafeEqual(legacyBuf, actualBuf)) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export function wrapEmailHtml(options: WrapEmailOptions): string {
@@ -283,19 +349,19 @@ export function wrapEmailHtml(options: WrapEmailOptions): string {
     subject = "TaxFiling24 Update",
     fromName = DEFAULT_FROM_NAME,
     recipientEmail,
-    baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    baseUrl = getBaseUrl(),
   } = options;
 
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
   const preheaderHtml = preheader?.trim()
     ? `<div style="display:none!important;visibility:hidden;mso-hide:all;font-size:1px;color:#f8fafc;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(
         preheader.trim()
       )}</div>`
     : "";
 
-  const token = recipientEmail ? createUnsubscribeToken(recipientEmail) : "";
   const unsubscribeUrl = recipientEmail
-    ? `${baseUrl}/unsubscribe?email=${encodeURIComponent(recipientEmail)}&token=${token}`
-    : `${baseUrl}/unsubscribe`;
+    ? buildUnsubscribeUrl(recipientEmail, cleanBaseUrl)
+    : `${cleanBaseUrl}/unsubscribe`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -343,7 +409,6 @@ export function wrapEmailHtml(options: WrapEmailOptions): string {
           <tr>
             <td>
               <div class="email-card">
-                <!-- Header -->
                 <div class="email-header">
                   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                     <tr>
@@ -361,19 +426,17 @@ export function wrapEmailHtml(options: WrapEmailOptions): string {
                   </table>
                 </div>
 
-                <!-- Main Body Content -->
                 <div class="email-body">
                   ${content}
                 </div>
 
-                <!-- Footer -->
                 <div class="email-footer">
                   <p style="font-weight: 600; color: #475569; font-size: 12px;">TaxFiling24 &bull; Business, Tax &amp; Compliance Advisory</p>
                   <p>You received this message because you are a registered user or newsletter subscriber.</p>
                   <p style="margin-top: 12px;">
-                    <a href="${unsubscribeUrl}" target="_blank" style="color: #64748B;">Unsubscribe from these emails</a>
+                    <a href="${escapeHtml(unsubscribeUrl)}" target="_blank" style="color: #64748B;">Unsubscribe from these emails</a>
                     &nbsp;&bull;&nbsp;
-                    <a href="${baseUrl}/contact" target="_blank" style="color: #64748B;">Contact Support</a>
+                    <a href="${escapeHtml(cleanBaseUrl)}/contact" target="_blank" style="color: #64748B;">Contact Support</a>
                   </p>
                 </div>
               </div>
@@ -388,7 +451,6 @@ export function wrapEmailHtml(options: WrapEmailOptions): string {
 }
 
 export function withPreheader(html: string, preheader?: string | null): string {
-  // If content is already a full HTML document, inject preheader
   if (html.includes("<html") || html.includes("<!DOCTYPE")) {
     if (!preheader?.trim()) return html;
     const preheaderDiv = `<div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all;">${escapeHtml(
@@ -397,14 +459,12 @@ export function withPreheader(html: string, preheader?: string | null): string {
     return html.replace(/<body[^>]*>/i, `$&${preheaderDiv}`);
   }
 
-  // Otherwise wrap with full email layout
   return wrapEmailHtml({
     content: html,
     preheader,
   });
 }
 
-export function chunkValues<T>(values: T[], size: number): T[][]
 export function chunkValues<T>(values: T[], size: number): Array<T[]> {
   if (size <= 0) {
     return [values];

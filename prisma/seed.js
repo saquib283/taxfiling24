@@ -1,5 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const prisma = new PrismaClient();
 
@@ -210,7 +211,7 @@ const ARTICLES_DATA = [
     readTime: 5,
     isFeatured: true,
     published: true,
-    author: "Admin"
+    author: "TaxFiling24 Editorial Team"
   },
   {
     title: "GST Compliance Checklist for Small Businesses & Startups",
@@ -223,7 +224,7 @@ const ARTICLES_DATA = [
     readTime: 4,
     isFeatured: false,
     published: true,
-    author: "Admin"
+    author: "TaxFiling24 Editorial Team"
   },
   {
     title: "How to Choose Between Private Limited and LLP in India",
@@ -236,7 +237,7 @@ const ARTICLES_DATA = [
     readTime: 6,
     isFeatured: false,
     published: true,
-    author: "Admin"
+    author: "TaxFiling24 Editorial Team"
   }
 ];
 
@@ -255,20 +256,36 @@ const DEFAULT_SETTINGS = [
 async function main() {
   console.log("🌱 Starting TaxFiling24 Database Seeding...\n");
 
-  // 1. Seed Admin User
+  // 1. Seed Admin User (preserve existing password if admin already exists)
   console.log("1️⃣ Seeding Admin User...");
-  const hashedPassword = await bcrypt.hash("admin123", 10);
-  const admin = await prisma.user.upsert({
-    where: { username: "admin" },
-    update: { password: hashedPassword },
-    create: {
-      username: "admin",
-      password: hashedPassword,
-      name: "Administrator",
-      role: "ADMIN"
+  const existingAdmin = await prisma.user.findUnique({ where: { username: "admin" } });
+  let generatedOneTimePassword = null;
+
+  if (existingAdmin) {
+    console.log(`   ✓ Admin user already exists (password preserved): ${existingAdmin.username}\n`);
+  } else {
+    const envPassword = (process.env.INITIAL_ADMIN_PASSWORD || "").trim();
+    if (envPassword && envPassword.length < 10) {
+      throw new Error("INITIAL_ADMIN_PASSWORD must be at least 10 characters long.");
     }
-  });
-  console.log(`   ✓ Admin user verified: ${admin.username} (password: admin123)\n`);
+    if (!envPassword && process.env.NODE_ENV === "production") {
+      throw new Error("INITIAL_ADMIN_PASSWORD environment variable is required to seed an initial admin in production.");
+    }
+    const passwordToUse = envPassword || crypto.randomBytes(15).toString("base64url");
+    if (!envPassword) {
+      generatedOneTimePassword = passwordToUse;
+    }
+    const hashedPassword = await bcrypt.hash(passwordToUse, 12);
+    const admin = await prisma.user.create({
+      data: {
+        username: "admin",
+        password: hashedPassword,
+        name: "Administrator",
+        role: "ADMIN"
+      }
+    });
+    console.log(`   ✓ Created initial admin user: ${admin.username}\n`);
+  }
 
   // 2. Seed Core Services
   console.log("2️⃣ Seeding Core Advisory Services...");
@@ -332,9 +349,13 @@ async function main() {
 
   console.log("\n🎉 Database Seeding Completed Successfully!");
   console.log("==========================================");
-  console.log("Admin URL: http://<your-server-ip>:3000/admin/login");
+  console.log("Admin URL: /admin/login");
   console.log("Username:  admin");
-  console.log("Password:  admin123");
+  if (generatedOneTimePassword) {
+    console.log(`One-time dev password (change immediately): ${generatedOneTimePassword}`);
+  } else {
+    console.log("Password:  (preserved existing password or set via INITIAL_ADMIN_PASSWORD)");
+  }
   console.log("==========================================\n");
 }
 

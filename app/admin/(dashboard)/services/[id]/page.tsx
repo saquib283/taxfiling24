@@ -1,5 +1,6 @@
 import ServiceForm from "@/components/admin/ServiceForm";
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import { notFound } from "next/navigation";
 
 export default async function EditServicePage({
@@ -7,6 +8,7 @@ export default async function EditServicePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePageRole(["ADMIN", "EDITOR"]);
   const { id } = await params;
 
   const service = await prisma.service.findUnique({

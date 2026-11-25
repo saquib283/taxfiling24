@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { logActivity } from "@/lib/activity-log";
 import {
   getAudienceMetrics,
   ingestContact,
@@ -9,19 +10,21 @@ import {
 } from "@/lib/audience-service";
 
 export async function GET(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.min(100, Math.max(10, Number.parseInt(searchParams.get("limit") || "50", 10)));
+    const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
+    const rawLimit = Number.parseInt(searchParams.get("limit") || "50", 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(10, rawLimit)) : 50;
     const search = searchParams.get("search")?.trim() || "";
     const source = searchParams.get("source")?.trim();
     const tag = searchParams.get("tag")?.trim();
     const status = searchParams.get("status")?.toUpperCase(); // ALL, ACTIVE, SUPPRESSED
 
-    const where: any = {};
+    const where: Record<string, any> = {};
 
     if (search) {
       where.OR = [
@@ -42,6 +45,37 @@ export async function GET(request: Request) {
       where.isActive = false;
     }
 
+    // Filter by tag BEFORE pagination so page counts and slices are always exact
+    if (tag) {
+      const [allMatching, metrics] = await Promise.all([
+        prisma.subscriber.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+        }),
+        getAudienceMetrics(),
+      ]);
+
+      const tagFiltered = allMatching.filter((s) => {
+        if (!s.tags || !Array.isArray(s.tags)) return false;
+        return (s.tags as string[]).includes(tag);
+      });
+
+      const totalCount = tagFiltered.length;
+      const start = (page - 1) * limit;
+      const paged = tagFiltered.slice(start, start + limit);
+
+      return NextResponse.json({
+        subscribers: paged,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages: Math.max(1, Math.ceil(totalCount / limit)),
+        },
+        metrics,
+      });
+    }
+
     const [subscribers, totalCount, metrics] = await Promise.all([
       prisma.subscriber.findMany({
         where,
@@ -53,22 +87,13 @@ export async function GET(request: Request) {
       getAudienceMetrics(),
     ]);
 
-    // In-memory tag filtering if requested (since tags are stored as Json in MySQL)
-    let filteredSubscribers = subscribers;
-    if (tag) {
-      filteredSubscribers = subscribers.filter((s) => {
-        if (!s.tags || !Array.isArray(s.tags)) return false;
-        return (s.tags as string[]).includes(tag);
-      });
-    }
-
     return NextResponse.json({
-      subscribers: filteredSubscribers,
+      subscribers,
       pagination: {
         page,
         limit,
         totalCount,
-        totalPages: Math.ceil(totalCount / limit),
+        totalPages: Math.max(1, Math.ceil(totalCount / limit)),
       },
       metrics,
     });
@@ -79,8 +104,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const body = await request.json();
@@ -107,6 +132,14 @@ export async function POST(request: Request) {
       updateIfExists: true,
     });
 
+    await logActivity(
+      result.status === "CREATED" ? "CREATED" : "UPDATED",
+      "Subscriber",
+      `${result.status === "CREATED" ? "Added" : "Updated"} audience contact: ${email}`,
+      result.subscriber.id,
+      auth.user.userId
+    );
+
     return NextResponse.json({
       contact: result.subscriber,
       status: result.status,
@@ -115,9 +148,8 @@ export async function POST(request: Request) {
           ? "Contact added successfully."
           : "Existing contact updated with new information.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to add audience contact:", error);
-    return NextResponse.json({ error: error.message || "Failed to save contact" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to save contact" }, { status: 500 });
   }
 }
-

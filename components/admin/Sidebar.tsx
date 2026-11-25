@@ -79,12 +79,12 @@ import { X as CloseIcon } from "lucide-react";
 
 export default function Sidebar({ onClose, className = "" }: { onClose?: () => void; className?: string }) {
   const pathname = usePathname();
-  const [role, setRole] = useState<string>("ADMIN");
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/profile")
-      .then(res => res.json())
-      .then(data => { if (data.role) setRole(data.role); })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data?.role) setRole(data.role); })
       .catch(() => {});
   }, []);
 
@@ -93,12 +93,21 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
     window.location.href = "/admin/login";
   };
 
-  const filteredSections = menuSections.map(section => {
-    if (role === "EDITOR") {
-      if (section.title === "Configuration" || section.title === "System") return null;
-    }
-    return section;
-  }).filter(Boolean) as typeof menuSections;
+  const filteredSections = menuSections
+    .map((section) => {
+      // Only show ADMIN-restricted Configuration & System items once ADMIN role is verified
+      if (role !== "ADMIN") {
+        if (section.title === "Configuration") return null;
+        if (section.title === "System") {
+          return {
+            ...section,
+            items: section.items.filter((item) => item.href === "/admin/profile"),
+          };
+        }
+      }
+      return section;
+    })
+    .filter((section): section is (typeof menuSections)[number] => Boolean(section && section.items.length > 0));
 
   return (
     <div className={`w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 ${className}`}>
@@ -115,7 +124,7 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
             priority
           />
           <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-            {role}
+            {role || "STAFF"}
           </span>
         </Link>
         {onClose && (
@@ -139,7 +148,11 @@ export default function Sidebar({ onClose, className = "" }: { onClose?: () => v
             </p>
             <div className="space-y-0.5">
               {section.items.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== "/admin" &&
+                    item.href !== "/admin/campaigns" &&
+                    pathname.startsWith(`${item.href}/`));
                 const Icon = item.icon;
 
                 return (

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 
 export async function DELETE(
-  request: Request,
+  _: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id } = await params;
@@ -21,11 +21,15 @@ export async function DELETE(
       "DELETED",
       "Campaign",
       `Deleted campaign template: ${template.name}`,
-      template.id
+      template.id,
+      auth.user.userId
     );
 
     return NextResponse.json({ message: "Template deleted successfully." });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
     console.error("Failed to delete campaign template", error);
     return NextResponse.json(
       { error: "Failed to delete campaign template" },

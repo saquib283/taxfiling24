@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import {
   sendWhatsAppMessage,
   normalizePhoneNumber,
@@ -12,9 +12,9 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(request: Request, context: RouteContext) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(_: Request, context: RouteContext) {
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
   const lead = await prisma.inquiry.findUnique({
@@ -46,8 +46,8 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
   const lead = await prisma.inquiry.findUnique({
@@ -81,6 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
       text: text?.trim(),
       templateName,
       templateLanguage,
+      inquiryId: lead.id,
     });
 
     if (!sendResult.success) {
@@ -94,6 +95,8 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
+    const actor = auth.user.name || auth.user.username || auth.user.role;
+
     // Record interaction in the Lead's Activity Audit Trail
     await prisma.leadActivity.create({
       data: {
@@ -104,10 +107,10 @@ export async function POST(request: Request, context: RouteContext) {
         metadata: {
           messageId: sendResult.messageId,
           recipientPhone: lead.phone,
-          sentBy: (admin as any).name || admin.role || "Admin",
+          sentBy: actor,
           provider: "META_CLOUD_API",
         },
-        performedBy: (admin as any).name || admin.role || "Admin",
+        performedBy: actor,
       },
     });
 
@@ -117,15 +120,17 @@ export async function POST(request: Request, context: RouteContext) {
         where: { id: lead.id },
         data: { status: "CONTACTED" },
       });
-      await prisma.leadActivity.create({
-        data: {
-          inquiryId: lead.id,
-          type: "STATUS_CHANGE",
-          title: `Stage Changed: ${lead.status} -> CONTACTED`,
-          description: "Automatically advanced after WhatsApp interaction.",
-          performedBy: (admin as any).name || admin.role || "Admin",
-        },
-      }).catch((e) => console.warn("Failed to log WA status change:", e));
+      await prisma.leadActivity
+        .create({
+          data: {
+            inquiryId: lead.id,
+            type: "STATUS_CHANGE",
+            title: `Stage Changed: ${lead.status} -> CONTACTED`,
+            description: "Automatically advanced after WhatsApp interaction.",
+            performedBy: actor,
+          },
+        })
+        .catch((e) => console.warn("Failed to log WA status change:", e));
     }
 
     return NextResponse.json({
@@ -135,9 +140,8 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error: any) {
     console.error("WhatsApp Send Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to send WhatsApp message" },
+      { error: "Failed to send WhatsApp message" },
       { status: 500 }
     );
   }
 }
-

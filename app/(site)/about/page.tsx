@@ -15,6 +15,7 @@ import { fadeUp } from "@/lib/animations";
 import JsonLd, { webPageSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
 import { getSettings } from "@/lib/settings";
 import { getManagedPageSections } from "@/lib/managed-pages";
+import prisma from "@/lib/prisma";
 import type { Metadata } from "next";
 import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 
@@ -64,7 +65,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const settings = await getSettings();
+  const [settings, teamMembers] = await Promise.all([
+    getSettings(),
+    prisma.teamMember
+      .findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      })
+      .catch(() => []),
+  ]);
   const sections = getManagedPageSections("about", settings);
   const expertiseIcons = [Receipt, Calculator, Building2, FileCheck];
   const valueIcons = [Shield, Award, UserCheck];
@@ -177,7 +186,7 @@ export default async function AboutPage() {
                             <Award className="h-6 w-6" />
                           </div>
                           <div>
-                            <h4 className="font-bold text-[var(--fg)]">{data.badgeTitle}</h4>
+                            <h3 className="font-bold text-[var(--fg)]">{data.badgeTitle}</h3>
                             <p className="text-sm text-[var(--fg-muted)]">{data.badgeDescription}</p>
                           </div>
                         </div>
@@ -189,6 +198,7 @@ export default async function AboutPage() {
                             src={data.image || "/images/team_consulting.png"}
                             alt={data.title || "About TaxFiling24"}
                             fill
+                            sizes="(max-width: 1024px) 100vw, 50vw"
                             className="object-cover"
                           />
                         </div>
@@ -317,6 +327,60 @@ export default async function AboutPage() {
               return null;
           }
         })}
+
+      {teamMembers.length > 0 && (
+        <section className="border-t border-slate-100 bg-white py-16 lg:py-24">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <AnimatedSection className="mb-14 text-center">
+              <h2 className="mb-3 text-3xl font-bold tracking-tight text-slate-900">
+                Meet Our Advisory Team
+              </h2>
+              <p className="mx-auto max-w-2xl text-slate-500">
+                Certified Chartered Accountants, Company Secretaries, and regulatory advisors dedicated to your statutory compliance.
+              </p>
+            </AnimatedSection>
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {teamMembers.map((member) => {
+                const hasSafeImage = Boolean(
+                  member.image && (member.image.startsWith("/") || /^https?:\/\//i.test(member.image))
+                );
+                const initials = member.name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .map((part) => part[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+
+                return (
+                  <AnimatedSection
+                    key={member.id}
+                    variants={fadeUp}
+                    className="flex flex-col items-center rounded-3xl border border-slate-100 bg-slate-50/70 p-8 text-center shadow-sm transition hover:bg-white hover:shadow-lg"
+                  >
+                    <div className="mb-5 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-2xl font-bold text-white shadow-md">
+                      {hasSafeImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={member.image!}
+                          alt={member.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        initials || "TF"
+                      )}
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">{member.name}</h3>
+                    <p className="mt-1 text-sm font-medium text-[var(--primary)]">
+                      {member.designation}
+                    </p>
+                  </AnimatedSection>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

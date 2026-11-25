@@ -1,12 +1,15 @@
 export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import { Star, MessageCircle, AlertCircle } from "lucide-react";
 import ApproveButton from "@/components/admin/ApproveButton";
 import DeleteButton from "@/components/admin/DeleteButton";
 import AddReviewForm from "@/components/admin/AddReviewForm";
 
 export default async function ReviewsListPage() {
+  await requirePageRole(["ADMIN", "EDITOR", "VIEWER"]);
+
   let reviews: any[] = [];
   let error: string | null = null;
 

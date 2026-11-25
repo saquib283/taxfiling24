@@ -28,7 +28,6 @@ export default async function TaxCalculatorPage() {
 
   return (
     <div className="bg-[var(--bg)] min-h-screen pb-16 lg:pb-24 pt-0">
-      <h1 className="sr-only">Income Tax Calculator</h1>
       <JsonLd
         data={[
           breadcrumbSchema([

@@ -77,12 +77,23 @@ function getUrgencyBadge(dateStr: string) {
   return { label: `In ${diffDays}d`, style: "bg-slate-100 text-slate-600 border-slate-200" };
 }
 
+function formatDateInputIst(dateStr: string) {
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(parsed);
+}
+
 export default function CalendarManagerPage() {
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ category: "Income Tax", date: "", desc: "", title: "" });
+  const [form, setForm] = useState({ category: "Income Tax", date: "", desc: "", title: "", isActive: true });
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
@@ -93,8 +104,11 @@ export default function CalendarManagerPage() {
   const fetchDeadlines = async () => {
     try {
       const res = await fetch("/api/admin/calendar");
-      if (res.ok) {
-        setDeadlines(await res.json());
+      const data = await res.json().catch(() => null);
+      if (res.ok && Array.isArray(data)) {
+        setDeadlines(data);
+      } else {
+        setFeedback({ text: data?.error || "Failed to load compliance deadlines.", type: "error" });
       }
     } catch {
       setFeedback({ text: "Failed to load compliance deadlines.", type: "error" });
@@ -118,9 +132,10 @@ export default function CalendarManagerPage() {
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
-      if (!res.ok) throw new Error("Failed to add deadline");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to add deadline");
 
-      setForm({ category: "Income Tax", date: "", desc: "", title: "" });
+      setForm({ category: "Income Tax", date: "", desc: "", title: "", isActive: true });
       setShowAdd(false);
       setFeedback({ text: "Compliance deadline published.", type: "success" });
       await fetchDeadlines();
@@ -145,7 +160,8 @@ export default function CalendarManagerPage() {
         headers: { "Content-Type": "application/json" },
         method: "PATCH",
       });
-      if (!res.ok) throw new Error("Failed to update deadline");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to update deadline");
 
       setEditingId(null);
       setFeedback({ text: "Compliance deadline updated.", type: "success" });
@@ -160,12 +176,32 @@ export default function CalendarManagerPage() {
     }
   };
 
+  const handleToggleActive = async (d: Deadline) => {
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/calendar/${d.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !d.isActive }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to update deadline status");
+      await fetchDeadlines();
+    } catch (err) {
+      setFeedback({
+        text: err instanceof Error ? err.message : "Failed to update deadline status.",
+        type: "error",
+      });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     setFeedback(null);
     try {
       const res = await fetch(`/api/admin/calendar/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete deadline");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to delete deadline");
 
       setConfirmDeleteId(null);
       setFeedback({ text: "Deadline removed successfully.", type: "success" });
@@ -224,7 +260,7 @@ export default function CalendarManagerPage() {
           onClick={() => {
             setShowAdd(true);
             setEditingId(null);
-            setForm({ category: "Income Tax", date: "", desc: "", title: "" });
+            setForm({ category: "Income Tax", date: "", desc: "", title: "", isActive: true });
             setFeedback(null);
           }}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-bold transition active:scale-98 cursor-pointer shadow-xs shrink-0"
@@ -369,29 +405,40 @@ export default function CalendarManagerPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAdd(false);
-                  setEditingId(null);
-                }}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving || !form.title.trim() || !form.date}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs"
-              >
-                {saving ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Save className="h-3.5 w-3.5" />
-                )}
-                {showAdd ? "Publish Deadline" : "Save Changes"}
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                  className="rounded border-slate-300 text-indigo-600"
+                />
+                Active (visible on site calendar &amp; included in email alerts)
+              </label>
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdd(false);
+                    setEditingId(null);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !form.title.trim() || !form.date}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  {saving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
+                  {showAdd ? "Publish Deadline" : "Save Changes"}
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -522,14 +569,28 @@ export default function CalendarManagerPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
+                            onClick={() => handleToggleActive(d)}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+                              d.isActive
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                            }`}
+                            title="Toggle visibility"
+                          >
+                            {d.isActive ? "Active" : "Hidden"}
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => {
                               setEditingId(d.id);
                               setShowAdd(false);
                               setForm({
                                 category: d.category,
-                                date: new Date(d.date).toISOString().split("T")[0],
+                                date: formatDateInputIst(d.date),
                                 desc: d.desc || "",
                                 title: d.title,
+                                isActive: d.isActive,
                               });
                               setFeedback(null);
                             }}

@@ -1,19 +1,29 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { markProposalAccepted, logLeadActivity } from "@/lib/lead-crm";
+import { calculateProposalTotals, ProposalLineItem, ProposalMilestone } from "@/lib/proposal-math";
+import { logActivity } from "@/lib/activity-log";
+
+const ALLOWED_PROPOSAL_STATUSES = new Set([
+  "DRAFT",
+  "SENT",
+  "ACCEPTED",
+  "REJECTED",
+  "EXPIRED",
+]);
 
 export async function GET(
   _: Request,
   { params }: { params: Promise<{ id: string; proposalId: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
-    const { proposalId } = await params;
-    const proposal = await prisma.leadProposal.findUnique({
-      where: { id: proposalId },
+    const { id, proposalId } = await params;
+    const proposal = await prisma.leadProposal.findFirst({
+      where: { id: proposalId, inquiryId: id },
       include: { inquiry: true },
     });
 
@@ -23,7 +33,8 @@ export async function GET(
 
     return NextResponse.json(proposal);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to fetch proposal:", error);
+    return NextResponse.json({ error: "Failed to load proposal" }, { status: 500 });
   }
 }
 
@@ -31,11 +42,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; proposalId: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
-    const { proposalId } = await params;
+    const { id, proposalId } = await params;
+    const existing = await prisma.leadProposal.findFirst({
+      where: { id: proposalId, inquiryId: id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const {
       status,
@@ -54,53 +73,83 @@ export async function PATCH(
       terms,
     } = body;
 
+    if (status !== undefined && !ALLOWED_PROPOSAL_STATUSES.has(String(status))) {
+      return NextResponse.json({ error: "Invalid proposal status" }, { status: 400 });
+    }
+
+    const actor = auth.user.name || auth.user.username || auth.user.role;
+
     if (status === "ACCEPTED") {
       const accepted = await markProposalAccepted({
         proposalId,
-        performedBy: (admin as any).name || admin.role || "Admin",
+        expectedInquiryId: id,
+        performedBy: actor,
       });
+      await logActivity(
+        "UPDATED",
+        "Inquiry",
+        `Marked quotation ${accepted.proposalNumber} ACCEPTED`,
+        proposalId,
+        auth.user.userId
+      );
       return NextResponse.json(accepted);
     }
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Record<string, any> = {};
     if (status) dataToUpdate.status = status;
-    if (title) dataToUpdate.title = title;
-    if (validUntil) dataToUpdate.validUntil = new Date(validUntil);
-    if (currency) dataToUpdate.currency = currency;
+    if (title !== undefined) {
+      const trimmedTitle = String(title).trim();
+      if (!trimmedTitle) {
+        return NextResponse.json({ error: "Proposal title cannot be empty" }, { status: 400 });
+      }
+      dataToUpdate.title = trimmedTitle;
+    }
+    if (validUntil !== undefined) {
+      const d = new Date(validUntil);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json({ error: "Invalid validUntil date" }, { status: 400 });
+      }
+      dataToUpdate.validUntil = d;
+    }
+    if (currency) dataToUpdate.currency = String(currency).trim();
     if (clientGstin !== undefined) dataToUpdate.clientGstin = clientGstin?.trim() || null;
     if (clientPan !== undefined) dataToUpdate.clientPan = clientPan?.trim() || null;
     if (clientAddress !== undefined) dataToUpdate.clientAddress = clientAddress?.trim() || null;
     if (placeOfSupply !== undefined) dataToUpdate.placeOfSupply = placeOfSupply?.trim() || null;
-    if (taxType !== undefined) dataToUpdate.taxType = taxType;
-    if (paymentMilestones !== undefined) dataToUpdate.paymentMilestones = paymentMilestones;
-    if (notes !== undefined) dataToUpdate.notes = notes;
+    if (taxType !== undefined) {
+      dataToUpdate.taxType = taxType === "CGST_SGST" ? "CGST_SGST" : "IGST";
+    }
+    if (notes !== undefined) dataToUpdate.notes = notes?.trim() || null;
     if (terms !== undefined) dataToUpdate.terms = terms;
 
-    if (lineItems && Array.isArray(lineItems)) {
-      let subtotal = 0;
-      let taxAmount = 0;
-      for (const item of lineItems) {
-        const qty = Number(item.qty || 1);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
-        const gstPct = item.isGovFee ? 0 : Number(item.gstPercent ?? 18);
-        const lineTax = (lineSubtotal * gstPct) / 100;
-        item.amount = lineSubtotal;
-        subtotal += lineSubtotal;
-        taxAmount += lineTax;
-      }
-      const disc = discount !== undefined ? Math.max(0, Number(discount)) : 0;
-      const taxable = Math.max(0, subtotal - disc);
-      const effectiveTax = disc > 0 ? (taxable * 0.18) : taxAmount;
-      const totalAmount = Math.round((taxable + effectiveTax) * 100) / 100;
+    // Recompute totals & milestone amounts consistently whenever lineItems, discount, or paymentMilestones change
+    if (lineItems !== undefined || discount !== undefined || paymentMilestones !== undefined) {
+      const effectiveItems =
+        lineItems !== undefined
+          ? (lineItems as ProposalLineItem[])
+          : ((existing.lineItems as unknown as ProposalLineItem[]) || []);
+      const effectiveDiscount =
+        discount !== undefined ? Number(discount) : Number(existing.discount || 0);
+      const effectiveMilestones =
+        paymentMilestones !== undefined
+          ? (paymentMilestones as ProposalMilestone[])
+          : ((existing.paymentMilestones as unknown as ProposalMilestone[]) || undefined);
 
-      dataToUpdate.lineItems = lineItems;
-      dataToUpdate.subtotal = subtotal;
-      dataToUpdate.discount = disc;
-      dataToUpdate.taxAmount = effectiveTax;
-      dataToUpdate.totalAmount = totalAmount;
-    } else if (discount !== undefined) {
-      dataToUpdate.discount = Math.max(0, Number(discount));
+      const calc = calculateProposalTotals(
+        effectiveItems,
+        effectiveDiscount,
+        effectiveMilestones,
+        { strict: true }
+      );
+
+      dataToUpdate.lineItems = calc.lineItems;
+      dataToUpdate.subtotal = calc.subtotal;
+      dataToUpdate.discount = calc.discount;
+      dataToUpdate.taxAmount = calc.taxAmount;
+      dataToUpdate.totalAmount = calc.totalAmount;
+      if (calc.paymentMilestones !== undefined) {
+        dataToUpdate.paymentMilestones = calc.paymentMilestones;
+      }
     }
 
     const updated = await prisma.leadProposal.update({
@@ -108,18 +157,32 @@ export async function PATCH(
       data: dataToUpdate,
     });
 
-    if (status) {
+    if (status && status !== existing.status) {
       await logLeadActivity({
         inquiryId: updated.inquiryId,
         type: "STATUS_CHANGE",
         title: `Proposal ${updated.proposalNumber} status updated to ${status}`,
-        performedBy: (admin as any).name || admin.role || "Admin",
+        performedBy: actor,
       });
     }
 
+    await logActivity(
+      "UPDATED",
+      "Inquiry",
+      `Updated quotation ${updated.proposalNumber}`,
+      updated.id,
+      auth.user.userId
+    );
+
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const msg = error?.message || "Failed to update proposal";
+    const isBadRequest =
+      msg.includes("required") ||
+      msg.includes("must be") ||
+      msg.includes("Cannot accept") ||
+      msg.includes("Invalid");
+    return NextResponse.json({ error: msg }, { status: isBadRequest ? 400 : 500 });
   }
 }
 
@@ -127,17 +190,35 @@ export async function DELETE(
   _: Request,
   { params }: { params: Promise<{ id: string; proposalId: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
-    const { proposalId } = await params;
-    await prisma.leadProposal.delete({
-      where: { id: proposalId },
+    const { id, proposalId } = await params;
+    const existing = await prisma.leadProposal.findFirst({
+      where: { id: proposalId, inquiryId: id },
+      select: { id: true, proposalNumber: true },
     });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
+    }
+
+    await prisma.leadProposal.delete({
+      where: { id: existing.id },
+    });
+
+    await logActivity(
+      "DELETED",
+      "Inquiry",
+      `Deleted quotation ${existing.proposalNumber}`,
+      existing.id,
+      auth.user.userId
+    );
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to delete proposal:", error);
+    return NextResponse.json({ error: "Failed to delete proposal" }, { status: 500 });
   }
 }
-

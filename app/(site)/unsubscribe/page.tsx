@@ -53,7 +53,7 @@ function UnsubscribeContent() {
       const res = await fetch("/api/unsubscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), resubscribe: true }),
+        body: JSON.stringify({ email: email.trim(), token, resubscribe: true }),
       });
 
       const data = await res.json();

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import {
   addMinutes,
   combineDateAndTime,
@@ -11,14 +11,26 @@ import {
   getBookingConfig,
   getDateKey,
   getDueReminderOffsets,
+  isSafeHttpUrl,
+  isValidDateKey,
 } from "@/lib/booking";
 import { sendAppointmentNotification } from "@/lib/booking-notifications";
 import { getSettings } from "@/lib/settings";
+
+const ALLOWED_APPOINTMENT_STATUSES = new Set([
+  "PENDING",
+  "CONFIRMED",
+  "RESCHEDULED",
+  "COMPLETED",
+  "CANCELLED",
+  "NO_SHOW",
+]);
 
 type AppointmentUpdatePayload = {
   adminNotes?: string | null;
   cancellationReason?: string | null;
   date?: string;
+  forceOverride?: boolean;
   id?: string;
   meetingLink?: string | null;
   notifyClient?: boolean;
@@ -31,6 +43,7 @@ type AdminCreateBookingPayload = {
   adminNotes?: string | null;
   date: string;
   email: string;
+  forceOverride?: boolean;
   meetingLink?: string | null;
   name: string;
   notifyClient?: boolean;
@@ -62,15 +75,60 @@ async function getAppointmentsForDate(dateKey: string) {
   });
 }
 
+function hasActiveOverlap(params: {
+  appointments: Array<{
+    id: string;
+    date: Date;
+    time: string;
+    startAt: Date | null;
+    endAt: Date | null;
+    durationMinutes: number | null;
+    status: string;
+  }>;
+  excludeId?: string;
+  slotStart: Date;
+  slotEnd: Date;
+  maxBookingsPerSlot: number;
+  defaultDuration: number;
+}) {
+  let exactCount = 0;
+  for (const app of params.appointments) {
+    if (params.excludeId && app.id === params.excludeId) continue;
+    if (["CANCELLED", "NO_SHOW"].includes(app.status)) continue;
+
+    const start = app.startAt
+      ? new Date(app.startAt)
+      : combineDateAndTime(getDateKey(app.date), app.time);
+    const end = app.endAt
+      ? new Date(app.endAt)
+      : addMinutes(start, app.durationMinutes || params.defaultDuration);
+
+    if (
+      start.getTime() === params.slotStart.getTime() &&
+      end.getTime() === params.slotEnd.getTime()
+    ) {
+      exactCount += 1;
+      if (exactCount >= params.maxBookingsPerSlot) return true;
+      continue;
+    }
+
+    if (params.slotStart < end && start < params.slotEnd) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const settingsMap = await getSettings();
     const config = getBookingConfig(settingsMap);
     const appointments = await prisma.appointment.findMany({
       orderBy: [{ date: "asc" }, { createdAt: "desc" }],
+      take: 500,
     });
     const servicesById = new Map(config.services.map((service) => [service.id, service]));
     const todayKey = getDateKey(new Date());
@@ -78,16 +136,25 @@ export async function GET() {
 
     const summary = appointments.reduce(
       (acc, appointment) => {
-        const start = appointment.startAt ? new Date(appointment.startAt) : combineDateAndTime(getDateKey(appointment.date), appointment.time);
+        const start = appointment.startAt
+          ? new Date(appointment.startAt)
+          : combineDateAndTime(getDateKey(appointment.date), appointment.time);
         const isUpcoming =
           start > now && !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(appointment.status);
-        const service = appointment.serviceId ? servicesById.get(appointment.serviceId) : undefined;
-        const dueReminders = getDueReminderOffsets({
-          appointment,
-          service,
-          settings: config.settings,
-          now,
-        });
+        const service = appointment.serviceId
+          ? servicesById.get(appointment.serviceId)
+          : undefined;
+        // Reminders only apply to active CONFIRMED / RESCHEDULED appointments
+        const isReminderEligible =
+          appointment.status === "CONFIRMED" || appointment.status === "RESCHEDULED";
+        const dueReminders = isReminderEligible
+          ? getDueReminderOffsets({
+              appointment,
+              service,
+              settings: config.settings,
+              now,
+            })
+          : [];
 
         acc.total += 1;
         if (getDateKey(appointment.date) === todayKey) acc.today += 1;
@@ -127,8 +194,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const body = (await req.json()) as AdminCreateBookingPayload;
@@ -139,10 +206,29 @@ export async function POST(req: Request) {
     const cleanTime = (body.time || "").trim();
     const status = body.status || "CONFIRMED";
     const notifyClient = body.notifyClient !== false;
+    const meetingLink = body.meetingLink?.trim() || null;
 
     if (!cleanName || !cleanDate || !cleanTime) {
       return NextResponse.json(
         { error: "Client name, date, and time slot are required." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidDateKey(cleanDate)) {
+      return NextResponse.json(
+        { error: "Invalid date format. Expected YYYY-MM-DD." },
+        { status: 400 }
+      );
+    }
+
+    if (!ALLOWED_APPOINTMENT_STATUSES.has(status)) {
+      return NextResponse.json({ error: "Invalid appointment status." }, { status: 400 });
+    }
+
+    if (meetingLink && !isSafeHttpUrl(meetingLink)) {
+      return NextResponse.json(
+        { error: "Meeting link must start with http:// or https://." },
         { status: 400 }
       );
     }
@@ -161,9 +247,33 @@ export async function POST(req: Request) {
       config.services.find((item) => item.isActive) ||
       config.services[0];
 
+    const durationMinutes = service?.durationMinutes || 30;
     const slotStart = combineDateAndTime(cleanDate, cleanTime);
-    const slotEnd = addMinutes(slotStart, service?.durationMinutes || 30);
+    if (Number.isNaN(slotStart.getTime())) {
+      return NextResponse.json({ error: "Invalid time slot." }, { status: 400 });
+    }
+    const slotEnd = addMinutes(slotStart, durationMinutes);
     const slotLabel = formatTimeLabel(cleanTime);
+
+    if (!body.forceOverride) {
+      const sameDayAppointments = await getAppointmentsForDate(cleanDate);
+      const conflict = hasActiveOverlap({
+        appointments: sameDayAppointments,
+        slotStart,
+        slotEnd,
+        maxBookingsPerSlot: service?.maxBookingsPerSlot || 1,
+        defaultDuration: durationMinutes,
+      });
+      if (conflict) {
+        return NextResponse.json(
+          {
+            error:
+              "Another active consultation already overlaps this time slot. Pick an open slot or cancel the conflicting booking first.",
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -171,12 +281,12 @@ export async function POST(req: Request) {
         bookingReference: createBookingReference(),
         customerTimezone: config.settings.timezone,
         date: slotStart,
-        durationMinutes: service?.durationMinutes || 30,
+        durationMinutes,
         email: cleanEmail || "walkin@taxfiling24.com",
         endAt: slotEnd,
         locationLabel: service?.locationLabel || null,
         locationType: service?.meetingType || "VIDEO",
-        meetingLink: body.meetingLink || null,
+        meetingLink,
         name: cleanName,
         phone: cleanPhone || "N/A",
         service: service?.name || "Consultation",
@@ -205,12 +315,13 @@ export async function POST(req: Request) {
             data: { confirmationSentAt: new Date() },
           });
         } catch (err) {
-          console.warn("Could not dispatch confirmation email for admin-created booking:", err);
+          console.warn(
+            "Could not dispatch confirmation email for admin-created booking:",
+            err
+          );
         }
       };
 
-      // Ensure notification never blocks or exceeds gateway timeout:
-      // Give it up to 2.5s inline; if it takes longer, it continues in background
       await Promise.race([
         dispatchNotification(),
         new Promise((resolve) => setTimeout(resolve, 2500)),
@@ -221,22 +332,23 @@ export async function POST(req: Request) {
       "CREATED",
       "Appointment",
       `Admin manually scheduled booking for ${cleanName} on ${cleanDate} at ${slotLabel}`,
-      appointment.id
+      appointment.id,
+      auth.user.userId
     );
 
     return NextResponse.json(appointment, { status: 201 });
   } catch (error) {
     console.error("Admin booking creation error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create booking." },
+      { error: "Failed to create booking." },
       { status: 500 }
     );
   }
 }
 
 export async function PUT(req: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const body = (await req.json()) as AppointmentUpdatePayload;
@@ -244,6 +356,19 @@ export async function PUT(req: Request) {
 
     if (!id) {
       return NextResponse.json({ error: "Missing appointment ID" }, { status: 400 });
+    }
+
+    if (body.status !== undefined && !ALLOWED_APPOINTMENT_STATUSES.has(body.status)) {
+      return NextResponse.json({ error: "Invalid appointment status." }, { status: 400 });
+    }
+
+    const cleanedLink =
+      body.meetingLink !== undefined ? body.meetingLink?.trim() || null : undefined;
+    if (cleanedLink && !isSafeHttpUrl(cleanedLink)) {
+      return NextResponse.json(
+        { error: "Meeting link must start with http:// or https://." },
+        { status: 400 }
+      );
     }
 
     const existing = await prisma.appointment.findUnique({ where: { id } });
@@ -255,7 +380,9 @@ export async function PUT(req: Request) {
     const settingsMap = await getSettings();
     const config = getBookingConfig(settingsMap);
     const service =
-      config.services.find((item) => item.id === (body.serviceId || existing.serviceId) && item.isActive) ||
+      config.services.find(
+        (item) => item.id === (body.serviceId || existing.serviceId) && item.isActive
+      ) ||
       config.services.find((item) => item.name === existing.service && item.isActive) ||
       config.services.find((item) => item.isActive);
 
@@ -266,16 +393,27 @@ export async function PUT(req: Request) {
       );
     }
 
-    const nextDate = body.date || getDateKey(existing.date);
-    const nextTime = body.time || existing.time;
+    const existingDateKey = getDateKey(existing.date);
+    const nextDate = body.date ? body.date.trim() : existingDateKey;
+    if (!isValidDateKey(nextDate)) {
+      return NextResponse.json(
+        { error: "Invalid date format. Expected YYYY-MM-DD." },
+        { status: 400 }
+      );
+    }
+    const nextTime = body.time ? body.time.trim() : existing.time;
     const hasScheduleChanged =
-      nextDate !== getDateKey(existing.date) ||
+      nextDate !== existingDateKey ||
       nextTime !== existing.time ||
       (body.serviceId !== undefined && body.serviceId !== existing.serviceId);
 
-    let slotStart = existing.startAt ? new Date(existing.startAt) : combineDateAndTime(nextDate, nextTime);
-    let slotEnd = existing.endAt ? new Date(existing.endAt) : addMinutes(slotStart, service.durationMinutes);
-    let slotLabel = existing.slotLabel || existing.time;
+    let slotStart = existing.startAt
+      ? new Date(existing.startAt)
+      : combineDateAndTime(nextDate, nextTime);
+    let slotEnd = existing.endAt
+      ? new Date(existing.endAt)
+      : addMinutes(slotStart, service.durationMinutes);
+    let slotLabel = existing.slotLabel || formatTimeLabel(existing.time);
 
     if (hasScheduleChanged) {
       const sameDayAppointments = await getAppointmentsForDate(nextDate);
@@ -292,21 +430,44 @@ export async function PUT(req: Request) {
         slots.find((item) => item.startTime === nextTime) ||
         slots.find((item) => item.label === nextTime);
 
-      if (!slot) {
-        // If exact slot not found via public availability rules, still allow admin override with calculated time bounds
-        slotStart = combineDateAndTime(nextDate, nextTime);
-        slotEnd = addMinutes(slotStart, service.durationMinutes);
-        slotLabel = formatTimeLabel(nextTime);
-      } else {
+      if (slot) {
         slotStart = new Date(slot.startAt);
         slotEnd = new Date(slot.endAt);
         slotLabel = slot.label;
+      } else {
+        slotStart = combineDateAndTime(nextDate, nextTime);
+        if (Number.isNaN(slotStart.getTime())) {
+          return NextResponse.json({ error: "Invalid time slot." }, { status: 400 });
+        }
+        slotEnd = addMinutes(slotStart, service.durationMinutes);
+        slotLabel = formatTimeLabel(nextTime);
+
+        if (!body.forceOverride) {
+          const conflict = hasActiveOverlap({
+            appointments: sameDayAppointments,
+            excludeId: existing.id,
+            slotStart,
+            slotEnd,
+            maxBookingsPerSlot: service.maxBookingsPerSlot,
+            defaultDuration: service.durationMinutes,
+          });
+          if (conflict) {
+            return NextResponse.json(
+              {
+                error:
+                  "Another active consultation overlaps the requested reschedule time. Choose a different slot.",
+              },
+              { status: 409 }
+            );
+          }
+        }
       }
     }
 
     const nextStatus =
       body.status ||
-      (hasScheduleChanged && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(existing.status)
+      (hasScheduleChanged &&
+      !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(existing.status)
         ? "RESCHEDULED"
         : existing.status);
 
@@ -316,24 +477,30 @@ export async function PUT(req: Request) {
       nextStatus !== "COMPLETED";
     const isNowCancelled = nextStatus === "CANCELLED" && existing.status !== "CANCELLED";
     const isNowConfirmed =
-      nextStatus === "CONFIRMED" && existing.status === "PENDING" && !existing.confirmationSentAt;
+      nextStatus === "CONFIRMED" &&
+      existing.status === "PENDING" &&
+      !existing.confirmationSentAt;
 
     const updated = await prisma.appointment.update({
       where: { id },
       data: {
-        adminNotes: body.adminNotes ?? existing.adminNotes ?? null,
+        adminNotes:
+          body.adminNotes !== undefined ? body.adminNotes : existing.adminNotes ?? null,
         cancellationReason:
           nextStatus === "CANCELLED"
             ? body.cancellationReason ?? existing.cancellationReason ?? null
             : null,
-        cancelledAt: nextStatus === "CANCELLED" ? new Date() : null,
-        confirmationSentAt: isNowConfirmed ? new Date() : existing.confirmationSentAt,
+        // Preserve original cancelledAt timestamp when editing an already-cancelled record
+        cancelledAt:
+          nextStatus === "CANCELLED" ? existing.cancelledAt || new Date() : null,
         date: slotStart,
         durationMinutes: service.durationMinutes,
         endAt: slotEnd,
         locationLabel: service.locationLabel,
         locationType: service.meetingType,
-        meetingLink: body.meetingLink ?? existing.meetingLink ?? null,
+        meetingLink: cleanedLink !== undefined ? cleanedLink : existing.meetingLink ?? null,
+        // Reset reminder tracking when schedule changes so new reminders fire on time
+        ...(hasScheduleChanged ? { sentReminderOffsets: "" } : {}),
         service: service.name,
         serviceId: service.id,
         slotLabel,
@@ -343,7 +510,7 @@ export async function PUT(req: Request) {
       },
     });
 
-    // Proactive customer notifications
+    // Proactive customer notifications (stamp confirmationSentAt ONLY after delivery succeeds)
     if (body.notifyClient !== false && updated.email && !updated.email.includes("walkin@")) {
       const dispatchUpdateNotification = async () => {
         try {
@@ -374,6 +541,10 @@ export async function PUT(req: Request) {
               settingsMap,
               type: "CONFIRMATION",
             });
+            await prisma.appointment.update({
+              where: { id: updated.id },
+              data: { confirmationSentAt: new Date() },
+            });
           }
         } catch (notifyErr) {
           console.warn("Could not dispatch status update email to customer:", notifyErr);
@@ -390,7 +561,8 @@ export async function PUT(req: Request) {
       "UPDATED",
       "Appointment",
       `Updated booking ${updated.bookingReference || updated.id} to ${updated.status}`,
-      updated.id
+      updated.id,
+      auth.user.userId
     );
 
     return NextResponse.json(updated);
@@ -404,8 +576,8 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const url = new URL(req.url);
@@ -423,11 +595,15 @@ export async function DELETE(req: Request) {
       "DELETED",
       "Appointment",
       `Deleted booking ${deleted.bookingReference || deleted.id}`,
-      deleted.id
+      deleted.id,
+      auth.user.userId
     );
 
     return NextResponse.json({ message: "Appointment deleted" });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
+    }
     console.error("Failed to delete appointment", error);
     return NextResponse.json(
       { error: "Failed to delete appointment" },

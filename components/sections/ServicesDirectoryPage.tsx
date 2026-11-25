@@ -67,9 +67,9 @@ function ServiceCard({
         </div>
 
         {/* Content */}
-        <h3 className="text-[1.05rem] font-semibold leading-snug text-slate-900 mb-2.5 transition-colors duration-300 group-hover:text-[var(--primary)]">
+        <h2 className="text-[1.05rem] font-semibold leading-snug text-slate-900 mb-2.5 transition-colors duration-300 group-hover:text-[var(--primary)]">
           {service.title}
-        </h3>
+        </h2>
         <p className="text-[0.8rem] leading-relaxed text-slate-500 line-clamp-3 flex-1">
           {service.description}
         </p>
@@ -298,29 +298,24 @@ export default function ServicesDirectoryPage({
       {/* ─── Grid ─── */}
       <section className="py-8 sm:py-10 lg:py-12">
         <div className="container mx-auto px-6">
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false} mode="wait">
             {filteredServices.length > 0 ? (
               <motion.div
                 key="results"
-                initial={{ opacity: 0 }}
+                initial={false}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
               >
-                {filteredServices.map((service, index) => (
-                  <motion.div
-                    key={service.id || service.title}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.3) }}
-                  >
+                {filteredServices.map((service) => (
+                  <div key={service.id || service.title}>
                     <ServiceCard
                       service={service}
                       defaultCategoryLabel={defaultCategoryLabel}
                       exploreButtonText={exploreButtonText}
                     />
-                  </motion.div>
+                  </div>
                 ))}
               </motion.div>
             ) : (

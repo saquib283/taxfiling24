@@ -6,22 +6,33 @@ import { Save, Loader2, User, Lock, Eye, EyeOff } from "lucide-react";
 export default function ProfilePage() {
   const [form, setForm] = useState({ name: "", currentPassword: "", newPassword: "", confirmPassword: "" });
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [showPasswords, setShowPasswords] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/profile")
-      .then(res => res.json())
+      .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (data.name) setForm(prev => ({ ...prev, name: data.name }));
+        if (data?.name) setForm(prev => ({ ...prev, name: data.name }));
       })
       .catch(() => {});
   }, []);
 
   const handleSave = async () => {
-    if (form.newPassword && form.newPassword !== form.confirmPassword) {
-      setMessage("Passwords do not match!");
-      return;
+    setFeedback(null);
+    if (form.newPassword) {
+      if (!form.currentPassword) {
+        setFeedback({ text: "Enter your current password to set a new password.", type: "error" });
+        return;
+      }
+      if (form.newPassword.length < 8) {
+        setFeedback({ text: "New password must be at least 8 characters.", type: "error" });
+        return;
+      }
+      if (form.newPassword !== form.confirmPassword) {
+        setFeedback({ text: "Passwords do not match.", type: "error" });
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -30,12 +41,18 @@ export default function ProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
-      setMessage(data.message || (res.ok ? "Profile updated successfully!" : "Error updating profile credentials."));
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setFeedback({ text: data.message || "Profile updated successfully!", type: "success" });
+        setForm(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
+      } else {
+        setFeedback({ text: data.error || data.message || "Failed to update profile.", type: "error" });
+      }
     } catch {
-      setMessage("Network connection error.");
+      setFeedback({ text: "Network connection error.", type: "error" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -127,16 +144,16 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {message && (
+        {feedback && (
           <div className={`p-3.5 rounded-xl text-xs font-bold border shadow-2xs flex items-center gap-2 ${
-            message.includes("Error") || message.includes("match") || message.includes("Network")
+            feedback.type === "error"
               ? "bg-rose-50 text-rose-800 border-rose-200" 
               : "bg-emerald-50 text-emerald-800 border-emerald-200"
           }`}>
             <span className={`h-2 w-2 rounded-full shrink-0 ${
-              message.includes("Error") || message.includes("match") || message.includes("Network") ? "bg-rose-500" : "bg-emerald-500"
+              feedback.type === "error" ? "bg-rose-500" : "bg-emerald-500"
             }`} />
-            {message}
+            {feedback.text}
           </div>
         )}
 

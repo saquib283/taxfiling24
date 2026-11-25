@@ -9,7 +9,7 @@ import {
 } from "@/lib/appointment-emails";
 import { type BookingServiceConfig, type BookingSettings } from "@/lib/booking";
 import { sendTransactionalEmail } from "@/lib/email-delivery";
-import { sendWhatsAppMessage } from "@/lib/whatsapp";
+import { sendWhatsAppMessage, normalizePhoneNumber } from "@/lib/whatsapp";
 import { getSettings } from "@/lib/settings";
 
 export type AppointmentNotificationType =
@@ -91,11 +91,18 @@ export async function sendAppointmentNotification(params: {
       break;
   }
 
-  // Send WhatsApp notification alongside email if phone number is available
-  if (params.appointment.phone) {
+  // Send WhatsApp notification alongside email only when phone normalizes cleanly (skips "N/A")
+  const normalizedPhone = normalizePhoneNumber(params.appointment.phone || "");
+  if (normalizedPhone) {
     let waText = "";
-    if (params.type === "CONFIRMATION" || params.type === "BOOKING_RECEIVED") {
+    if (params.type === "BOOKING_RECEIVED") {
+      waText = `Namaste ${context.clientName}! 🙏\n\nWe have received your consultation request with *TaxFiling24* for *${serviceName}*. Our advisory desk will confirm your slot shortly.\n\n📅 *Requested Date:* ${context.dateLabel}\n⏰ *Requested Time:* ${context.timeLabel}\n🔖 *Reference:* ${context.bookingReference || "TF24-APT"}\n\n*TaxFiling24 Advisory Team*`;
+    } else if (params.type === "CONFIRMATION") {
       waText = `Namaste ${context.clientName}! 🙏\n\nYour consultation booking with *TaxFiling24* for *${serviceName}* is confirmed!\n\n📅 *Date:* ${context.dateLabel}\n⏰ *Time:* ${context.timeLabel}\n📍 *Mode:* ${locationLabel || "Online Video Conference"}\n${context.meetingLink ? `🔗 *Meeting Link:* ${context.meetingLink}\n` : ""}🔖 *Booking Reference:* ${context.bookingReference || "TF24-APT"}\n\nWe look forward to speaking with you!\n*TaxFiling24 Advisory Team*`;
+    } else if (params.type === "RESCHEDULED") {
+      waText = `Namaste ${context.clientName}! 📅\n\nYour consultation with *TaxFiling24* for *${serviceName}* has been rescheduled.\n\n📅 *New Date:* ${context.dateLabel}\n⏰ *New Time:* ${context.timeLabel}\n${context.meetingLink ? `🔗 *Meeting Link:* ${context.meetingLink}\n` : ""}🔖 *Reference:* ${context.bookingReference || "TF24-APT"}\n\n*TaxFiling24 Advisory Team*`;
+    } else if (params.type === "MEETING_LINK" && context.meetingLink) {
+      waText = `Namaste ${context.clientName}! 🔗\n\nYour meeting link for *${serviceName}* on *${context.dateLabel}* at *${context.timeLabel}* is ready:\n${context.meetingLink}\n\n*TaxFiling24 Advisory Team*`;
     } else if (params.type === "REMINDER") {
       waText = `Namaste ${context.clientName}! ⏰\n\nFriendly reminder: Your consultation with *TaxFiling24* for *${serviceName}* is coming up on *${context.dateLabel}* at *${context.timeLabel}*.\n\n${context.meetingLink ? `🔗 *Join Link:* ${context.meetingLink}\n` : ""}If you need to reschedule or have questions, reply directly to this chat.\n\n*TaxFiling24*`;
     } else if (params.type === "CANCELLED") {
@@ -104,9 +111,11 @@ export async function sendAppointmentNotification(params: {
 
     if (waText) {
       sendWhatsAppMessage({
-        to: params.appointment.phone,
+        to: normalizedPhone,
         text: waText,
-      }).catch((waErr) => console.warn("[WhatsApp] Appointment notification dispatch skipped/failed:", waErr));
+      }).catch((waErr) =>
+        console.warn("[WhatsApp] Appointment notification dispatch skipped/failed:", waErr)
+      );
     }
   }
 

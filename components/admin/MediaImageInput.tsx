@@ -60,8 +60,9 @@ export default function MediaImageInput({
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file (PNG, JPG, WebP, GIF, SVG).");
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please select a valid raster image file (PNG, JPG, WebP, or GIF).");
       return;
     }
 
@@ -208,7 +209,7 @@ export default function MediaImageInput({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp,image/gif"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -226,7 +227,7 @@ export default function MediaImageInput({
                 Click to browse or drag & drop image
               </p>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                Supports PNG, JPG, WebP, GIF, SVG up to 10MB
+                Supports PNG, JPG, WebP, GIF up to 10MB
               </p>
             </div>
           )}
@@ -275,9 +276,12 @@ export default function MediaImageInput({
                 alt={label}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    defaultImage ||
-                    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='12' fill='%23666'>Image Error</text></svg>";
+                  const img = e.currentTarget;
+                  img.onerror = null;
+                  img.src =
+                    defaultImage && defaultImage !== displayImage
+                      ? defaultImage
+                      : "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='12' fill='%23666'>Image Error</text></svg>";
                 }}
               />
             </div>
@@ -297,15 +301,17 @@ export default function MediaImageInput({
                 >
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-300" /> : <Copy className="h-3.5 w-3.5" />}
                 </button>
-                <a
-                  href={displayImage}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-lg bg-white/20 p-1.5 text-white hover:bg-white/30 transition text-xs"
-                  title="Open image in new tab"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                {(displayImage.startsWith("/") || /^https?:\/\//i.test(displayImage)) && (
+                  <a
+                    href={displayImage}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-lg bg-white/20 p-1.5 text-white hover:bg-white/30 transition text-xs"
+                    title="Open image in new tab"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => onChange("")}

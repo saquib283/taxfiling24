@@ -102,7 +102,10 @@ export default function ThemePage() {
 
   useEffect(() => {
     fetch("/api/admin/settings")
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to load theme settings");
+        return res.json();
+      })
       .then((data) => {
         setSettings((prev) => ({
           theme_primary: data.theme_primary || prev.theme_primary,
@@ -137,27 +140,47 @@ export default function ThemePage() {
     setSettings({ ...DEFAULTS });
   };
 
+  const isHexColor = (val: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val.trim());
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setMessage({ text: "", type: "" });
 
+    if (!isHexColor(settings.theme_primary) || !isHexColor(settings.theme_accent)) {
+      setMessage({
+        text: "Please enter valid hex colors (e.g. #0A2540) for Primary and Accent.",
+        type: "error",
+      });
+      return;
+    }
+
+    setSaving(true);
     try {
+      const themePayload = {
+        theme_primary: settings.theme_primary.trim(),
+        theme_accent: settings.theme_accent.trim(),
+        theme_radius: settings.theme_radius,
+        theme_font: settings.theme_font,
+        theme_font_size: settings.theme_font_size,
+        theme_shadow: settings.theme_shadow,
+        theme_mode: settings.theme_mode,
+      };
       const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({ settings: themePayload }),
       });
 
+      const data = await res.json().catch(() => null);
       if (res.ok) {
         setMessage({
           text: "Theme updated! Refresh the page to see full changes.",
           type: "success",
         });
       } else {
-        setMessage({ text: "Failed to save theme settings.", type: "error" });
+        setMessage({ text: data?.error || "Failed to save theme settings.", type: "error" });
       }
-    } catch (err) {
+    } catch {
       setMessage({ text: "Something went wrong.", type: "error" });
     } finally {
       setSaving(false);
@@ -330,7 +353,7 @@ export default function ThemePage() {
                         <div className="flex gap-2">
                           <input
                             type="color"
-                            value={settings.theme_primary}
+                            value={/^#[0-9a-fA-F]{6}$/.test(settings.theme_primary) ? settings.theme_primary : DEFAULTS.theme_primary}
                             onChange={(e) =>
                               handleChange("theme_primary", e.target.value)
                             }
@@ -355,7 +378,7 @@ export default function ThemePage() {
                         <div className="flex gap-2">
                           <input
                             type="color"
-                            value={settings.theme_accent}
+                            value={/^#[0-9a-fA-F]{6}$/.test(settings.theme_accent) ? settings.theme_accent : DEFAULTS.theme_accent}
                             onChange={(e) =>
                               handleChange("theme_accent", e.target.value)
                             }

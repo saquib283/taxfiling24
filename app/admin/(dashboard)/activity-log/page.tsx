@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import { Activity, FileText, Briefcase, HelpCircle, Star, Calendar, Users, Inbox } from "lucide-react";
 
 const ENTITY_ICONS: Record<string, any> = {
@@ -20,6 +21,8 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export default async function ActivityLogPage() {
+  await requirePageRole(["ADMIN"]);
+
   const logs = await prisma.activityLog.findMany({
     orderBy: { createdAt: "desc" },
     take: 100,

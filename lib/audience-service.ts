@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 export type AudienceSource =
   | "NEWSLETTER"
@@ -37,6 +37,7 @@ export interface UploadParseResult {
     phoneKey?: string;
     companyKey?: string;
     tagsKey?: string;
+    notesKey?: string;
   };
   samplePreview: Array<Record<string, any>>;
 }
@@ -53,6 +54,8 @@ export interface AudienceMetrics {
   totalTags: string[];
 }
 
+const MAX_IMPORT_ROWS = 5000;
+
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -61,6 +64,17 @@ export function isValidEmail(email: string): boolean {
   if (!email || typeof email !== "string") return false;
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return regex.test(email.trim());
+}
+
+export function isPlaceholderEmail(email: string): boolean {
+  const norm = normalizeEmail(email);
+  if (
+    norm === "walkin@taxfiling24.com" ||
+    norm === "no-email-provided@taxfiling24.com"
+  ) {
+    return true;
+  }
+  return /^wa-\d+@taxfiling24\.com$/i.test(norm);
 }
 
 /**
@@ -84,7 +98,6 @@ export async function ingestContact(params: IngestContactParams): Promise<Ingest
       return { subscriber: existing, status: "SKIPPED" };
     }
 
-    // Merge existing tags with incoming tags without duplicates
     const existingTags = Array.isArray(existing.tags) ? (existing.tags as string[]) : [];
     const mergedTags = Array.from(new Set([...existingTags, ...incomingTags]));
 
@@ -96,7 +109,6 @@ export async function ingestContact(params: IngestContactParams): Promise<Ingest
         company: params.company?.trim() || existing.company,
         notes: params.notes?.trim() || existing.notes,
         tags: mergedTags,
-        // Keep source as primary or append tag if source was different
         source: existing.source || source,
       },
     });
@@ -121,7 +133,8 @@ export async function ingestContact(params: IngestContactParams): Promise<Ingest
 }
 
 /**
- * Sync website leads from Inquiries and Appointments into the Audience Hub.
+ * Sync website leads from Inquiries and Appointments into the Audience Hub,
+ * skipping placeholder/unroutable synthetic emails and preserving Inquiry.company.
  */
 export async function syncWebsiteLeads(): Promise<{
   totalInquiries: number;
@@ -137,6 +150,7 @@ export async function syncWebsiteLeads(): Promise<{
         email: true,
         name: true,
         phone: true,
+        company: true,
         service: true,
         createdAt: true,
       },
@@ -155,11 +169,12 @@ export async function syncWebsiteLeads(): Promise<{
 
   let syncedInquiries = 0;
   for (const inq of inquiries) {
-    if (inq.email && isValidEmail(inq.email)) {
+    if (inq.email && isValidEmail(inq.email) && !isPlaceholderEmail(inq.email)) {
       const res = await ingestContact({
         email: inq.email,
         name: inq.name,
         phone: inq.phone,
+        company: inq.company,
         source: "INQUIRY",
         tags: inq.service ? [inq.service] : ["Contact Inquiry"],
         updateIfExists: true,
@@ -172,7 +187,7 @@ export async function syncWebsiteLeads(): Promise<{
 
   let syncedAppointments = 0;
   for (const app of appointments) {
-    if (app.email && isValidEmail(app.email)) {
+    if (app.email && isValidEmail(app.email) && !isPlaceholderEmail(app.email)) {
       const res = await ingestContact({
         email: app.email,
         name: app.name,
@@ -197,33 +212,222 @@ export async function syncWebsiteLeads(): Promise<{
 }
 
 /**
- * Parses an uploaded Excel (.xlsx, .xls) or CSV buffer and ingests contacts into the database.
+ * RFC-4180 compliant CSV parser handling quoted fields, escaped quotes, and CRLF/LF newlines.
+ */
+function parseCsvText(csvText: string): Array<Record<string, string>> {
+  const clean = csvText.replace(/^\uFEFF/, "");
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean[i];
+    const next = clean[i + 1];
+
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        currentField += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        currentField += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      currentRow.push(currentField);
+      currentField = "";
+    } else if (ch === "\r" && next === "\n") {
+      currentRow.push(currentField);
+      rows.push(currentRow);
+      currentRow = [];
+      currentField = "";
+      i++;
+    } else if (ch === "\n" || ch === "\r") {
+      currentRow.push(currentField);
+      rows.push(currentRow);
+      currentRow = [];
+      currentField = "";
+    } else {
+      currentField += ch;
+    }
+  }
+
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+
+  const nonEmptyRows = rows.filter((r) => r.some((cell) => cell.trim() !== ""));
+  if (nonEmptyRows.length < 2) return [];
+
+  const headers = nonEmptyRows[0].map((h, idx) => h.trim() || `Column_${idx + 1}`);
+  const records: Array<Record<string, string>> = [];
+
+  for (let i = 1; i < nonEmptyRows.length; i++) {
+    const row = nonEmptyRows[i];
+    const obj: Record<string, string> = {};
+    headers.forEach((header, idx) => {
+      obj[header] = (row[idx] ?? "").trim();
+    });
+    records.push(obj);
+  }
+
+  return records;
+}
+
+function cellValueToString(val: ExcelJS.CellValue): string {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "string" || typeof val === "number" || typeof val === "boolean") {
+    return String(val).trim();
+  }
+  if (val instanceof Date) {
+    return val.toISOString();
+  }
+  if (typeof val === "object") {
+    if ("text" in val && typeof val.text === "string") return val.text.trim();
+    if ("richText" in val && Array.isArray(val.richText)) {
+      return val.richText.map((rt) => rt.text).join("").trim();
+    }
+    if ("result" in val && val.result !== undefined && val.result !== null) {
+      return String(val.result).trim();
+    }
+  }
+  return String(val).trim();
+}
+
+const MAX_XLSX_ENTRIES = 250;
+const MAX_XLSX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB zip-bomb cap
+
+function validateZipArchiveBounds(buffer: Buffer): void {
+  // Locate End of Central Directory (EOCD) signature 0x06054b50 from tail
+  const minPos = Math.max(0, buffer.length - 65557);
+  let eocdPos = -1;
+  for (let i = buffer.length - 22; i >= minPos; i--) {
+    if (buffer.readUInt32LE(i) === 0x06054b50) {
+      eocdPos = i;
+      break;
+    }
+  }
+  if (eocdPos === -1) {
+    throw new Error("Invalid Excel (.xlsx) archive structure.");
+  }
+
+  const totalEntries = buffer.readUInt16LE(eocdPos + 10);
+  const cdOffset = buffer.readUInt32LE(eocdPos + 16);
+  if (totalEntries > MAX_XLSX_ENTRIES) {
+    throw new Error("Excel archive contains too many internal entries and was rejected for safety.");
+  }
+
+  let offset = cdOffset;
+  let totalUncompressed = 0;
+  for (let idx = 0; idx < totalEntries; idx++) {
+    if (offset + 46 > buffer.length || buffer.readUInt32LE(offset) !== 0x02014b50) {
+      throw new Error("Corrupted Excel (.xlsx) archive structure.");
+    }
+    const uncompressedSize = buffer.readUInt32LE(offset + 24);
+    const nameLen = buffer.readUInt16LE(offset + 28);
+    const extraLen = buffer.readUInt16LE(offset + 30);
+    const commentLen = buffer.readUInt16LE(offset + 32);
+
+    totalUncompressed += uncompressedSize;
+    if (totalUncompressed > MAX_XLSX_UNCOMPRESSED_BYTES) {
+      throw new Error("Excel file exceeds maximum safe uncompressed size (50MB).");
+    }
+    offset += 46 + nameLen + extraLen + commentLen;
+  }
+}
+
+async function parseXlsxBuffer(buffer: Buffer): Promise<Array<Record<string, string>>> {
+  validateZipArchiveBounds(buffer);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as any);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error("The uploaded Excel workbook contains no readable worksheets.");
+  }
+
+  const headers: string[] = [];
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+    headers[colNumber] = cellValueToString(cell.value) || `Column_${colNumber}`;
+  });
+
+  if (headers.filter(Boolean).length === 0) {
+    throw new Error("The uploaded Excel file is missing a header row.");
+  }
+
+  const records: Array<Record<string, string>> = [];
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, string> = {};
+    let hasAnyValue = false;
+    headers.forEach((header, colNumber) => {
+      if (!header) return;
+      const value = cellValueToString(row.getCell(colNumber).value);
+      obj[header] = value;
+      if (value) hasAnyValue = true;
+    });
+    if (hasAnyValue) {
+      records.push(obj);
+    }
+  });
+
+  return records;
+}
+
+/**
+ * Parses an uploaded Excel (.xlsx) or CSV (.csv) buffer safely via ExcelJS / RFC4180 CSV parser
+ * and ingests contacts into the database in bounded concurrent batches.
  */
 export async function parseAndImportSpreadsheet(
   buffer: Buffer,
   options: {
+    filename?: string;
     customTag?: string;
     updateIfExists?: boolean;
     defaultSource?: AudienceSource;
   } = {}
 ): Promise<UploadParseResult> {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
-    throw new Error("The uploaded spreadsheet contains no readable sheets.");
+  const filename = (options.filename || "").toLowerCase();
+  const isZipMagic =
+    buffer.length >= 4 &&
+    buffer[0] === 0x50 &&
+    buffer[1] === 0x4b &&
+    buffer[2] === 0x03 &&
+    buffer[3] === 0x04;
+  const isOleMagic =
+    buffer.length >= 4 &&
+    buffer[0] === 0xd0 &&
+    buffer[1] === 0xcf &&
+    buffer[2] === 0x11 &&
+    buffer[3] === 0xe0;
+
+  if (isOleMagic || (filename.endsWith(".xls") && !isZipMagic)) {
+    throw new Error(
+      "Legacy binary .xls files are not supported for security reasons. Please save the file as .xlsx or .csv and upload again."
+    );
   }
 
-  const sheet = workbook.Sheets[sheetName];
-  const rawRows: Array<Record<string, any>> = XLSX.utils.sheet_to_json(sheet, {
-    defval: "",
-    raw: false,
-  });
+  let rawRows: Array<Record<string, string>>;
+  if (isZipMagic || filename.endsWith(".xlsx")) {
+    rawRows = await parseXlsxBuffer(buffer);
+  } else {
+    rawRows = parseCsvText(buffer.toString("utf8"));
+  }
 
   if (rawRows.length === 0) {
     throw new Error("The uploaded file does not contain any data rows.");
   }
 
-  // Inspect headers to detect email, name, phone, company, tags
+  if (rawRows.length > MAX_IMPORT_ROWS) {
+    throw new Error(
+      `Upload contains ${rawRows.length} rows, exceeding the maximum of ${MAX_IMPORT_ROWS} rows per import. Please split the file into smaller batches.`
+    );
+  }
+
   const firstRow = rawRows[0];
   const headers = Object.keys(firstRow);
 
@@ -234,39 +438,39 @@ export async function parseAndImportSpreadsheet(
   };
 
   const emailKey = findKey([
-    /^e?-?mail(\s*address)?$/i,
-    /email/i,
-    /mail/i,
-    /contact\s*email/i,
+    /^e-?mail(\s*address)?$/i,
+    /\be-?mail\b/i,
+    /contact\s*e-?mail/i,
   ]);
   const nameKey = findKey([
     /^full\s*name$/i,
     /^name$/i,
-    /client\s*name/i,
-    /contact\s*name/i,
-    /customer/i,
-    /first\s*name/i,
+    /\bclient\s*name\b/i,
+    /\bcontact\s*name\b/i,
+    /\bcustomer(\s*name)?\b/i,
+    /^first\s*name$/i,
   ]);
   const phoneKey = findKey([
-    /^phone(\s*number)?$/i,
-    /^mobile(\s*number)?$/i,
-    /contact\s*no/i,
-    /whatsapp/i,
-    /tel/i,
+    /^phone(\s*no\.?|\s*number)?$/i,
+    /^mobile(\s*no\.?|\s*number)?$/i,
+    /\bcontact\s*no\.?\b/i,
+    /\bwhatsapp\b/i,
+    /\btel(ephone)?\b/i,
   ]);
   const companyKey = findKey([
     /^company(\s*name)?$/i,
-    /business/i,
-    /organization/i,
-    /firm/i,
+    /\bbusiness(\s*name)?\b/i,
+    /\borganization\b/i,
+    /\bfirm\b/i,
   ]);
   const tagsKey = findKey([
     /^tags?$/i,
-    /category/i,
-    /service/i,
-    /segment/i,
-    /group/i,
+    /\bcategory\b/i,
+    /\bservice\b/i,
+    /\bsegment\b/i,
+    /\bgroup\b/i,
   ]);
+  const notesKey = findKey([/^notes?$/i, /\bremarks?\b/i, /\bcomments?\b/i]);
 
   if (!emailKey) {
     throw new Error(
@@ -281,13 +485,16 @@ export async function parseAndImportSpreadsheet(
     updatedCount: 0,
     skippedCount: 0,
     errors: [],
-    detectedColumns: { emailKey, nameKey, phoneKey, companyKey, tagsKey },
+    detectedColumns: { emailKey, nameKey, phoneKey, companyKey, tagsKey, notesKey },
     samplePreview: rawRows.slice(0, 5),
   };
 
   const customTag = options.customTag?.trim();
   const updateIfExists = options.updateIfExists !== false;
   const defaultSource = options.defaultSource || "CSV_IMPORT";
+
+  // Deduplicate rows by normalized email while preserving order and process in chunks of 20
+  const validTasks: Array<{ rowNum: number; row: Record<string, string>; params: IngestContactParams }> = [];
 
   for (let i = 0; i < rawRows.length; i++) {
     const row = rawRows[i];
@@ -298,9 +505,9 @@ export async function parseAndImportSpreadsheet(
       continue;
     }
 
-    if (!isValidEmail(rawEmail)) {
+    if (!isValidEmail(rawEmail) || isPlaceholderEmail(rawEmail)) {
       result.errors.push({
-        row: i + 2, // 1-indexed header + 1
+        row: i + 2,
         error: `Invalid email address format: "${rawEmail}"`,
         data: row,
       });
@@ -313,7 +520,8 @@ export async function parseAndImportSpreadsheet(
     const rawName = nameKey ? String(row[nameKey] || "").trim() : null;
     const rawPhone = phoneKey ? String(row[phoneKey] || "").trim() : null;
     const rawCompany = companyKey ? String(row[companyKey] || "").trim() : null;
-    
+    const rawNotes = notesKey ? String(row[notesKey] || "").trim() : null;
+
     const rowTags: string[] = [];
     if (tagsKey && row[tagsKey]) {
       const splitTags = String(row[tagsKey])
@@ -326,32 +534,46 @@ export async function parseAndImportSpreadsheet(
       rowTags.push(customTag);
     }
 
-    try {
-      const ingestRes = await ingestContact({
+    validTasks.push({
+      rowNum: i + 2,
+      row,
+      params: {
         email: rawEmail,
         name: rawName,
         phone: rawPhone,
         company: rawCompany,
+        notes: rawNotes,
         source: defaultSource,
         tags: rowTags,
         updateIfExists,
-      });
+      },
+    });
+  }
 
-      if (ingestRes.status === "CREATED") {
-        result.importedCount++;
-      } else if (ingestRes.status === "UPDATED") {
-        result.updatedCount++;
-      } else {
-        result.skippedCount++;
-      }
-    } catch (err: any) {
-      result.errors.push({
-        row: i + 2,
-        error: err.message || "Failed to save contact.",
-        data: row,
-      });
-      result.skippedCount++;
-    }
+  const batchSize = 20;
+  for (let start = 0; start < validTasks.length; start += batchSize) {
+    const chunk = validTasks.slice(start, start + batchSize);
+    await Promise.all(
+      chunk.map(async (task) => {
+        try {
+          const ingestRes = await ingestContact(task.params);
+          if (ingestRes.status === "CREATED") {
+            result.importedCount++;
+          } else if (ingestRes.status === "UPDATED") {
+            result.updatedCount++;
+          } else {
+            result.skippedCount++;
+          }
+        } catch (err: any) {
+          result.errors.push({
+            row: task.rowNum,
+            error: err?.message || "Failed to save contact.",
+            data: task.row,
+          });
+          result.skippedCount++;
+        }
+      })
+    );
   }
 
   return result;
@@ -407,4 +629,3 @@ export async function getAudienceMetrics(): Promise<AudienceMetrics> {
     totalTags: Array.from(uniqueTags).sort(),
   };
 }
-

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { logActivity } from "@/lib/activity-log";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id } = await params;
@@ -26,25 +27,48 @@ export async function PATCH(
       data: updateData,
     });
 
+    await logActivity(
+      "UPDATED",
+      "Subscriber",
+      `Updated subscriber ${subscriber.email} (active=${subscriber.isActive})`,
+      subscriber.id,
+      auth.user.userId
+    );
+
     return NextResponse.json({ subscriber });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Subscriber not found" }, { status: 404 });
+    }
     console.error("Failed to update subscriber", error);
     return NextResponse.json({ error: "Failed to update subscriber" }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  request: Request,
+  _: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id } = await params;
-    await prisma.subscriber.delete({ where: { id } });
+    const deleted = await prisma.subscriber.delete({ where: { id } });
+
+    await logActivity(
+      "DELETED",
+      "Subscriber",
+      `Removed subscriber: ${deleted.email}`,
+      deleted.id,
+      auth.user.userId
+    );
+
     return NextResponse.json({ message: "Subscriber removed" });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Subscriber not found" }, { status: 404 });
+    }
     console.error("Failed to delete subscriber", error);
     return NextResponse.json({ error: "Failed to delete subscriber" }, { status: 500 });
   }

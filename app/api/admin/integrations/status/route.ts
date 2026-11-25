@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import {
   getProviderStatuses,
   resolveEmailProviderConfig,
@@ -12,8 +12,8 @@ import {
  * Never returns actual values — only presence checks.
  */
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const statuses: Record<string, boolean> = {};
@@ -59,7 +59,9 @@ export async function GET() {
     statuses["EMAIL_PROVIDER_MAILGUN"] = providerStatuses.MAILGUN;
 
     for (const s of settings) {
-      statuses[s.key] = !!s.value && s.value.trim() !== "";
+      const hasDbValue = !!s.value && s.value.trim() !== "";
+      // Preserve true from env-var fallbacks when a DB setting row is blank
+      statuses[s.key] = Boolean(statuses[s.key]) || hasDbValue;
     }
 
     if (!statuses["GEMINI_API_KEY"]) {
@@ -68,8 +70,9 @@ export async function GET() {
 
     return NextResponse.json(statuses);
   } catch (error) {
+    console.error("Failed to read integrations:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to read integrations" },
+      { error: "Failed to read integration statuses" },
       { status: 500 }
     );
   }

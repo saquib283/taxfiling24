@@ -20,6 +20,7 @@ import {
   Twitter,
 } from "lucide-react";
 import { getSiteContact } from "@/lib/site-contact";
+import { sanitizeHref } from "@/lib/url-safety";
 
 type FooterLink = {
   id?: string;
@@ -69,7 +70,7 @@ export default function SiteFooter({
   const tagline =
     content?.tagline ||
     settings.footer_tagline ||
-    "Taxfiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.";
+    "TaxFiling24 makes tax and compliance simple. We handle filings, registrations, and GST work so you can focus on your business.";
   const newsletterTitle = content?.newsletterTitle || "Stay Informed";
   const newsletterDescription =
     content?.newsletterDescription ||
@@ -84,14 +85,15 @@ export default function SiteFooter({
     `Copyright ${new Date().getFullYear()} TaxFiling24. All rights reserved.`;
   const developerPrefix = content?.developerPrefix || "Developed by";
   const developerName = content?.developerName || "Md Rehan Saquib";
-  const developerUrl = content?.developerUrl || "https://mdrehansaquib.in";
-  const socialLinks =
-    content?.socialLinks?.filter((link) => link.isVisible !== false && link.label && link.href) || [
-      { href: "#", label: "Twitter" },
-      { href: "#", label: "Facebook" },
-      { href: "#", label: "LinkedIn" },
-      { href: "#", label: "Instagram" },
-    ];
+  const developerUrl = sanitizeHref(content?.developerUrl, "https://mdrehansaquib.in");
+  const socialLinks = (content?.socialLinks || []).filter(
+    (link) =>
+      link.isVisible !== false &&
+      link.label &&
+      link.href &&
+      link.href.trim() !== "#" &&
+      /^https?:\/\//i.test(link.href.trim())
+  );
   const quickLinks =
     content?.quickLinks?.filter((link) => link.isVisible !== false && link.label && link.href) || [
       { href: "/", label: "Home" },
@@ -99,6 +101,7 @@ export default function SiteFooter({
       { href: "/services", label: "Services" },
       { href: "/articles", label: "Knowledge Base" },
       { href: "/book", label: "Book CA Consultation" },
+      { href: "/tools", label: "All Tax & GST Tools" },
       { href: "/tools/tax-calculator", label: "Income Tax Calculator" },
       { href: "/tools/gst-calculator", label: "GST Invoice Calculator" },
       { href: "/contact", label: "Contact" },
@@ -157,28 +160,31 @@ export default function SiteFooter({
                 alt="TaxFiling24"
                 width={170}
                 height={60}
-                unoptimized
                 className="h-11 sm:h-12 w-auto object-contain"
               />
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-slate-500">{tagline}</p>
-            <div className="flex gap-3">
-              {socialLinks.map((social) => {
-                const iconKey = (social.label || "").toLowerCase() as keyof typeof SOCIAL_ICONS;
-                const Icon = SOCIAL_ICONS[iconKey] || Globe;
+            {socialLinks.length > 0 && (
+              <div className="flex gap-3">
+                {socialLinks.map((social) => {
+                  const iconKey = (social.label || "").toLowerCase() as keyof typeof SOCIAL_ICONS;
+                  const Icon = SOCIAL_ICONS[iconKey] || Globe;
 
-                return (
-                  <a
-                    key={social.id || social.label}
-                    href={social.href || "#"}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-400 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 hover:text-[var(--primary)] hover:shadow-md"
-                    aria-label={social.label}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </a>
-                );
-              })}
-            </div>
+                  return (
+                    <a
+                      key={social.id || social.label}
+                      href={sanitizeHref(social.href)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-400 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 hover:text-[var(--primary)] hover:shadow-md"
+                      aria-label={social.label}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Explore Links */}
@@ -188,7 +194,7 @@ export default function SiteFooter({
               {quickLinks.map((link) => (
                 <li key={link.id || link.href}>
                   <Link
-                    href={link.href || "#"}
+                    href={sanitizeHref(link.href)}
                     className="group flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-[var(--primary)]"
                   >
                     <span>{link.label}</span>
@@ -235,7 +241,7 @@ export default function SiteFooter({
               {whatsapp && (
                 <li>
                   <a
-                    href={whatsapp}
+                    href={sanitizeHref(whatsapp)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 text-sm text-slate-500 hover:text-emerald-600 transition-colors"
@@ -305,7 +311,7 @@ export default function SiteFooter({
               {legalLinks.map((link) => (
                 <Link
                   key={link.id || link.href}
-                  href={link.href || "#"}
+                  href={sanitizeHref(link.href)}
                   className="text-sm font-medium text-slate-400 transition-colors duration-200 hover:text-[var(--primary)]"
                 >
                   {link.label}

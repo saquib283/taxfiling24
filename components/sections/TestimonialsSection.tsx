@@ -10,10 +10,12 @@ interface ReviewItem {
   role?: string | null;
   content: string;
   rating?: number;
+  avatar?: string | null;
   isApproved?: boolean;
 }
 
 interface TestimonialsProps {
+  initialReviews?: ReviewItem[];
   settings?: Record<string, string>;
   content?: {
     badge?: string;
@@ -22,19 +24,20 @@ interface TestimonialsProps {
   };
 }
 
-export default function TestimonialsSection({ settings = {}, content }: TestimonialsProps) {
-  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+export default function TestimonialsSection({ initialReviews, settings = {}, content }: TestimonialsProps) {
+  const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews || []);
 
   useEffect(() => {
+    if (initialReviews !== undefined) return;
     fetch("/api/reviews")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setReviews(data.filter((review): review is ReviewItem => Boolean(review?.isApproved)));
+          setReviews(data.filter((review): review is ReviewItem => Boolean(review?.isApproved !== false)));
         }
       })
       .catch(() => {});
-  }, []);
+  }, [initialReviews]);
 
   const sectionBadge = content?.badge || "Thousands of Happy Clients";
   const sectionTitle = content?.title || settings.testimonials_title || "Don't Just Take Our Word For It";
@@ -45,8 +48,42 @@ export default function TestimonialsSection({ settings = {}, content }: Testimon
 
   if (reviews.length === 0) return null;
 
-  // Duplicate for smooth infinite scrolling (need enough items to fill screen multiple times)
-  const duplicatedReviews = [...reviews, ...reviews, ...reviews, ...reviews, ...reviews, ...reviews];
+  const renderCard = (review: ReviewItem, key: string) => (
+    <div
+      key={key}
+      className="group relative flex w-[320px] shrink-0 flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-white/70 p-8 shadow-[var(--shadow-sm)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:bg-white/95 hover:shadow-[var(--shadow-lg)] sm:w-[420px] dark:bg-[var(--bg-card)]/50 dark:hover:bg-[var(--bg-card)]/80"
+    >
+      <Quote className="absolute -right-4 -top-4 h-32 w-32 text-[var(--primary)] opacity-[0.03] transition-transform duration-500 group-hover:scale-110 group-hover:opacity-[0.05]" />
+      <div className="mb-6 flex gap-1.5 text-[#f59e0b]" aria-label={`Rated ${review.rating || 5} out of 5 stars`}>
+        {Array.from({ length: review.rating || 5 }).map((_, idx) => (
+          <Star key={idx} className="h-5 w-5 fill-current" aria-hidden="true" />
+        ))}
+      </div>
+      <p className="relative z-10 mb-8 flex-1 text-base italic leading-relaxed text-[var(--fg-muted)] sm:text-lg">
+        &ldquo;{review.content}&rdquo;
+      </p>
+      <div className="relative z-10 flex items-center gap-4 border-t border-[var(--border)] pt-6">
+        {review.avatar && (review.avatar.startsWith("/") || /^https?:\/\//i.test(review.avatar)) ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={review.avatar}
+            alt={review.name}
+            className="h-12 w-12 rounded-2xl object-cover border border-[var(--border)] shadow-md shrink-0"
+          />
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-lg font-bold text-white shadow-md shrink-0" aria-hidden="true">
+            {review.name.split(" ").filter(Boolean).map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "TF"}
+          </div>
+        )}
+        <div>
+          <h3 className="text-base font-bold tracking-tight text-[var(--fg)]">{review.name}</h3>
+          {review.role && (
+            <p className="text-sm font-medium text-[var(--primary)] mt-0.5">{review.role}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <section className="relative overflow-hidden border-t border-[var(--border)] bg-[var(--bg-muted)]/30 py-16 lg:py-24">
@@ -91,36 +128,10 @@ export default function TestimonialsSection({ settings = {}, content }: Testimon
         style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}
       >
         <div className="animate-marquee flex gap-6 py-6 pl-6">
-          {duplicatedReviews.map((review, i) => (
-            <div
-              key={i}
-              className="group relative flex w-[320px] shrink-0 flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-white/70 p-8 shadow-[var(--shadow-sm)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:bg-white/95 hover:shadow-[var(--shadow-lg)] sm:w-[420px] dark:bg-[var(--bg-card)]/50 dark:hover:bg-[var(--bg-card)]/80"
-            >
-              <Quote className="absolute -right-4 -top-4 h-32 w-32 text-[var(--primary)] opacity-[0.03] transition-transform duration-500 group-hover:scale-110 group-hover:opacity-[0.05]" />
-              
-              <div className="mb-6 flex gap-1.5 text-[#f59e0b]">
-                {Array.from({ length: review.rating || 5 }).map((_, idx) => (
-                  <Star key={idx} className="h-5 w-5 fill-current" />
-                ))}
-              </div>
-              
-              <p className="relative z-10 mb-8 flex-1 text-base italic leading-relaxed text-[var(--fg-muted)] sm:text-lg">
-                &ldquo;{review.content}&rdquo;
-              </p>
-              
-              <div className="relative z-10 flex items-center gap-4 border-t border-[var(--border)] pt-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-lg font-bold text-white shadow-md">
-                  {review.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                </div>
-                <div>
-                  <h4 className="text-base font-bold tracking-tight text-[var(--fg)]">{review.name}</h4>
-                  {review.role && (
-                    <p className="text-sm font-medium text-[var(--primary)] mt-0.5">{review.role}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+          {reviews.map((review, i) => renderCard(review, `primary-${review.id || i}`))}
+          <div className="contents" aria-hidden="true">
+            {reviews.map((review, i) => renderCard(review, `clone-${review.id || i}`))}
+          </div>
         </div>
       </div>
     </section>

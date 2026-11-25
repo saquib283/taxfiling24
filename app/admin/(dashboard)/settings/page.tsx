@@ -17,13 +17,23 @@ export default function SettingsPage() {
     contact_whatsapp: "https://wa.me/917011246157",
   });
 
+  const [geminiConfigured, setGeminiConfigured] = useState(false);
+
   useEffect(() => {
     fetch("/api/admin/settings")
-      .then(res => res.json())
-      .then(data => {
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to load settings");
+        return res.json();
+      })
+      .then((data) => {
+        if (data?.__configuredSecrets?.GEMINI_API_KEY) {
+          setGeminiConfigured(true);
+        }
         setSettings((prev: any) => ({
           ...prev,
-          ...data,
+          site_logo: data.site_logo || "",
+          GEMINI_API_KEY: "",
+          NAVBAR_CONFIG: data.NAVBAR_CONFIG || "",
           contact_email: data.contact_email || data.SUPPORT_EMAIL || prev.contact_email,
           contact_phone: data.contact_phone || data.SUPPORT_PHONE || prev.contact_phone,
           contact_address: data.contact_address || prev.contact_address,
@@ -48,18 +58,38 @@ export default function SettingsPage() {
     setMessage({ text: "", type: "" });
 
     try {
+      // Send only keys owned by System Settings so concurrent edits elsewhere are never overwritten
+      const payload: Record<string, string> = {
+        site_logo: settings.site_logo || "",
+        contact_email: settings.contact_email || "",
+        contact_phone: settings.contact_phone || "",
+        contact_address: settings.contact_address || "",
+        contact_whatsapp: settings.contact_whatsapp || "",
+      };
+      if (settings.NAVBAR_CONFIG !== undefined) {
+        payload.NAVBAR_CONFIG = settings.NAVBAR_CONFIG;
+      }
+      if (settings.GEMINI_API_KEY && settings.GEMINI_API_KEY.trim()) {
+        payload.GEMINI_API_KEY = settings.GEMINI_API_KEY.trim();
+      }
+
       const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({ settings: payload }),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        if (payload.GEMINI_API_KEY) {
+          setGeminiConfigured(true);
+          setSettings((prev: any) => ({ ...prev, GEMINI_API_KEY: "" }));
+        }
         setMessage({ text: "Settings saved successfully!", type: "success" });
       } else {
-        setMessage({ text: "Failed to save settings.", type: "error" });
+        setMessage({ text: data.error || "Failed to save settings.", type: "error" });
       }
-    } catch (err) {
+    } catch {
       setMessage({ text: "Something went wrong.", type: "error" });
     } finally {
       setSaving(false);
@@ -103,7 +133,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <MediaImageInput
               label="Primary Site Logo"
-              description="Header and footer brand mark. Upload a transparent PNG/SVG or enter URL."
+              description="Header and footer brand mark. Upload a transparent PNG/WebP or enter URL."
               value={settings.site_logo || ""}
               defaultImage="/brand-logo.png"
               aspectRatio="auto"
@@ -117,16 +147,23 @@ export default function SettingsPage() {
           
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Gemini AI API Key</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Gemini AI API Key{" "}
+                {geminiConfigured && (
+                  <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Configured
+                  </span>
+                )}
+              </label>
               <input
                 type="password"
                 name="GEMINI_API_KEY"
                 value={settings.GEMINI_API_KEY || ""}
                 onChange={handleChange}
-                placeholder="AIzaSy..."
+                placeholder={geminiConfigured ? "Configured — enter a new key to replace" : "AIzaSy..."}
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 shadow-2xs"
               />
-              <p className="text-[11px] text-slate-400 mt-1">Used for the chatbot assistant model and AI drafting tools.</p>
+              <p className="text-[11px] text-slate-400 mt-1">Used for the chatbot assistant model and AI drafting tools. Leave blank to keep existing key.</p>
             </div>
           </div>
         </div>

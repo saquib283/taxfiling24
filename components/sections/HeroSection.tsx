@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import { Phone, ArrowRight, Check } from "lucide-react";
 import { SITE_CONTENT_DEFAULTS } from "@/lib/constants";
-import { fadeUp, slideInRight } from "@/lib/animations";
 import { getSiteContact } from "@/lib/site-contact";
 
 interface HeroProps {
@@ -55,13 +54,7 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-16">
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            className="flex flex-col"
-          >
+          <div className="flex flex-col">
             <span className="mb-6 inline-flex w-fit rounded-full border border-[var(--accent-light)]/30 bg-[var(--accent-soft)]/50 px-5 py-2 text-sm font-semibold tracking-wide text-[var(--primary)] shadow-sm backdrop-blur-md">
               {badge}
             </span>
@@ -107,15 +100,9 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                 </span>
               ))}
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={slideInRight}
-            className="relative"
-          >
+          <div className="relative">
             <div className="relative overflow-hidden rounded-[var(--radius-xl)] bg-[var(--bg-muted)] shadow-[var(--shadow-lg)] border border-[var(--border)]">
               <div className="aspect-[4/3] w-full lg:aspect-[16/10]">
                 <Image
@@ -124,6 +111,7 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                   fill
                   className="object-cover"
                   priority
+                  fetchPriority="high"
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
               </div>
@@ -161,7 +149,7 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
                 </div>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

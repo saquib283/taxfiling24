@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import ConsultationBookingClient from "@/components/sections/ConsultationBookingClient";
-import JsonLd, { breadcrumbSchema, webPageSchema } from "@/components/seo/JsonLd";
+import JsonLd, { breadcrumbSchema, faqSchema, webPageSchema } from "@/components/seo/JsonLd";
 import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
 import { CalendarClock, HelpCircle } from "lucide-react";
@@ -59,6 +59,7 @@ export default async function BookPage() {
             name: "Book a Consultation | TaxFiling24",
             url: absoluteUrl("/book"),
           }),
+          faqSchema(FAQS),
         ]}
       />
 

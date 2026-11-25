@@ -1,34 +1,37 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { parseAndImportSpreadsheet } from "@/lib/audience-service";
+import { logActivity } from "@/lib/activity-log";
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const customTag = (formData.get("customTag") as string) || "";
+    const file = formData.get("file");
+    const customTag = String(formData.get("customTag") || "");
     const updateIfExistsRaw = formData.get("updateIfExists");
     const updateIfExists = updateIfExistsRaw !== "false" && updateIfExistsRaw !== "0";
 
-    if (!file) {
-      return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
+    if (!file || !(file instanceof File) || file.size === 0) {
+      return NextResponse.json({ error: "No valid file was uploaded." }, { status: 400 });
     }
 
     const filename = file.name.toLowerCase();
-    const allowedExtensions = [".xlsx", ".xls", ".csv"];
+    const allowedExtensions = [".xlsx", ".csv"];
     const isValidExtension = allowedExtensions.some((ext) => filename.endsWith(ext));
 
     if (!isValidExtension) {
       return NextResponse.json(
-        { error: "Invalid file format. Please upload an Excel (.xlsx, .xls) or CSV (.csv) file." },
+        {
+          error:
+            "Invalid file format. Please upload an Excel (.xlsx) or CSV (.csv) file.",
+        },
         { status: 400 }
       );
     }
 
-    // Limit file size to 15MB
     const maxSizeBytes = 15 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       return NextResponse.json(
@@ -41,10 +44,19 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     const result = await parseAndImportSpreadsheet(buffer, {
+      filename: file.name,
       customTag: customTag.trim() || undefined,
       updateIfExists,
       defaultSource: "CSV_IMPORT",
     });
+
+    await logActivity(
+      "UPLOADED",
+      "Subscriber",
+      `Imported spreadsheet "${file.name}": ${result.importedCount} created, ${result.updatedCount} updated, ${result.skippedCount} skipped`,
+      undefined,
+      auth.user.userId
+    );
 
     return NextResponse.json({
       success: true,
@@ -52,12 +64,21 @@ export async function POST(request: Request) {
       ...result,
       message: `Successfully processed ${result.totalRows} rows: ${result.importedCount} new contacts imported, ${result.updatedCount} updated, ${result.skippedCount} skipped.`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Spreadsheet import error:", error);
+    const msg = error instanceof Error ? error.message : "";
+    const isClientError =
+      msg.includes("Could not automatically locate") ||
+      msg.includes("does not contain any data") ||
+      msg.includes("not supported") ||
+      msg.includes("exceeding the maximum") ||
+      msg.includes("exceeds the maximum") ||
+      msg.includes("archive") ||
+      msg.includes("Corrupted Excel") ||
+      msg.includes("missing a header");
     return NextResponse.json(
-      { error: error.message || "Failed to parse and import spreadsheet." },
-      { status: 500 }
+      { error: isClientError ? msg : "Failed to parse and import spreadsheet." },
+      { status: isClientError ? 400 : 500 }
     );
   }
 }
-

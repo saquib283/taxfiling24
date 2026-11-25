@@ -42,7 +42,7 @@ import {
   ProposalLineItem,
   ProposalMilestone,
 } from "./types";
-import { numberToIndianWords } from "@/lib/generateProposalPdf";
+import { calculateProposalTotals } from "@/lib/proposal-math";
 
 interface QuotationStudioClientProps {
   lead: InquiryLead;
@@ -166,6 +166,14 @@ export default function QuotationStudioClient({
   const [notes, setNotes] = useState(initialProposal?.notes || "");
   const [terms, setTerms] = useState(initialProposal?.terms || DEFAULT_TERMS);
 
+  // Track persisted proposal ID/number so retrying a failed send updates instead of creating duplicates
+  const [activeProposalId, setActiveProposalId] = useState<string | null>(
+    initialProposal?.id || null
+  );
+  const [activeProposalNumber, setActiveProposalNumber] = useState<string | null>(
+    initialProposal?.proposalNumber || null
+  );
+
   // Status & Feedback
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -184,44 +192,14 @@ export default function QuotationStudioClient({
     terms: string;
   } | null>(null);
 
-  // Real-time Calculations
+  // Real-time Calculations (shared pure GST & pure-agent calculator matching server)
   const calculations = useMemo(() => {
-    let profSubtotal = 0;
-    let govSubtotal = 0;
-    let taxAmount = 0;
-
-    lineItems.forEach((item) => {
-      const q = Number(item.qty || 1);
-      const r = Number(item.rate || 0);
-      const lineAmt = q * r;
-
-      if (item.isGovFee) {
-        govSubtotal += lineAmt;
-      } else {
-        profSubtotal += lineAmt;
-        const gst = Number(item.gstPercent ?? 18);
-        taxAmount += (lineAmt * gst) / 100;
-      }
-    });
-
-    const disc = Math.max(0, Number(discount) || 0);
-    const taxableProf = Math.max(0, profSubtotal - disc);
-    const effectiveTax = disc > 0 ? taxableProf * 0.18 : taxAmount;
-    const grandTotal = Math.round((taxableProf + govSubtotal + effectiveTax) * 100) / 100;
-
-    const words = numberToIndianWords(grandTotal);
-
+    const res = calculateProposalTotals(lineItems, discount, milestones, { strict: false });
     return {
-      profSubtotal,
-      govSubtotal,
-      subtotal: profSubtotal + govSubtotal,
-      discount: disc,
-      taxableProf,
-      taxAmount: effectiveTax,
-      grandTotal,
-      amountInWords: words,
+      ...res,
+      grandTotal: res.totalAmount,
     };
-  }, [lineItems, discount]);
+  }, [lineItems, discount, milestones]);
 
   // Handle POS change (auto-sets CGST+SGST if Delhi, else IGST)
   const handlePosChange = (pos: string) => {
@@ -400,42 +378,46 @@ export default function QuotationStudioClient({
       const payload = {
         title: title.trim(),
         validUntil,
-        lineItems,
-        discount,
+        lineItems: calculations.lineItems,
+        discount: calculations.discount,
         currency,
         clientGstin,
         clientPan,
         clientAddress,
         placeOfSupply,
         taxType,
-        paymentMilestones: milestones,
+        paymentMilestones: calculations.paymentMilestones || milestones,
         notes,
         terms,
       };
 
-      let savedProposalId = initialProposal?.id;
+      const isCreating = !activeProposalId;
+      let savedProposalId = activeProposalId;
 
-      if (mode === "create") {
+      if (isCreating) {
         const res = await fetch(`/api/admin/inquiries/${lead.id}/proposals`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        const created = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const d = await res.json();
-          throw new Error(d.error || "Failed to create quotation");
+          throw new Error(created.error || "Failed to create quotation");
         }
-        const created = await res.json();
         savedProposalId = created.id;
+        setActiveProposalId(created.id);
+        if (created.proposalNumber) {
+          setActiveProposalNumber(created.proposalNumber);
+        }
       } else {
-        const res = await fetch(`/api/admin/inquiries/${lead.id}/proposals/${initialProposal!.id}`, {
+        const res = await fetch(`/api/admin/inquiries/${lead.id}/proposals/${activeProposalId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        const updated = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const d = await res.json();
-          throw new Error(d.error || "Failed to update quotation");
+          throw new Error(updated.error || "Failed to update quotation");
         }
       }
 
@@ -449,9 +431,9 @@ export default function QuotationStudioClient({
             body: JSON.stringify({ channel: "EMAIL" }),
           }
         );
+        const ed = await emailRes.json().catch(() => ({}));
         if (!emailRes.ok) {
-          const ed = await emailRes.json();
-          throw new Error(ed.error || "Quotation saved, but email delivery failed.");
+          throw new Error(ed.error || "Quotation saved, but email delivery failed. You can retry sending without creating a duplicate.");
         }
         setFeedback({
           text: "Fee quotation saved and formally dispatched to client email!",
@@ -466,9 +448,9 @@ export default function QuotationStudioClient({
             body: JSON.stringify({ channel: "WHATSAPP" }),
           }
         );
+        const ed = await waRes.json().catch(() => ({}));
         if (!waRes.ok) {
-          const ed = await waRes.json();
-          throw new Error(ed.error || "Quotation saved, but WhatsApp delivery failed.");
+          throw new Error(ed.error || "Quotation saved, but WhatsApp delivery failed. You can retry sending without creating a duplicate.");
         }
         setFeedback({
           text: "Fee quotation saved and dispatched to client via WhatsApp Cloud API!",
@@ -476,13 +458,16 @@ export default function QuotationStudioClient({
         });
       } else {
         setFeedback({
-          text: mode === "create" ? "Quotation drafted and saved successfully!" : "Quotation updated successfully!",
+          text: isCreating ? "Quotation drafted and saved successfully!" : "Quotation updated successfully!",
           type: "success",
         });
       }
 
       if (mode === "create" && savedProposalId) {
         router.push(`/admin/inquiries/${lead.id}`);
+        router.refresh();
+      } else {
+        router.refresh();
       }
     } catch (err: any) {
       setFeedback({ text: err.message || "Failed to save proposal", type: "error" });
@@ -507,11 +492,11 @@ export default function QuotationStudioClient({
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              {mode === "create" ? "Draft Fee Quotation" : `Quotation: ${initialProposal?.proposalNumber}`}
+              {!activeProposalId ? "Draft Fee Quotation" : `Quotation: ${activeProposalNumber || "Saved"}`}
             </h1>
-            {initialProposal?.proposalNumber && (
+            {activeProposalNumber && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-100 text-indigo-700">
-                {initialProposal.proposalNumber}
+                {activeProposalNumber}
               </span>
             )}
           </div>
@@ -545,10 +530,10 @@ export default function QuotationStudioClient({
             </button>
           </div>
 
-          {/* Download PDF button if editing */}
-          {initialProposal?.id && (
+          {/* Download PDF button if saved */}
+          {activeProposalId && (
             <a
-              href={`/api/admin/inquiries/${lead.id}/proposals/${initialProposal.id}/pdf`}
+              href={`/api/admin/inquiries/${lead.id}/proposals/${activeProposalId}/pdf`}
               target="_blank"
               rel="noreferrer"
               className="p-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition"
@@ -1369,7 +1354,7 @@ export default function QuotationStudioClient({
                 Formal Fee Quotation
               </span>
               <p className="font-mono text-sm font-bold text-slate-200 mt-2">
-                {initialProposal?.proposalNumber || "TF24-QT-2026-DRAFT"}
+                {activeProposalNumber || "TF24-QT-DRAFT"}
               </p>
             </div>
           </div>

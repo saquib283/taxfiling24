@@ -13,7 +13,7 @@ export * from "./whatsapp-shared";
  */
 export async function getWhatsAppConfig(): Promise<WhatsAppConfig> {
   let phoneNumber =
-    process.env.WHATSAPP_PHONE_NUMBER || process.env.PHONE_NUMBER || "+1 (555) 141-5730";
+    process.env.WHATSAPP_PHONE_NUMBER || process.env.PHONE_NUMBER || "";
   let phoneNumberId =
     process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID || "";
   let wabaId =
@@ -21,7 +21,7 @@ export async function getWhatsAppConfig(): Promise<WhatsAppConfig> {
   let accessToken =
     process.env.WHATSAPP_ACCESS_TOKEN || process.env.ACCESS_TOKEN || "";
   let webhookVerifyToken =
-    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "taxfiling24_wa_webhook_verify_2026";
+    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "";
   let appSecret = process.env.WHATSAPP_APP_SECRET || "";
 
   // Check database settings for override
@@ -49,7 +49,7 @@ export async function getWhatsAppConfig(): Promise<WhatsAppConfig> {
       if (s.key === "WHATSAPP_WEBHOOK_VERIFY_TOKEN" && s.value.trim()) webhookVerifyToken = s.value.trim();
       if (s.key === "WHATSAPP_APP_SECRET" && s.value.trim()) appSecret = s.value.trim();
     }
-  } catch (_) {
+  } catch {
     // Fall back to process.env
   }
 
@@ -88,7 +88,7 @@ export async function sendWhatsAppMessage(
     };
   }
 
-  const url = `https://graph.facebook.com/v21.0/${config.phoneNumberId}/messages`;
+  const url = `https://graph.facebook.com/v21.0/${encodeURIComponent(config.phoneNumberId)}/messages`;
 
   // Build payload (Template or Freeform text)
   let payload: Record<string, any>;
@@ -125,6 +125,8 @@ export async function sendWhatsAppMessage(
     };
   }
 
+  const fromNormalized = normalizePhoneNumber(config.phoneNumber) || config.phoneNumber || "BUSINESS";
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -133,9 +135,10 @@ export async function sendWhatsAppMessage(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok || data.error) {
       const errMsg = data.error?.message || `WhatsApp API returned HTTP ${res.status}`;
@@ -152,12 +155,12 @@ export async function sendWhatsAppMessage(
       await prisma.whatsAppLog.create({
         data: {
           direction: "OUTBOUND",
-          fromNumber: normalizePhoneNumber(config.phoneNumber),
+          fromNumber: fromNormalized,
           toNumber: recipient,
           messageType: params.templateName ? "template" : "text",
           content: params.text || `Template: ${params.templateName}`,
           status: "failed",
-          errorCode: errCode ? String(errCode) : undefined,
+          errorCode: errCode ? String(errCode) : String(res.status),
           errorMessage: friendlyError,
           rawPayload: data,
           inquiryId: params.inquiryId || null,
@@ -181,7 +184,7 @@ export async function sendWhatsAppMessage(
         data: {
           messageId,
           direction: "OUTBOUND",
-          fromNumber: normalizePhoneNumber(config.phoneNumber),
+          fromNumber: fromNormalized,
           toNumber: recipient,
           messageType: params.templateName ? "template" : "text",
           content: params.text || `Template: ${params.templateName}`,
@@ -199,9 +202,30 @@ export async function sendWhatsAppMessage(
       waId,
     };
   } catch (err: any) {
+    const errMsg =
+      err?.name === "TimeoutError"
+        ? "Timed out waiting for Meta WhatsApp Cloud API."
+        : err?.message || "Failed to reach Meta WhatsApp Cloud API.";
+
+    // Log network/timeout failures too so audits remain accurate
+    await prisma.whatsAppLog.create({
+      data: {
+        direction: "OUTBOUND",
+        fromNumber: fromNormalized,
+        toNumber: recipient,
+        messageType: params.templateName ? "template" : "text",
+        content: params.text || `Template: ${params.templateName}`,
+        status: "failed",
+        errorCode: err?.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_ERROR",
+        errorMessage: errMsg,
+        inquiryId: params.inquiryId || null,
+        campaignId: params.campaignId || null,
+      },
+    }).catch(() => {});
+
     return {
       success: false,
-      error: err.message || "Failed to reach Meta WhatsApp Cloud API.",
+      error: errMsg,
     };
   }
 }

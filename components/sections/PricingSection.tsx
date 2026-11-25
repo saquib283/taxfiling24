@@ -5,7 +5,22 @@ import { Check } from "lucide-react";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { PRICING_PLANS } from "@/lib/constants";
 
-export default function PricingSection() {
+export interface PricingPlanItem {
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  highlighted?: boolean;
+}
+
+interface PricingSectionProps {
+  plans?: PricingPlanItem[];
+  ctaHref?: string;
+}
+
+export default function PricingSection({ plans, ctaHref = "#contact" }: PricingSectionProps = {}) {
+  const displayPlans = plans && plans.length > 0 ? plans : PRICING_PLANS;
+
   return (
     <section className="py-16 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,10 +33,10 @@ export default function PricingSection() {
           </p>
         </AnimatedSection>
         <div className="grid gap-6 lg:grid-cols-3">
-          {PRICING_PLANS.map((plan) => (
-            <AnimatedSection key={plan.name}>
+          {displayPlans.map((plan, index) => (
+            <AnimatedSection key={`${plan.name}-${index}`}>
               <motion.div
-                className={`relative flex flex-col rounded-[var(--radius-xl)] border p-6 transition-all duration-300 sm:p-8 ${
+                className={`relative flex h-full flex-col rounded-[var(--radius-xl)] border p-6 transition-all duration-300 sm:p-8 ${
                   plan.highlighted
                     ? "z-10 scale-105 border-[var(--accent-light)] bg-white shadow-[var(--shadow-lg)]"
                     : "border-[var(--border)] bg-[var(--bg-card)] hover:-translate-y-1 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-md)]"
@@ -38,9 +53,9 @@ export default function PricingSection() {
                 <p className="mb-2 text-4xl font-extrabold tracking-tight text-[var(--primary)]">{plan.price}</p>
                 <p className="mb-8 text-sm font-medium text-[var(--fg-muted)]">{plan.description}</p>
                 <ul className="mb-8 space-y-4">
-                  {plan.features.map((feature) => (
+                  {plan.features.map((feature, featureIndex) => (
                     <li
-                      key={feature}
+                      key={`${feature}-${featureIndex}`}
                       className="flex items-center gap-2.5 text-sm text-[var(--fg-muted)]"
                     >
                       <Check className="h-4 w-4 shrink-0 text-[var(--success)]" strokeWidth={2.5} />
@@ -49,7 +64,7 @@ export default function PricingSection() {
                   ))}
                 </ul>
                 <motion.a
-                  href="#contact"
+                  href={ctaHref}
                   className={`mt-auto block w-full rounded-xl py-3.5 text-center font-bold transition-all hover:-translate-y-1 ${
                     plan.highlighted
                       ? "text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]"

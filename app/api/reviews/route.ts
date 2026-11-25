@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import fs from "fs";
 import path from "path";
 
@@ -23,13 +24,21 @@ export async function GET() {
     const dbReviews = await prisma.review.findMany({
       where: { isApproved: true },
       orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        content: true,
+        rating: true,
+        avatar: true,
+        createdAt: true,
+      },
     });
 
     if (dbReviews.length > 0) {
       return NextResponse.json(dbReviews);
     }
 
-    // Fallback if no database reviews exist yet
     const fallback = getFallbackReviews();
     return NextResponse.json(fallback);
   } catch (error) {
@@ -41,22 +50,46 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, role, content, rating } = body;
-
-    if (!name || !content) {
+    const ip = getClientIp(request);
+    const rate = checkRateLimit("public-review-post", ip, {
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
       return NextResponse.json(
-        { error: "Name and content are required." },
+        { error: "Too many review submissions. Please wait before submitting again." },
+        { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+      );
+    }
+
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
+    }
+
+    const { name, role, content, rating } = body as Record<string, unknown>;
+    const cleanName = typeof name === "string" ? name.trim().slice(0, 100) : "";
+    const cleanRole = typeof role === "string" && role.trim() ? role.trim().slice(0, 100) : null;
+    const cleanContent = typeof content === "string" ? content.trim().slice(0, 2000) : "";
+
+    if (!cleanName || !cleanContent) {
+      return NextResponse.json(
+        { error: "Name and review content are required." },
         { status: 400 }
       );
     }
 
+    const parsedRating = Number.parseInt(String(rating ?? 5), 10);
+    const safeRating = Number.isFinite(parsedRating)
+      ? Math.min(5, Math.max(1, parsedRating))
+      : 5;
+
     const review = await prisma.review.create({
       data: {
-        name: String(name).trim(),
-        role: role ? String(role).trim() : null,
-        content: String(content).trim(),
-        rating: Math.min(5, Math.max(1, Number(rating) || 5)),
+        name: cleanName,
+        role: cleanRole,
+        content: cleanContent,
+        rating: safeRating,
         isApproved: false, // Subject to admin moderation in dashboard
       },
     });
@@ -67,11 +100,11 @@ export async function POST(request: Request) {
       {
         success: true,
         message: "Thank you for your review! It will appear on the website once approved.",
-        review,
+        id: review.id,
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to save review:", error);
     return NextResponse.json({ error: "Failed to submit review." }, { status: 500 });
   }

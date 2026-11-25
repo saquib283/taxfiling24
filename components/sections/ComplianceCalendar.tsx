@@ -21,6 +21,7 @@ interface CalendarDeadline extends Deadline {
 
 interface GroupedDeadlineMonth {
   month: string;
+  sortKey: number;
   deadlines: CalendarDeadline[];
 }
 
@@ -38,35 +39,59 @@ interface ComplianceCalendarProps {
 }
 
 export default function ComplianceCalendar({ deadlines = [], settings = {}, content }: ComplianceCalendarProps) {
-  // Group deadlines by month
+  // Group deadlines by month in IST using numeric sort keys (Safari-safe)
   const groupedData = useMemo<GroupedDeadlineMonth[]>(() => {
     if (!deadlines || deadlines.length === 0) return [];
 
-    const months: Record<string, CalendarDeadline[]> = {};
-    
-    deadlines.forEach(d => {
+    const months: Record<number, { month: string; sortKey: number; deadlines: CalendarDeadline[] }> = {};
+    const partsFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    });
+    const monthYearFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      month: "long",
+      year: "numeric",
+    });
+    const monthShortFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      month: "short",
+    });
+
+    deadlines.forEach((d) => {
       const date = new Date(d.date);
-      const monthKey = date.toLocaleString("en-US", { month: "long", year: "numeric" });
-      
-      if (!months[monthKey]) {
-        months[monthKey] = [];
+      if (Number.isNaN(date.getTime())) return;
+
+      const parts = partsFormatter.formatToParts(date);
+      const year = Number(parts.find((p) => p.type === "year")?.value || 0);
+      const monthNum = Number(parts.find((p) => p.type === "month")?.value || 0);
+      const day = Number(parts.find((p) => p.type === "day")?.value || 1);
+      const sortKey = year * 100 + monthNum;
+      const monthLabel = monthYearFormatter.format(date);
+
+      if (!months[sortKey]) {
+        months[sortKey] = {
+          month: monthLabel,
+          sortKey,
+          deadlines: [],
+        };
       }
-      
-      months[monthKey].push({
+
+      months[sortKey].deadlines.push({
         ...d,
-        day: date.getDate(),
-        monthShort: date.toLocaleString("en-US", { month: "short" }).toUpperCase(),
+        day,
+        monthShort: monthShortFormatter.format(date).toUpperCase(),
       });
     });
 
-    // Sort deadlines within each month by day
-    return Object.entries(months).map(([month, items]) => ({
-      month,
-      deadlines: items.sort((a, b) => a.day - b.day)
-    })).sort((a, b) => {
-      // Sort months chronologically
-      return new Date(a.month).getTime() - new Date(b.month).getTime();
-    });
+    return Object.values(months)
+      .map((group) => ({
+        ...group,
+        deadlines: group.deadlines.sort((a, b) => a.day - b.day),
+      }))
+      .sort((a, b) => a.sortKey - b.sortKey);
   }, [deadlines]);
 
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
@@ -209,10 +234,12 @@ export default function ComplianceCalendar({ deadlines = [], settings = {}, cont
                         Remind Me
                       </button>
                       <button 
+                        type="button"
+                        aria-label={`View details for ${deadline.title}`}
                         onClick={() => { setSelectedDeadline(deadline); setIsInfoModalOpen(true); }}
                         className="rounded-full p-2 text-[var(--fg-soft)] hover:bg-[var(--bg-muted)] hover:text-[var(--primary)]"
                       >
-                        <Info className="h-4 w-4" />
+                        <Info className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                     

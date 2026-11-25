@@ -1,16 +1,38 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { SITE_DOMAIN } from "@/lib/seo";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
-export const runtime = "edge";
+function sanitizeOgParam(raw: string | null, fallback: string, maxLen: number): string {
+  if (!raw) return fallback;
+  const cleaned = raw.replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return fallback;
+  return cleaned.slice(0, maxLen);
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const rate = checkRateLimit("public-og", getClientIp(request), {
+      limit: 60,
+      windowMs: 60 * 1000,
+    });
+    if (!rate.allowed) {
+      return new Response("Too many requests", {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSeconds) },
+      });
+    }
+
     const { searchParams } = new URL(request.url);
 
-    // Dynamic parameters
-    const title = searchParams.get("title") || "Complete Business & Tax Solutions";
-    const description = searchParams.get("description") || "TaxFiling24 - Your Trusted Partner for GST, Income Tax, and Business Compliance.";
-    const category = searchParams.get("category") || "Advisory";
+    // Strictly bounded dynamic parameters to prevent Satori CPU/memory exhaustion
+    const title = sanitizeOgParam(searchParams.get("title"), "Complete Business & Tax Solutions", 120);
+    const description = sanitizeOgParam(
+      searchParams.get("description"),
+      "TaxFiling24 - Your Trusted Partner for GST, Income Tax, and Business Compliance.",
+      180
+    );
+    const category = sanitizeOgParam(searchParams.get("category"), "Advisory", 40);
 
     return new ImageResponse(
       (
@@ -140,7 +162,7 @@ export async function GET(request: NextRequest) {
                 letterSpacing: "0.05em",
               }}
             >
-              taxfiling24.com
+              {SITE_DOMAIN}
             </span>
             <span
               style={{
@@ -168,6 +190,9 @@ export async function GET(request: NextRequest) {
       {
         width: 1200,
         height: 630,
+        headers: {
+          "Cache-Control": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+        },
       }
     );
   } catch (error: any) {

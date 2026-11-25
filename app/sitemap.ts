@@ -3,13 +3,61 @@ import prisma from "@/lib/prisma";
 import { SERVICES_DETAIL_DATA } from "@/lib/services-detail-data";
 import { SITE_URL } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;
+
+  let servicePagesFromDatabase: MetadataRoute.Sitemap = [];
+  let articlePages: MetadataRoute.Sitemap = [];
+  let latestArticleModified: Date | undefined;
+  let latestServiceModified: Date | undefined;
+
+  try {
+    const [services, articles] = await Promise.all([
+      prisma.service.findMany({
+        select: { createdAt: true, slug: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.article.findMany({
+        where: { published: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+    ]);
+
+    latestServiceModified = services[0]?.createdAt;
+    latestArticleModified = articles[0]?.updatedAt;
+
+    servicePagesFromDatabase = services.map((service) => ({
+      url: `${baseUrl}/services/${service.slug}`,
+      lastModified: service.createdAt,
+      changeFrequency: "monthly" as const,
+      priority: 0.85,
+    }));
+
+    articlePages = articles.map((article) => ({
+      url: `${baseUrl}/articles/${article.slug}`,
+      lastModified: article.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+  } catch {
+    // DB unavailable — return static pages & fallback services
+  }
+
+  const latestSiteActivity =
+    latestArticleModified && latestServiceModified
+      ? latestArticleModified > latestServiceModified
+        ? latestArticleModified
+        : latestServiceModified
+      : latestArticleModified || latestServiceModified;
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
+      ...(latestSiteActivity ? { lastModified: latestSiteActivity } : {}),
       changeFrequency: "weekly",
       priority: 1,
     },
@@ -30,6 +78,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${baseUrl}/services`,
+      ...(latestServiceModified ? { lastModified: latestServiceModified } : {}),
       changeFrequency: "weekly",
       priority: 0.9,
     },
@@ -40,6 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${baseUrl}/articles`,
+      ...(latestArticleModified ? { lastModified: latestArticleModified } : {}),
       changeFrequency: "daily",
       priority: 0.8,
     },
@@ -77,33 +127,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "monthly" as const,
     priority: 0.85,
   }));
-
-  let servicePagesFromDatabase: MetadataRoute.Sitemap = [];
-  let articlePages: MetadataRoute.Sitemap = [];
-  try {
-    const services = await prisma.service.findMany({
-      select: { createdAt: true, slug: true },
-    });
-    servicePagesFromDatabase = services.map((service: any) => ({
-      url: `${baseUrl}/services/${service.slug}`,
-      lastModified: service.createdAt,
-      changeFrequency: "monthly" as const,
-      priority: 0.85,
-    }));
-
-    const articles = await prisma.article.findMany({
-      where: { published: true },
-      select: { slug: true, updatedAt: true },
-    });
-    articlePages = articles.map((article: any) => ({
-      url: `${baseUrl}/articles/${article.slug}`,
-      lastModified: article.updatedAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    }));
-  } catch {
-    // DB unavailable — return only static pages
-  }
 
   const seenUrls = new Set<string>();
 

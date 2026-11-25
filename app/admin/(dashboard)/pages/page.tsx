@@ -19,24 +19,53 @@ export default function PagesEditorPage() {
   const [loaded, setLoaded] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const PAGE_KEYS = PAGES.flatMap((p) => [p.titleKey, p.contentKey]);
 
   useEffect(() => {
     fetch("/api/admin/settings")
-      .then(r => r.json())
-      .then(data => { setValues(data); setLoaded(true); });
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Failed to load static pages");
+        return r.json();
+      })
+      .then((data) => {
+        const scoped: Record<string, string> = {};
+        for (const key of PAGE_KEYS) {
+          if (typeof data?.[key] === "string") scoped[key] = data[key];
+        }
+        setValues(scoped);
+      })
+      .catch(() => setErrorMessage("Failed to load static page content."))
+      .finally(() => setLoaded(true));
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
     setSavedSuccess(false);
-    await fetch("/api/admin/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings: values }),
-    });
-    setSaving(false);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3500);
+    setErrorMessage("");
+    try {
+      const payload: Record<string, string> = {};
+      for (const key of PAGE_KEYS) {
+        if (values[key] !== undefined) payload[key] = values[key];
+      }
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: payload }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorMessage(data.error || "Failed to save static pages.");
+      } else {
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 3500);
+      }
+    } catch {
+      setErrorMessage("Network error while saving static pages.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!loaded) {
@@ -92,6 +121,12 @@ export default function PagesEditorPage() {
           </button>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl text-xs font-bold border bg-rose-50 text-rose-800 border-rose-200">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Main content grid split */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -151,7 +186,7 @@ export default function PagesEditorPage() {
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Display Page Title</label>
             <input
-              value={values[page.titleKey] || page.label}
+              value={values[page.titleKey] ?? page.label}
               onChange={e => setValues({ ...values, [page.titleKey]: e.target.value })}
               placeholder={`Title for ${page.label}`}
               className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition outline-none shadow-sm"

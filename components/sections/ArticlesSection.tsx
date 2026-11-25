@@ -73,6 +73,7 @@ export default function ArticlesSection({ articles, settings = {}, content }: Ar
                       src={article.thumbnailUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&q=80"}
                       alt={article.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
@@ -90,9 +91,11 @@ export default function ArticlesSection({ articles, settings = {}, content }: Ar
                   <div className="p-10 flex-1 flex flex-col">
                     <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">
                       <Calendar className="h-3.5 w-3.5 text-[var(--primary)]" />
-                      {new Date(article.createdAt).toLocaleDateString("en-US", {
-                        month: "long", day: "numeric", year: "numeric"
-                      })}
+                      <time dateTime={new Date(article.createdAt).toISOString()}>
+                        {new Date(article.createdAt).toLocaleDateString("en-US", {
+                          month: "long", day: "numeric", year: "numeric"
+                        })}
+                      </time>
                     </div>
 
                     <h3 className="text-xl font-bold text-slate-900 mb-5 group-hover:text-[var(--primary)] transition-colors duration-300 line-clamp-2 leading-tight tracking-tight">

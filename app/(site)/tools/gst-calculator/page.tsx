@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
       "Free online GST calculator for India. Instantly calculate GST in inclusive and exclusive modes with item-level summaries.",
     keywords: ["GST calculator", "GST tax calculator", "HSN calculator", "GST invoice calculator"],
     path: "/tools/gst-calculator",
-    title: "GST Calculator | Online HSN & SAC GST Tax Calculator",
+    title: "Online GST Calculator (HSN & SAC)",
   });
 }
 
@@ -28,7 +28,6 @@ export default async function GSTCalculatorPage() {
 
   return (
     <div className="bg-[var(--bg)] min-h-screen pb-16 lg:pb-24 pt-0">
-      <h1 className="sr-only">GST Calculator</h1>
       <JsonLd
         data={[
           breadcrumbSchema([

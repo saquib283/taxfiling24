@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 
 export async function GET(
-  request: Request,
+  _: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id } = await params;
@@ -45,11 +45,11 @@ export async function GET(
 }
 
 export async function DELETE(
-  request: Request,
+  _: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id } = await params;
@@ -71,7 +71,8 @@ export async function DELETE(
       "DELETED",
       "Campaign",
       `Deleted campaign: ${existing.subject}`,
-      existing.id
+      existing.id,
+      auth.user.userId
     );
 
     return NextResponse.json({ message: "Campaign deleted successfully." });
@@ -83,4 +84,3 @@ export async function DELETE(
     );
   }
 }
-

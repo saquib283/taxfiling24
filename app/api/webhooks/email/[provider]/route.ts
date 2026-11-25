@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { safeSecretCompare } from "@/lib/rate-limit";
 import {
   mapMailgunEventToMetrics,
   mapResendEventToMetrics,
@@ -11,6 +12,32 @@ import {
   type CampaignMetricUpdate,
   type EmailProvider,
 } from "@/lib/email-campaigns";
+
+const MAX_WEBHOOK_BODY_BYTES = 512 * 1024; // 512 KB
+const MAILGUN_REPLAY_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_REPLAY_KEYS = 5000;
+const seenMailgunTokens = new Map<string, number>();
+
+function isMailgunTokenReplayed(timestampStr: string, tokenStr: string): boolean {
+  const now = Date.now();
+  if (seenMailgunTokens.size >= MAX_REPLAY_KEYS) {
+    for (const [key, exp] of seenMailgunTokens.entries()) {
+      if (now >= exp) seenMailgunTokens.delete(key);
+    }
+    while (seenMailgunTokens.size >= MAX_REPLAY_KEYS) {
+      const oldest = seenMailgunTokens.keys().next().value;
+      if (oldest === undefined) break;
+      seenMailgunTokens.delete(oldest);
+    }
+  }
+  const replayKey = `${timestampStr}:${tokenStr}`;
+  const existingExp = seenMailgunTokens.get(replayKey);
+  if (existingExp && now < existingExp) {
+    return true;
+  }
+  seenMailgunTokens.set(replayKey, now + MAILGUN_REPLAY_TTL_MS);
+  return false;
+}
 
 type JsonRecord = Record<string, unknown>;
 
@@ -85,16 +112,43 @@ function verifyMailgunSignature(
   const token = signature?.token;
   const actualSignature = signature?.signature;
 
-  if (!timestamp || !token || !actualSignature) {
+  if (
+    !timestamp ||
+    !token ||
+    typeof actualSignature !== "string" ||
+    !actualSignature
+  ) {
+    return false;
+  }
+
+  const timestampStr = String(timestamp).trim();
+  const tokenStr = String(token).trim();
+
+  // Enforce strict numeric timestamp and 5-minute replay tolerance window
+  if (!/^\d{9,12}$/.test(timestampStr) || !tokenStr || tokenStr.length > 256) {
+    return false;
+  }
+  const nowSec = Math.floor(Date.now() / 1000);
+  const ts = Number.parseInt(timestampStr, 10);
+  if (!Number.isFinite(ts) || Math.abs(nowSec - ts) > 300) {
     return false;
   }
 
   const digest = crypto
     .createHmac("sha256", signingKey)
-    .update(`${timestamp}${token}`)
+    .update(`${timestampStr}${tokenStr}`)
     .digest("hex");
 
-  return digest === actualSignature;
+  if (!safeSecretCompare(actualSignature.trim(), digest)) {
+    return false;
+  }
+
+  // Prevent replay of captured (timestamp, token) signature triples with altered event-data
+  if (isMailgunTokenReplayed(timestampStr, tokenStr)) {
+    return false;
+  }
+
+  return true;
 }
 
 function verifySvixSignature({
@@ -111,26 +165,25 @@ function verifySvixSignature({
   rawBody: string;
 }): boolean {
   if (!secret || !svixId || !svixTimestamp || !svixSignature) return false;
+  if (!/^\d{9,12}$/.test(svixTimestamp.trim())) return false;
 
-  // Enforce 5-minute replay tolerance window
   const now = Math.floor(Date.now() / 1000);
-  const ts = parseInt(svixTimestamp, 10);
-  if (isNaN(ts) || Math.abs(now - ts) > 300) return false;
+  const ts = Number.parseInt(svixTimestamp.trim(), 10);
+  if (!Number.isFinite(ts) || Math.abs(now - ts) > 300) return false;
 
   const cleanSecret = secret.startsWith("whsec_") ? secret.slice(6) : secret;
   const secretBytes = Buffer.from(cleanSecret, "base64");
-  const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
-  const expectedSig = crypto.createHmac("sha256", secretBytes).update(signedPayload).digest("base64");
+  const signedPayload = `${svixId}.${svixTimestamp.trim()}.${rawBody}`;
+  const expectedSig = crypto
+    .createHmac("sha256", secretBytes)
+    .update(signedPayload)
+    .digest("base64");
 
   const signatures = svixSignature.split(" ");
   for (const sig of signatures) {
     const parts = sig.split(",");
-    if (parts[0] === "v1" && parts[1]) {
-      const expectedBuf = Buffer.from(expectedSig);
-      const actualBuf = Buffer.from(parts[1]);
-      if (expectedBuf.length === actualBuf.length && crypto.timingSafeEqual(expectedBuf, actualBuf)) {
-        return true;
-      }
+    if (parts[0] === "v1" && parts[1] && safeSecretCompare(parts[1], expectedSig)) {
+      return true;
     }
   }
   return false;
@@ -145,7 +198,17 @@ async function recordCampaignEvent(params: {
   provider: EmailProvider;
   providerEventId: string;
   recipientEmail?: string;
-}) {
+}): Promise<{ ignored: boolean }> {
+  // Verify campaign exists before writing FK-constrained event (ignores test-campaign & deleted campaigns cleanly)
+  const exists = await prisma.campaign.findUnique({
+    where: { id: params.campaignId },
+    select: { id: true },
+  });
+
+  if (!exists) {
+    return { ignored: true };
+  }
+
   const incrementData = buildIncrementData(params.metrics);
 
   await prisma.$transaction(async (tx) => {
@@ -177,11 +240,13 @@ async function recordCampaignEvent(params: {
       shouldSuppressSubscriber(params.provider, params.eventType)
     ) {
       await tx.subscriber.updateMany({
-        where: { email: params.recipientEmail },
+        where: { email: params.recipientEmail.trim().toLowerCase() },
         data: { isActive: false },
       });
     }
   });
+
+  return { ignored: false };
 }
 
 async function getProviderSecrets() {
@@ -213,7 +278,15 @@ export async function POST(
   }
 
   try {
+    const contentLength = Number(request.headers.get("content-length") || "0");
+    if (Number.isFinite(contentLength) && contentLength > MAX_WEBHOOK_BODY_BYTES) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
+
     const rawBody = await request.text();
+    if (Buffer.byteLength(rawBody, "utf8") > MAX_WEBHOOK_BODY_BYTES) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
     let payload: JsonRecord;
     try {
       payload = JSON.parse(rawBody) as JsonRecord;
@@ -228,7 +301,10 @@ export async function POST(
         !secrets.mailgunWebhookSigningKey ||
         !verifyMailgunSignature(secrets.mailgunWebhookSigningKey, payload)
       ) {
-        return NextResponse.json({ error: "Invalid or missing Mailgun signature." }, { status: 401 });
+        return NextResponse.json(
+          { error: "Invalid or missing Mailgun signature." },
+          { status: 401 }
+        );
       }
     }
 
@@ -269,7 +345,7 @@ export async function POST(
         payload.created_at || "timestamp",
       ].join(":");
 
-      await recordCampaignEvent({
+      const result = await recordCampaignEvent({
         campaignId,
         createdAt: safeDate(
           typeof payload.created_at === "string" || typeof payload.created_at === "number"
@@ -284,7 +360,7 @@ export async function POST(
         recipientEmail: getResendRecipient(payload),
       });
 
-      return NextResponse.json({ received: true });
+      return NextResponse.json({ received: true, ignored: result.ignored });
     }
 
     const eventData = asRecord(payload["event-data"]) || payload;
@@ -301,7 +377,7 @@ export async function POST(
         `${eventType}:${eventData.recipient || "recipient"}:${eventData.timestamp || Date.now()}`
     );
 
-    await recordCampaignEvent({
+    const result = await recordCampaignEvent({
       campaignId,
       createdAt: safeDate(
         typeof eventData.timestamp === "string" || typeof eventData.timestamp === "number"
@@ -317,7 +393,7 @@ export async function POST(
         typeof eventData.recipient === "string" ? eventData.recipient : undefined,
     });
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, ignored: result.ignored });
   } catch (error) {
     if (
       error &&
@@ -330,12 +406,7 @@ export async function POST(
 
     console.error("Failed to process campaign webhook", error);
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to process campaign webhook",
-      },
+      { error: "Failed to process campaign webhook" },
       { status: 500 }
     );
   }

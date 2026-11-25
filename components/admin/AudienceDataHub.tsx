@@ -170,9 +170,9 @@ export default function AudienceDataHub() {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      const valid = [".xlsx", ".xls", ".csv"].some((ext) => file.name.toLowerCase().endsWith(ext));
+      const valid = [".xlsx", ".csv"].some((ext) => file.name.toLowerCase().endsWith(ext));
       if (!valid) {
-        setUploadError("Please upload a valid Excel (.xlsx, .xls) or CSV (.csv) file.");
+        setUploadError("Please upload a valid Excel (.xlsx) or CSV (.csv) file.");
         return;
       }
       setSelectedFile(file);
@@ -825,7 +825,7 @@ export default function AudienceDataHub() {
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Upload Audience Spreadsheet</h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Import contacts directly from Excel (.xlsx, .xls) or CSV (.csv) files into the campaign database.
+                  Import contacts directly from Excel (.xlsx) or CSV (.csv) files into the campaign database.
                 </p>
               </div>
               <button
@@ -848,7 +848,7 @@ export default function AudienceDataHub() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".xlsx,.csv"
                 onChange={handleFileSelect}
                 className="hidden"
               />
@@ -861,7 +861,7 @@ export default function AudienceDataHub() {
               <p className="mt-1 text-xs text-slate-500">
                 {selectedFile
                   ? `${(selectedFile.size / 1024).toFixed(1)} KB — Ready to upload`
-                  : "Supports .xlsx, .xls, and .csv files up to 15MB"}
+                  : "Supports .xlsx and .csv files up to 15MB"}
               </p>
             </div>
 

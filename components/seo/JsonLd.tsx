@@ -1,4 +1,5 @@
 import { getSiteContact } from "@/lib/site-contact";
+import { SITE_URL, absoluteUrl } from "@/lib/seo";
 
 interface JsonLdProps {
   data: Record<string, unknown> | Record<string, unknown>[];
@@ -23,17 +24,43 @@ export default function JsonLd({ data }: JsonLdProps) {
 
 // ─── Schema Generators ───────────────────────────────────────────────
 
-const BASE_URL = "https://taxfiling24.com";
+const BASE_URL = SITE_URL;
+const ORG_ID = `${BASE_URL}/#organization`;
+const WEBSITE_ID = `${BASE_URL}/#website`;
+const LOCAL_BUSINESS_ID = `${BASE_URL}/#localbusiness`;
 type SiteSettings = Record<string, string>;
+
+function buildPostalAddress(address: string) {
+  return {
+    "@type": "PostalAddress",
+    streetAddress: address,
+    addressLocality: "New Delhi",
+    addressRegion: "DL",
+    postalCode: "110025",
+    addressCountry: "IN",
+  };
+}
 
 export function organizationSchema(settings: SiteSettings = {}) {
   const { phone, address, whatsapp } = getSiteContact(settings);
+  const socialSameAs = [
+    settings.social_linkedin,
+    settings.social_twitter,
+    settings.social_facebook,
+    settings.social_instagram,
+    whatsapp,
+  ].filter((url): url is string => Boolean(url && /^https?:\/\//i.test(url)));
+
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": ORG_ID,
     name: "TaxFiling24",
     url: BASE_URL,
-    logo: `${BASE_URL}/logo.png`,
+    logo: {
+      "@type": "ImageObject",
+      url: `${BASE_URL}/logo.png`,
+    },
     description:
       "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory across India.",
     foundingDate: "2020",
@@ -44,12 +71,8 @@ export function organizationSchema(settings: SiteSettings = {}) {
       areaServed: "IN",
       availableLanguage: ["English", "Hindi"],
     },
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: address,
-      addressCountry: "IN",
-    },
-    sameAs: [whatsapp].filter(Boolean),
+    address: buildPostalAddress(address),
+    ...(socialSameAs.length > 0 ? { sameAs: socialSameAs } : {}),
   };
 }
 
@@ -57,8 +80,12 @@ export function webSiteSchema(siteName = "TaxFiling24") {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": WEBSITE_ID,
     name: siteName,
     url: BASE_URL,
+    publisher: {
+      "@id": ORG_ID,
+    },
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -75,17 +102,17 @@ export function localBusinessSchema(settings: SiteSettings = {}) {
   return {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
+    "@id": LOCAL_BUSINESS_ID,
     name: "TaxFiling24",
     url: BASE_URL,
     image: `${BASE_URL}/logo.png`,
     telephone: phone,
     email,
     priceRange: "INR 1000-10000",
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: address,
-      addressCountry: "IN",
+    parentOrganization: {
+      "@id": ORG_ID,
     },
+    address: buildPostalAddress(address),
     geo: {
       "@type": "GeoCoordinates",
       latitude: "28.5494",
@@ -204,21 +231,33 @@ export function articleSchema(article: {
   author: string;
   tags?: string[];
 }) {
+  const normalizedAuthor = article.author?.trim();
+  const isGenericAdmin =
+    !normalizedAuthor || normalizedAuthor.toLowerCase() === "admin";
+  const resolvedImage = article.image ? absoluteUrl(article.image) : undefined;
+
   return {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
     description: article.description,
     url: article.url,
-    ...(article.image ? { image: article.image } : {}),
+    ...(resolvedImage ? { image: resolvedImage } : {}),
     datePublished: article.datePublished,
     dateModified: article.dateModified,
-    author: {
-      "@type": "Person",
-      name: article.author,
-    },
+    author: isGenericAdmin
+      ? {
+          "@type": "Organization",
+          name: "TaxFiling24 Editorial Team",
+          url: BASE_URL,
+        }
+      : {
+          "@type": "Person",
+          name: normalizedAuthor,
+        },
     publisher: {
       "@type": "Organization",
+      "@id": ORG_ID,
       name: "TaxFiling24",
       logo: {
         "@type": "ImageObject",

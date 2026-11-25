@@ -40,18 +40,29 @@ export default function PricingEditorPage() {
   const [deleteConfirmIdx, setDeleteConfirmIdx] = useState<number | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/settings")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          throw new Error("Failed to load pricing plans.");
+        }
+        return r.json();
+      })
       .then((data) => {
-        if (data.pricing_plans) {
+        if (data?.pricing_plans) {
           try {
-            setPlans(JSON.parse(data.pricing_plans));
+            const parsed = JSON.parse(data.pricing_plans);
+            setPlans(Array.isArray(parsed) ? parsed : []);
           } catch {
             setPlans([]);
           }
         }
+        setLoaded(true);
+      })
+      .catch((err) => {
+        setSaveError(err instanceof Error ? err.message : "Failed to load pricing plans.");
         setLoaded(true);
       });
   }, []);
@@ -59,20 +70,26 @@ export default function PricingEditorPage() {
   const handleSave = async (customPlans?: PricingPlan[]) => {
     setSaving(true);
     setSaveSuccess(false);
+    setSaveError(null);
     const plansToSave = customPlans || plans;
     try {
-      await fetch("/api/admin/settings", {
+      const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           settings: { pricing_plans: JSON.stringify(plansToSave) },
         }),
       });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to save pricing plans.");
+      }
       setIsDirty(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
       console.error("Failed to save pricing plans:", e);
+      setSaveError(e instanceof Error ? e.message : "Failed to save pricing plans.");
     } finally {
       setSaving(false);
     }
@@ -192,6 +209,23 @@ export default function PricingEditorPage() {
           </button>
         </div>
       </div>
+
+      {/* Error Banner */}
+      {saveError && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs sm:text-sm font-medium text-rose-800 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+            <span>{saveError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSaveError(null)}
+            className="text-rose-500 hover:text-rose-700 p-0.5 cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Edit Form Card */}
       {editIndex !== null && (

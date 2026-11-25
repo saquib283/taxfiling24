@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 
 type TemplatePayload = {
   category?: string;
@@ -15,8 +15,8 @@ type TemplatePayload = {
 };
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const templates = await prisma.campaignTemplate.findMany({
@@ -34,8 +34,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const payload = (await request.json()) as TemplatePayload;
@@ -84,11 +84,15 @@ export async function POST(request: Request) {
       payload.id ? "UPDATED" : "CREATED",
       "Campaign",
       `${payload.id ? "Updated" : "Created"} campaign template: ${template.name}`,
-      template.id
+      template.id,
+      auth.user.userId
     );
 
     return NextResponse.json({ template });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
     console.error("Failed to save campaign template", error);
     return NextResponse.json(
       { error: "Failed to save campaign template" },

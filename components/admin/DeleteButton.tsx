@@ -54,43 +54,50 @@ export default function DeleteButton({ id, endpoint, onDeleteSuccess }: DeleteBu
 
       <AnimatePresence>
         {showConfirm && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black z-40"
-              onClick={() => setShowConfirm(false)}
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-[1px]"
+            onClick={() => !loading && setShowConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 p-3 z-50 text-left"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-2xl"
             >
-              <p className="text-xs font-medium text-gray-900 mb-2">Are you sure you want to delete?</p>
+              <h4 className="text-sm font-bold text-slate-900 mb-1">Confirm deletion</h4>
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                Are you sure you want to permanently delete this item? This action cannot be undone.
+              </p>
               {errorMessage && (
-                <p className="text-[10px] text-red-600 mb-2 font-medium">{errorMessage}</p>
+                <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5 mb-3 font-medium">
+                  {errorMessage}
+                </p>
               )}
               <div className="flex gap-2">
                 <button
-                  onClick={handleDelete}
-                  disabled={loading}
-                  className="flex-1 py-1 px-2 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium disabled:opacity-50"
-                >
-                  {loading ? "..." : "Delete"}
-                </button>
-                <button
+                  type="button"
                   onClick={() => setShowConfirm(false)}
                   disabled={loading}
-                  className="flex-1 py-1 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium"
+                  className="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? "Deleting..." : "Delete"}
+                </button>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

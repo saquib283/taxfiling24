@@ -51,9 +51,9 @@ export default function FeaturesSection({ dynamicFeatures, settings = {}, conten
         </AnimatedSection>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => {
-            const Icon = ICONS[index];
+            const Icon = ICONS[index % ICONS.length];
             return (
-              <AnimatedSection key={feature.title} className="h-full">
+              <AnimatedSection key={`${feature.title}-${index}`} className="h-full">
                 <motion.div
                   className="group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-2 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-lg)] sm:p-8"
                   whileHover={{ y: -4 }}

@@ -107,6 +107,7 @@ const KANBAN_STAGES: LeadStage[] = [
   "NEW",
   "CONTACTED",
   "FOLLOW_UP_SCHEDULED",
+  "CONSULTATION_BOOKED",
   "PROPOSAL_SENT",
   "WON",
   "LOST",
@@ -135,7 +136,7 @@ export default function InquiryInboxManager({
   const [replyInquiry, setReplyInquiry] = useState<InquiryLead | null>(null);
   const [replySubject, setReplySubject] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
-  const [markAsResolved, setMarkAsResolved] = useState(true);
+  const [markAsResolved, setMarkAsResolved] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [aiDrafting, setAiDrafting] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -208,7 +209,7 @@ export default function InquiryInboxManager({
     });
   }, [inquiries, searchTerm, stageFilter, priorityFilter, serviceFilter]);
 
-  // Computed KPI Metrics (Fallback / Live sync)
+  // Computed KPI Metrics (Always live-synced with current inquiries state)
   const stats = useMemo(() => {
     let pipelineVal = 0;
     let wonVal = 0;
@@ -233,9 +234,9 @@ export default function InquiryInboxManager({
     return {
       total,
       activeCount,
-      pipelineVal: metrics?.pipelineValue ?? pipelineVal,
-      wonVal: metrics?.wonValue ?? wonVal,
-      convRate: metrics?.conversionRate ?? convRate,
+      pipelineVal,
+      wonVal,
+      convRate,
       todayFollowUps: metrics?.todayFollowUpsCount ?? 0,
       overdueFollowUps: metrics?.overdueFollowUpsCount ?? 0,
       proposalsSent: metrics?.proposalsSentCount ?? 0,
@@ -304,7 +305,7 @@ export default function InquiryInboxManager({
     setReplyMessage(
       `Hello ${inquiry.name},\n\nThank you for reaching out to TaxFiling24. We have received your inquiry regarding ${inquiry.service || "our professional services"}.\n\n`
     );
-    setMarkAsResolved(true);
+    setMarkAsResolved(false);
     setAiError(null);
     setFeedback(null);
   };
@@ -333,8 +334,9 @@ export default function InquiryInboxManager({
       }
 
       const data = await res.json();
-      if (data.content) {
-        setReplyMessage(data.content);
+      const draft = data.reply || data.content;
+      if (draft) {
+        setReplyMessage(draft);
       }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "Failed to generate draft.");
@@ -385,8 +387,16 @@ export default function InquiryInboxManager({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Export to CSV
+  // Export to CSV (Blob download + Excel formula neutralization)
   const handleExportCSV = () => {
+    const csvCell = (val: unknown) => {
+      let s = String(val ?? "");
+      if (/^\s*[=+\-@\t\r\n]/.test(s)) {
+        s = `'${s}`;
+      }
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+
     const headers = [
       "ID",
       "Name",
@@ -400,26 +410,28 @@ export default function InquiryInboxManager({
       "Created At",
     ];
     const rows = filteredInquiries.map((i) => [
-      i.id,
-      `"${i.name.replace(/"/g, '""')}"`,
-      `"${(i.company || "").replace(/"/g, '""')}"`,
-      i.email,
-      i.phone || "",
-      `"${(i.service || "").replace(/"/g, '""')}"`,
-      i.status,
-      i.priority || "MEDIUM",
-      i.estimatedValue || 0,
-      new Date(i.createdAt).toISOString(),
+      csvCell(i.id),
+      csvCell(i.name),
+      csvCell(i.company || ""),
+      csvCell(i.email),
+      csvCell(i.phone || ""),
+      csvCell(i.service || ""),
+      csvCell(i.status),
+      csvCell(i.priority || "MEDIUM"),
+      csvCell(i.estimatedValue || 0),
+      csvCell(new Date(i.createdAt).toISOString()),
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const csvBody = "\uFEFF" + [headers.map(csvCell).join(","), ...rows.map((e) => e.join(","))].join("\r\n");
+    const blob = new Blob([csvBody], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `TaxFiling24_CRM_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -706,7 +718,7 @@ export default function InquiryInboxManager({
             </div>
           ) : (
             filteredInquiries.map((lead) => {
-              const pendingFollowUp = lead.followUps?.[0];
+              const pendingFollowUp = lead.followUps?.find((f) => f.status === "PENDING");
               const isOverdue =
                 pendingFollowUp && new Date(pendingFollowUp.scheduledAt) < new Date();
 
@@ -1075,7 +1087,7 @@ export default function InquiryInboxManager({
                   className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                 />
                 <span className="text-xs text-slate-700 font-medium">
-                  Mark as RESOLVED after sending (otherwise advances to CONTACTED in pipeline)
+                  Advance lead stage to CONTACTED after sending (if still New)
                 </span>
               </label>
 

@@ -38,6 +38,7 @@ import {
   X,
 } from "lucide-react";
 import RichTextEditor from "@/components/admin/RichTextEditor";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import {
   EMAIL_PROVIDERS,
   getProviderLabel,
@@ -82,6 +83,9 @@ type SubscriberRecord = {
   id: string;
   email: string;
   name: string | null;
+  phone?: string | null;
+  source?: string | null;
+  tags?: string[] | null;
   isActive: boolean;
   createdAt: string;
 };
@@ -145,9 +149,11 @@ type ProviderSettingsState = {
   EMAIL_REPLY_TO: string;
   RESEND_API_KEY: string;
   RESEND_AUDIENCE_ID: string;
+  RESEND_WEBHOOK_SECRET: string;
   MAILGUN_API_KEY: string;
   MAILGUN_DOMAIN: string;
   MAILGUN_REGION: "US" | "EU";
+  MAILGUN_WEBHOOK_SIGNING_KEY: string;
   SMTP_HOST: string;
   SMTP_PORT: string;
   SMTP_USER: string;
@@ -226,8 +232,10 @@ function buildProviderSettings(
     MAILGUN_API_KEY: raw.MAILGUN_API_KEY || "",
     MAILGUN_DOMAIN: raw.MAILGUN_DOMAIN || providerInfo.mailgunDomain || "",
     MAILGUN_REGION: ((raw.MAILGUN_REGION as "US" | "EU") || providerInfo.mailgunRegion || "US"),
+    MAILGUN_WEBHOOK_SIGNING_KEY: raw.MAILGUN_WEBHOOK_SIGNING_KEY || "",
     RESEND_API_KEY: raw.RESEND_API_KEY || "",
     RESEND_AUDIENCE_ID: raw.RESEND_AUDIENCE_ID || providerInfo.resendAudienceId || "",
+    RESEND_WEBHOOK_SECRET: raw.RESEND_WEBHOOK_SECRET || "",
     SMTP_HOST: raw.SMTP_HOST || "",
     SMTP_PASS: raw.SMTP_PASS || "",
     SMTP_PORT: raw.SMTP_PORT || "",
@@ -242,11 +250,13 @@ function formatWhatsAppPreview(rawText: string): string {
     .replace(/\{\{company\}\}/gi, "Acme Solutions Pvt Ltd")
     .replace(/\{\{service\}\}/gi, "Corporate Tax Filing");
 
-  // Escape HTML
+  // Escape HTML including quotes so URL href attributes can never break out
   text = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
   // Convert WhatsApp markdown: *bold*, _italic_, ~strike~, ```code```
   text = text.replace(/\*(.*?)\*/g, "<strong>$1</strong>");
@@ -255,7 +265,7 @@ function formatWhatsAppPreview(rawText: string): string {
   text = text.replace(/```(.*?)```/g, "<code class='bg-black/5 px-1 rounded font-mono text-[11px]'>$1</code>");
   text = text.replace(/\n/g, "<br />");
   text = text.replace(
-    /(https?:\/\/[^\s<]+)/g,
+    /(https?:\/\/[^\s<"&']+)/g,
     '<a href="$1" target="_blank" rel="noreferrer" class="text-blue-600 underline font-medium break-all">$1</a>'
   );
   return text;
@@ -263,12 +273,14 @@ function formatWhatsAppPreview(rawText: string): string {
 
 function campaignToForm(campaign: CampaignRecord): CampaignFormState {
   const isWa = campaign.provider === "WHATSAPP";
+  const isDraft = campaign.status === "DRAFT";
   return {
     audience: campaign.audience || "ALL_ACTIVE",
     channel: isWa ? "WHATSAPP" : "EMAIL",
     content: campaign.content,
-    id: campaign.id,
-    name: campaign.name || "",
+    // Only bind existing ID if still a DRAFT; loading a SENT campaign creates a fresh draft copy
+    id: isDraft ? campaign.id : undefined,
+    name: isDraft ? campaign.name || "" : `${campaign.name || campaign.subject} (Copy)`,
     preheader: campaign.preheader || "",
     provider: isWa
       ? "WHATSAPP"
@@ -317,8 +329,10 @@ export default function CampaignStudio() {
     MAILGUN_API_KEY: "",
     MAILGUN_DOMAIN: "",
     MAILGUN_REGION: "US",
+    MAILGUN_WEBHOOK_SIGNING_KEY: "",
     RESEND_API_KEY: "",
     RESEND_AUDIENCE_ID: "",
+    RESEND_WEBHOOK_SECRET: "",
     SMTP_HOST: "",
     SMTP_PASS: "",
     SMTP_PORT: "",
@@ -340,7 +354,7 @@ export default function CampaignStudio() {
   const [showAiBar, setShowAiBar] = useState(false);
   const [showPreflightDetails, setShowPreflightDetails] = useState(false);
   const [campaignChannel, setCampaignChannel] = useState<"EMAIL" | "WHATSAPP">("EMAIL");
-  const [testPhoneNumber, setTestPhoneNumber] = useState("919162712267");
+  const [testPhoneNumber, setTestPhoneNumber] = useState("");
 
   // Modals & Dialogs
   const [showSendConfirmModal, setShowSendConfirmModal] = useState(false);
@@ -402,14 +416,12 @@ export default function CampaignStudio() {
       const nextProviderSettings = buildProviderSettings(rawSettings, nextWorkspace.provider);
       setProviderSettings(nextProviderSettings);
 
-      if (!testEmailAddress && nextProviderSettings.EMAIL_FROM_EMAIL) {
-        setTestEmailAddress(nextProviderSettings.EMAIL_FROM_EMAIL);
+      if (nextProviderSettings.EMAIL_FROM_EMAIL) {
+        setTestEmailAddress((prev) => prev || nextProviderSettings.EMAIL_FROM_EMAIL);
       }
 
       if (!preserveCampaign) {
-        const draft =
-          nextWorkspace.campaigns.find((campaign) => campaign.status === "DRAFT") ||
-          nextWorkspace.campaigns[0];
+        const draft = nextWorkspace.campaigns.find((campaign) => campaign.status === "DRAFT");
 
         setCampaignForm(
           draft ? campaignToForm(draft) : createDefaultCampaign(nextProviderSettings.EMAIL_PROVIDER)
@@ -424,7 +436,7 @@ export default function CampaignStudio() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [testEmailAddress]);
+  }, []);
 
   useEffect(() => {
     void loadWorkspace({ initial: true, preserveCampaign: false });
@@ -865,19 +877,36 @@ export default function CampaignStudio() {
     }
   }
 
-  // Pre-flight checks
+  // Pre-flight checks (segment-aware and excludes suppressed contacts)
   const preflight = useMemo(() => {
     const isWa = campaignChannel === "WHATSAPP";
     const hasSubject = campaignForm.subject.trim().length >= 3;
     const hasContent = campaignForm.content.trim().length > 10;
     const hasPreheader = isWa ? true : Boolean(campaignForm.preheader?.trim());
-    const isProviderReady = isWa ? true : Boolean(workspace?.provider.statuses[campaignForm.provider as EmailProvider]);
-    const phoneCount = (workspace?.subscribers as any[])?.filter((s) => s.phone && s.phone.trim().length > 0).length ?? 0;
-    const hasActiveSubscribers = isWa ? phoneCount > 0 : (workspace?.summary.activeSubscriberCount ?? 0) > 0;
+    const isProviderReady = isWa
+      ? true
+      : Boolean(workspace?.provider.statuses[campaignForm.provider as EmailProvider]);
+
+    const audience = (campaignForm.audience || "ALL_ACTIVE").trim();
+    const activeMatching = (workspace?.subscribers || []).filter((s) => {
+      if (!s.isActive) return false;
+      if (audience === "ALL_ACTIVE") return true;
+      if (audience.startsWith("TAG:")) {
+        const targetTag = audience.replace(/^TAG:/, "").trim();
+        return Array.isArray(s.tags) && s.tags.includes(targetTag);
+      }
+      if (audience === "IMPORTED") return s.source === "CSV_IMPORT";
+      return s.source === audience;
+    });
+
+    const emailCount = activeMatching.length;
+    const phoneCount = activeMatching.filter((s) => Boolean(s.phone && s.phone.trim())).length;
+    const hasActiveSubscribers = isWa ? phoneCount > 0 : emailCount > 0;
     const allPassed = hasSubject && hasContent && isProviderReady && hasActiveSubscribers;
 
     return {
       allPassed,
+      emailCount,
       hasActiveSubscribers,
       hasContent,
       hasPreheader,
@@ -1451,7 +1480,6 @@ export default function CampaignStudio() {
                       onChange={(e) =>
                         setCampaignForm((c) => ({
                           ...c,
-                          name: c.name || e.target.value,
                           subject: e.target.value,
                         }))
                       }
@@ -1831,7 +1859,7 @@ export default function CampaignStudio() {
 
                           <div
                             className="prose prose-sm max-w-none text-slate-700 text-xs leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: campaignForm.content }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaignForm.content) }}
                           />
 
                           <div className="mt-8 pt-4 border-t border-slate-100 text-center text-[10px] text-slate-400 space-y-1">
@@ -1859,7 +1887,7 @@ export default function CampaignStudio() {
 
                           <div
                             className="prose prose-sm max-w-none text-slate-700 text-[11px] leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: campaignForm.content }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaignForm.content) }}
                           />
 
                           <div className="mt-6 pt-3 border-t border-slate-100 text-center text-[9px] text-slate-400">
@@ -2384,14 +2412,25 @@ export default function CampaignStudio() {
             {/* Resend Fields */}
             {providerSettings.EMAIL_PROVIDER === "RESEND" && (
               <div className="space-y-3">
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <label className="block">
                     <span className="mb-1 block text-[10px] font-bold text-slate-500 uppercase">Resend API Key</span>
                     <input
                       type={showSecrets ? "text" : "password"}
                       value={providerSettings.RESEND_API_KEY}
                       onChange={(e) => setProviderSettings((c) => ({ ...c, RESEND_API_KEY: e.target.value }))}
-                      placeholder="re_..."
+                      placeholder="re_... (leave blank to keep existing)"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono outline-none focus:border-indigo-500 transition"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-bold text-slate-500 uppercase">Webhook Signing Secret</span>
+                    <input
+                      type={showSecrets ? "text" : "password"}
+                      value={providerSettings.RESEND_WEBHOOK_SECRET}
+                      onChange={(e) => setProviderSettings((c) => ({ ...c, RESEND_WEBHOOK_SECRET: e.target.value }))}
+                      placeholder="whsec_... (leave blank to keep existing)"
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono outline-none focus:border-indigo-500 transition"
                     />
                   </label>
@@ -2429,14 +2468,27 @@ export default function CampaignStudio() {
             {/* Mailgun Fields */}
             {providerSettings.EMAIL_PROVIDER === "MAILGUN" && (
               <div className="space-y-3">
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <label className="block">
                     <span className="mb-1 block text-[10px] font-bold text-slate-500 uppercase">Mailgun API Key</span>
                     <input
                       type={showSecrets ? "text" : "password"}
                       value={providerSettings.MAILGUN_API_KEY}
                       onChange={(e) => setProviderSettings((c) => ({ ...c, MAILGUN_API_KEY: e.target.value }))}
-                      placeholder="key-..."
+                      placeholder="key-... (leave blank to keep existing)"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono outline-none focus:border-indigo-500 transition"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-bold text-slate-500 uppercase">Webhook Signing Key</span>
+                    <input
+                      type={showSecrets ? "text" : "password"}
+                      value={providerSettings.MAILGUN_WEBHOOK_SIGNING_KEY}
+                      onChange={(e) =>
+                        setProviderSettings((c) => ({ ...c, MAILGUN_WEBHOOK_SIGNING_KEY: e.target.value }))
+                      }
+                      placeholder="HTTP webhook signing key"
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-mono outline-none focus:border-indigo-500 transition"
                     />
                   </label>
@@ -2662,11 +2714,11 @@ export default function CampaignStudio() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Audience:</span>
+                <span className="text-slate-500 font-medium">Audience ({campaignForm.audience}):</span>
                 <span className="font-bold text-slate-800">
                   {campaignChannel === "WHATSAPP"
                     ? `${preflight.phoneCount} Active WhatsApp Recipients`
-                    : `${workspace.summary.activeSubscriberCount} Active Subscribers`}
+                    : `${preflight.emailCount} Active Subscribers`}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -2812,7 +2864,7 @@ export default function CampaignStudio() {
             <div className="rounded-2xl border border-slate-200 p-5 bg-slate-50/50 max-h-[400px] overflow-y-auto">
               <div
                 className="prose prose-sm max-w-none text-xs text-slate-700"
-                dangerouslySetInnerHTML={{ __html: previewTemplate.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewTemplate.content) }}
               />
             </div>
 

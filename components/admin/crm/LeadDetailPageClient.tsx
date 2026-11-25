@@ -109,7 +109,7 @@ export default function LeadDetailPageClient({
   const [replyMessage, setReplyMessage] = useState(
     `Hello ${lead.name},\n\nThank you for reaching out to TaxFiling24. We have reviewed your inquiry regarding ${lead.service || "our professional services"}.\n\n`
   );
-  const [markAsResolved, setMarkAsResolved] = useState(true);
+  const [markAsResolved, setMarkAsResolved] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [aiDrafting, setAiDrafting] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -325,8 +325,9 @@ export default function LeadDetailPageClient({
       }
 
       const data = await res.json();
-      if (data.content) {
-        setReplyMessage(data.content);
+      const draft = data.reply || data.content;
+      if (draft) {
+        setReplyMessage(draft);
       }
     } catch (err: any) {
       setAiError(err.message || "Failed to generate draft.");
@@ -761,7 +762,7 @@ export default function LeadDetailPageClient({
                               ₹{proposal.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                             </span>
                             <span className="text-xs text-slate-500">
-                              Subtotal: ₹{proposal.subtotal.toLocaleString("en-IN")} + 18% GST
+                              Subtotal: ₹{proposal.subtotal.toLocaleString("en-IN")} + ₹{proposal.taxAmount.toLocaleString("en-IN")} GST
                             </span>
                           </div>
                         </div>
@@ -1331,7 +1332,7 @@ export default function LeadDetailPageClient({
                   className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                 />
                 <span className="text-xs text-slate-700 font-medium">
-                  Mark as RESOLVED upon dispatch (otherwise advances to CONTACTED in pipeline)
+                  Advance lead stage to CONTACTED upon dispatch (if still New)
                 </span>
               </label>
 

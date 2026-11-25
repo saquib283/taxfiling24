@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import Link from "next/link";
 import { Plus, Edit, Eye, FileText, Calendar, BookOpen, ChevronRight, ExternalLink } from "lucide-react";
 import DeleteButton from "@/components/admin/DeleteButton";
@@ -15,6 +16,8 @@ const getCategoryStyle = (category: string) => {
 };
 
 export default async function ArticlesListPage() {
+  await requirePageRole(["ADMIN", "EDITOR", "VIEWER"]);
+
   const articles = await prisma.article.findMany({
     orderBy: { createdAt: "desc" },
   });

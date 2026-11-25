@@ -1,27 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import crypto from "crypto";
+import { requireRole } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getWhatsAppConfig } from "@/lib/whatsapp";
+import { normalizePhoneNumber } from "@/lib/whatsapp-shared";
+import { processWhatsAppWebhookPayload } from "@/lib/whatsapp-webhook";
 
 export async function POST(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireRole(["ADMIN"]);
+  if (!auth.ok) return auth.response;
 
   try {
-    const { action = "INBOUND_MESSAGE", phoneNumber = "919162712267", customText } = await request.json();
-    const config = await getWhatsAppConfig();
-    const displayPhone = config.phoneNumber.replace(/\D/g, "");
+    const body = await request.json().catch(() => ({}));
+    const action = body?.action || "INBOUND_MESSAGE";
+    const rawPhone = String(body?.phoneNumber || "919999900001").trim();
+    const phoneNumber = normalizePhoneNumber(rawPhone);
+    const customText = typeof body?.customText === "string" ? body.customText.trim().slice(0, 1000) : "";
 
-    const simulatedWamid = `wamid.SIMULATED_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    if (!phoneNumber) {
+      return NextResponse.json(
+        { error: "Please provide a valid 10-15 digit phone number (e.g., 919999900001)." },
+        { status: 400 }
+      );
+    }
+
+    const config = await getWhatsAppConfig();
+    const displayPhone = normalizePhoneNumber(config.phoneNumber) || "919999900000";
+    const simulatedWamid = `wamid.SIMULATED_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
 
     if (action === "INBOUND_MESSAGE") {
       const simulatedPayload = {
         object: "whatsapp_business_account",
         entry: [
           {
-            id: config.wabaId || "1147841937696902",
+            id: "SIMULATED_WABA",
             changes: [
               {
                 field: "messages",
@@ -29,12 +41,12 @@ export async function POST(request: NextRequest) {
                   messaging_product: "whatsapp",
                   metadata: {
                     display_phone_number: displayPhone,
-                    phone_number_id: config.phoneNumberId || "1395527613649643",
+                    phone_number_id: "SIMULATED_PHONE_ID",
                   },
                   contacts: [
                     {
                       profile: {
-                        name: "Md Rehan Saquib",
+                        name: "Test Client (Simulator)",
                       },
                       wa_id: phoneNumber,
                     },
@@ -46,7 +58,9 @@ export async function POST(request: NextRequest) {
                       timestamp: String(Math.floor(Date.now() / 1000)),
                       type: "text",
                       text: {
-                        body: customText || "Hello TaxFiling24 Advisory! I would like to consult on my corporate filing.",
+                        body:
+                          customText ||
+                          "Hello TaxFiling24 Advisory! I would like to consult on my corporate filing.",
                       },
                     },
                   ],
@@ -57,38 +71,49 @@ export async function POST(request: NextRequest) {
         ],
       };
 
-      // Dispatch to internal webhook route
-      const origin = request.nextUrl.origin;
-      const res = await fetch(`${origin}/api/webhooks/whatsapp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(simulatedPayload),
-      });
+      // Invoke webhook ingestion directly in-process (zero outbound HTTP / SSRF risk)
+      await processWhatsAppWebhookPayload(simulatedPayload, displayPhone);
 
-      const resData = await res.json();
       return NextResponse.json({
         success: true,
         action: "INBOUND_MESSAGE",
         simulatedWamid,
-        webhookResponse: resData,
+        webhookResponse: { status: "success" },
       });
     }
 
     if (action === "DELIVERY_STATUS" || action === "FAILED_STATUS") {
-      // Find the most recent outbound log to update
-      const latestOutbound = await prisma.whatsAppLog.findFirst({
-        where: { direction: "OUTBOUND" },
+      const existingSimLog = await prisma.whatsAppLog.findFirst({
+        where: {
+          direction: "OUTBOUND",
+          messageId: { startsWith: "wamid.SIMULATED_" },
+        },
         orderBy: { createdAt: "desc" },
       });
 
-      const targetWamid = latestOutbound?.messageId || simulatedWamid;
+      let targetWamid = existingSimLog?.messageId;
+      if (!targetWamid) {
+        targetWamid = simulatedWamid;
+        await prisma.whatsAppLog.create({
+          data: {
+            messageId: targetWamid,
+            direction: "OUTBOUND",
+            fromNumber: displayPhone,
+            toNumber: phoneNumber,
+            messageType: "text",
+            content: "[Simulated Outbound Message for Webhook Status Test]",
+            status: "sent",
+          },
+        });
+      }
+
       const isFailed = action === "FAILED_STATUS";
 
       const simulatedPayload = {
         object: "whatsapp_business_account",
         entry: [
           {
-            id: config.wabaId || "1147841937696902",
+            id: "SIMULATED_WABA",
             changes: [
               {
                 field: "messages",
@@ -96,7 +121,7 @@ export async function POST(request: NextRequest) {
                   messaging_product: "whatsapp",
                   metadata: {
                     display_phone_number: displayPhone,
-                    phone_number_id: config.phoneNumberId || "1395527613649643",
+                    phone_number_id: "SIMULATED_PHONE_ID",
                   },
                   statuses: [
                     {
@@ -105,11 +130,11 @@ export async function POST(request: NextRequest) {
                       timestamp: String(Math.floor(Date.now() / 1000)),
                       recipient_id: phoneNumber,
                       conversation: {
-                        id: "CONV_SIMULATED_123",
+                        id: "CONV_SIMULATED",
                         origin: { type: "service" },
                       },
                       pricing: {
-                        billable: true,
+                        billable: false,
                         pricing_model: "CBP",
                         category: "service",
                       },
@@ -118,7 +143,8 @@ export async function POST(request: NextRequest) {
                             errors: [
                               {
                                 code: 131030,
-                                title: "Recipient phone number not in allowed list for test account",
+                                title:
+                                  "Recipient phone number not in allowed list for test account",
                               },
                             ],
                           }
@@ -132,29 +158,22 @@ export async function POST(request: NextRequest) {
         ],
       };
 
-      const origin = request.nextUrl.origin;
-      const res = await fetch(`${origin}/api/webhooks/whatsapp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(simulatedPayload),
-      });
+      await processWhatsAppWebhookPayload(simulatedPayload, displayPhone);
 
-      const resData = await res.json();
       return NextResponse.json({
         success: true,
         action,
         targetWamid,
-        webhookResponse: resData,
+        webhookResponse: { status: "success" },
       });
     }
 
     return NextResponse.json({ error: "Unknown simulation action" }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[Test Webhook Simulation Error]:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to simulate webhook" },
+      { error: "Failed to simulate webhook" },
       { status: 500 }
     );
   }
 }
-

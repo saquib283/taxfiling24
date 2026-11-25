@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import QuotationStudioClient from "@/components/admin/crm/QuotationStudioClient";
 
 export default async function NewQuotationPage({
@@ -9,6 +10,7 @@ export default async function NewQuotationPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePageRole(["ADMIN", "EDITOR"]);
   const { id } = await params;
 
   const lead = await prisma.inquiry.findUnique({

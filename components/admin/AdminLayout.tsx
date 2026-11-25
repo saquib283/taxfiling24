@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import { Menu, Globe, ExternalLink } from "lucide-react";
@@ -52,6 +52,19 @@ function getPageTitle(pathname: string): string {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState<{ name?: string | null; username?: string; role?: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.username) setProfile(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const displayName = profile?.name || profile?.username || "Admin Desk";
+  const initialChar = displayName.trim().charAt(0).toUpperCase() || "A";
 
   return (
     <div className="flex h-screen bg-slate-50/60 overflow-hidden font-sans">
@@ -121,10 +134,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
             <div className="flex items-center gap-2 pl-2 sm:border-l sm:border-slate-200">
               <div className="h-8 w-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-2xs">
-                A
+                {initialChar}
               </div>
               <span className="text-xs font-bold text-slate-700 hidden sm:inline-block">
-                Admin Desk
+                {displayName}
               </span>
             </div>
           </div>

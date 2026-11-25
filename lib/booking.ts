@@ -144,6 +144,27 @@ export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
   bookingWindowLabel: "Mon-Sat, 10:00 AM to 6:00 PM",
 };
 
+export function isValidDateKey(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [y, m, d] = value.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (
+    dt.getUTCFullYear() === y &&
+    dt.getUTCMonth() === m - 1 &&
+    dt.getUTCDate() === d
+  );
+}
+
+export function isSafeHttpUrl(url: string | null | undefined): boolean {
+  if (!url || !url.trim()) return true; // empty is allowed when optional
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 function safeJsonParse<T>(value: string | undefined, fallback: T): T {
   if (!value?.trim()) {
     return fallback;
@@ -170,24 +191,33 @@ function normalizeReminderOffsets(values: number[] | undefined, fallback: number
 
 function normalizeServices(value: BookingServiceConfig[]): BookingServiceConfig[] {
   return value
-    .map((service, index) => ({
-      bufferAfterMinutes: Number(service.bufferAfterMinutes ?? 0),
-      bufferBeforeMinutes: Number(service.bufferBeforeMinutes ?? 0),
-      color: service.color || DEFAULT_BOOKING_SERVICES[index % DEFAULT_BOOKING_SERVICES.length]?.color || "#2563eb",
-      description: service.description || "",
-      durationMinutes: Number(service.durationMinutes ?? 30),
-      id: service.id || `service-${index + 1}`,
-      isActive: service.isActive !== false,
-      locationLabel: service.locationLabel || "",
-      maxBookingsPerSlot: Math.max(1, Number(service.maxBookingsPerSlot ?? 1)),
-      meetingType: service.meetingType || "VIDEO",
-      name: service.name || `Service ${index + 1}`,
-      reminderOffsetsMinutes: normalizeReminderOffsets(
-        service.reminderOffsetsMinutes,
-        DEFAULT_BOOKING_SETTINGS.defaultReminderOffsetsMinutes
-      ),
-      slotIntervalMinutes: Math.max(15, Number(service.slotIntervalMinutes ?? service.durationMinutes ?? 30)),
-    }))
+    .map((service, index) => {
+      const duration = Math.max(5, Math.min(480, Number(service.durationMinutes ?? 30) || 30));
+      return {
+        bufferAfterMinutes: Math.max(0, Math.min(180, Number(service.bufferAfterMinutes ?? 0) || 0)),
+        bufferBeforeMinutes: Math.max(0, Math.min(180, Number(service.bufferBeforeMinutes ?? 0) || 0)),
+        color:
+          service.color ||
+          DEFAULT_BOOKING_SERVICES[index % DEFAULT_BOOKING_SERVICES.length]?.color ||
+          "#2563eb",
+        description: service.description || "",
+        durationMinutes: duration,
+        id: service.id || `service-${index + 1}`,
+        isActive: service.isActive !== false,
+        locationLabel: service.locationLabel || "",
+        maxBookingsPerSlot: Math.max(1, Math.min(100, Number(service.maxBookingsPerSlot ?? 1) || 1)),
+        meetingType: service.meetingType || "VIDEO",
+        name: service.name || `Service ${index + 1}`,
+        reminderOffsetsMinutes: normalizeReminderOffsets(
+          service.reminderOffsetsMinutes,
+          DEFAULT_BOOKING_SETTINGS.defaultReminderOffsetsMinutes
+        ),
+        slotIntervalMinutes: Math.max(
+          5,
+          Math.min(240, Number(service.slotIntervalMinutes ?? duration) || duration)
+        ),
+      };
+    })
     .filter((service) => service.name.trim().length > 0);
 }
 
@@ -238,8 +268,14 @@ export function getBookingConfig(settings: Record<string, string | undefined>): 
         settingsValue.defaultReminderOffsetsMinutes,
         DEFAULT_BOOKING_SETTINGS.defaultReminderOffsetsMinutes
       ),
-      maxAdvanceDays: Number(settingsValue.maxAdvanceDays ?? DEFAULT_BOOKING_SETTINGS.maxAdvanceDays),
-      minNoticeHours: Number(settingsValue.minNoticeHours ?? DEFAULT_BOOKING_SETTINGS.minNoticeHours),
+      maxAdvanceDays: Math.max(
+        1,
+        Math.min(365, Number(settingsValue.maxAdvanceDays ?? DEFAULT_BOOKING_SETTINGS.maxAdvanceDays) || 45)
+      ),
+      minNoticeHours: Math.max(
+        0,
+        Math.min(720, Number(settingsValue.minNoticeHours ?? DEFAULT_BOOKING_SETTINGS.minNoticeHours) || 0)
+      ),
       timezone: settingsValue.timezone || DEFAULT_BOOKING_SETTINGS.timezone,
     },
   };
@@ -254,12 +290,23 @@ export function serializeBookingConfig(config: BookingConfig) {
   };
 }
 
+/**
+ * Converts a Date or ISO timestamp into YYYY-MM-DD strictly in Asia/Kolkata timezone.
+ * Prevents early-morning IST appointments (00:00–05:29 IST) from rolling back -1 day in UTC.
+ */
 export function getDateKey(value: Date | string): string {
   if (typeof value === "string") {
-    return value.slice(0, 10);
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) {
+      return trimmed.slice(0, 10);
+    }
+    value = parsed;
   }
 
-  // Format explicitly in Asia/Kolkata timezone to avoid UTC day rollover on cloud hosts
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
@@ -292,9 +339,9 @@ export function formatTimeLabel(time: string): string {
 }
 
 export function combineDateAndTime(dateKey: string, time: string): Date {
+  const cleanDate = getDateKey(dateKey);
   const normalizedTime = time.length === 5 ? time : time.padStart(5, "0");
-  // Enforce Asia/Kolkata (+05:30) offset so UTC cloud environments do not suffer 5.5-hour time shift
-  return new Date(`${dateKey}T${normalizedTime}:00+05:30`);
+  return new Date(`${cleanDate}T${normalizedTime}:00+05:30`);
 }
 
 export function addMinutes(date: Date, minutes: number): Date {
@@ -302,12 +349,14 @@ export function addMinutes(date: Date, minutes: number): Date {
 }
 
 function isWithinAdvanceWindow(dateKey: string, settings: BookingSettings): boolean {
+  if (!isValidDateKey(dateKey)) return false;
   const today = new Date();
-  const selected = combineDateAndTime(dateKey, "00:00");
+  const selectedStart = combineDateAndTime(dateKey, "00:00");
+  const selectedEnd = combineDateAndTime(dateKey, "23:59");
   const noticeLimit = addMinutes(today, settings.minNoticeHours * 60);
-  const maxAdvance = addMinutes(new Date(), settings.maxAdvanceDays * 24 * 60);
+  const maxAdvance = addMinutes(today, settings.maxAdvanceDays * 24 * 60);
 
-  return selected <= maxAdvance && selected >= addMinutes(noticeLimit, -parseTimeToMinutes("23:59"));
+  return selectedStart <= maxAdvance && selectedEnd >= noticeLimit;
 }
 
 function overlaps(startA: Date, endA: Date, startB: Date, endB: Date) {
@@ -318,14 +367,12 @@ function getAppointmentWindow(
   appointment: BookingAppointmentLike,
   defaultDuration: number
 ): { start: Date; end: Date } | null {
-  const start =
-    appointment.startAt
-      ? new Date(appointment.startAt)
-      : combineDateAndTime(getDateKey(appointment.date), appointment.time);
-  const end =
-    appointment.endAt
-      ? new Date(appointment.endAt)
-      : addMinutes(start, appointment.durationMinutes || defaultDuration);
+  const start = appointment.startAt
+    ? new Date(appointment.startAt)
+    : combineDateAndTime(getDateKey(appointment.date), appointment.time);
+  const end = appointment.endAt
+    ? new Date(appointment.endAt)
+    : addMinutes(start, appointment.durationMinutes || defaultDuration);
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return null;
@@ -358,12 +405,22 @@ export function getAvailableSlots(params: {
   service: BookingServiceConfig;
   settings: BookingSettings;
 }): AvailableSlot[] {
-  const { appointments, availabilityRules, blockedDates, date, excludeAppointmentId, service, settings } = params;
+  const {
+    appointments,
+    availabilityRules,
+    blockedDates,
+    date,
+    excludeAppointmentId,
+    service,
+    settings,
+  } = params;
 
   if (!isWithinAdvanceWindow(date, settings)) {
     return [];
   }
 
+  const safeDuration = Math.max(5, service.durationMinutes || 30);
+  const safeInterval = Math.max(5, service.slotIntervalMinutes || safeDuration);
   const [y, m, d] = date.slice(0, 10).split("-").map(Number);
   const weekday = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
   const activeRules = availabilityRules.filter(
@@ -376,20 +433,26 @@ export function getAvailableSlots(params: {
 
   const blockedWindows = getBlockedWindows(date, blockedDates);
   const candidateSlots: AvailableSlot[] = [];
+  const seenStartTimes = new Set<string>();
   const now = new Date();
 
   for (const rule of activeRules) {
     const ruleStart = parseTimeToMinutes(rule.startTime);
     const ruleEnd = parseTimeToMinutes(rule.endTime);
-    const lastStart = ruleEnd - service.durationMinutes;
+    const lastStart = ruleEnd - safeDuration;
 
     for (
       let startMinutes = ruleStart;
       startMinutes <= lastStart;
-      startMinutes += service.slotIntervalMinutes
+      startMinutes += safeInterval
     ) {
-      const slotStart = combineDateAndTime(date, minutesToTime(startMinutes));
-      const slotEnd = addMinutes(slotStart, service.durationMinutes);
+      const startTimeStr = minutesToTime(startMinutes);
+      if (seenStartTimes.has(startTimeStr)) {
+        continue;
+      }
+
+      const slotStart = combineDateAndTime(date, startTimeStr);
+      const slotEnd = addMinutes(slotStart, safeDuration);
       const occupiedStart = addMinutes(slotStart, -service.bufferBeforeMinutes);
       const occupiedEnd = addMinutes(slotEnd, service.bufferAfterMinutes);
 
@@ -419,7 +482,7 @@ export function getAvailableSlots(params: {
           continue;
         }
 
-        const window = getAppointmentWindow(appointment, service.durationMinutes);
+        const window = getAppointmentWindow(appointment, safeDuration);
         if (!window) {
           continue;
         }
@@ -435,7 +498,14 @@ export function getAvailableSlots(params: {
           }
         }
 
-        if (overlaps(occupiedStart, occupiedEnd, window.start, window.end)) {
+        // Symmetrical buffer check: neither candidate's buffer nor existing appointment's buffer may collide
+        const existingBufferedStart = addMinutes(window.start, -service.bufferBeforeMinutes);
+        const existingBufferedEnd = addMinutes(window.end, service.bufferAfterMinutes);
+
+        if (
+          overlaps(occupiedStart, occupiedEnd, window.start, window.end) ||
+          overlaps(slotStart, slotEnd, existingBufferedStart, existingBufferedEnd)
+        ) {
           hasConflict = true;
           break;
         }
@@ -445,18 +515,19 @@ export function getAvailableSlots(params: {
         continue;
       }
 
+      seenStartTimes.add(startTimeStr);
       candidateSlots.push({
         date,
         endAt: slotEnd.toISOString(),
-        endTime: minutesToTime(startMinutes + service.durationMinutes),
-        label: formatTimeLabel(minutesToTime(startMinutes)),
+        endTime: minutesToTime(startMinutes + safeDuration),
+        label: formatTimeLabel(startTimeStr),
         startAt: slotStart.toISOString(),
-        startTime: minutesToTime(startMinutes),
+        startTime: startTimeStr,
       });
     }
   }
 
-  return candidateSlots;
+  return candidateSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
 }
 
 export function parseSentReminderOffsets(value: string | null | undefined): number[] {
@@ -489,10 +560,9 @@ export function getDueReminderOffsets(params: {
   const { appointment, service, settings } = params;
   const now = params.now || new Date();
   const sentOffsets = new Set(parseSentReminderOffsets(appointment.sentReminderOffsets));
-  const start =
-    appointment.startAt
-      ? new Date(appointment.startAt)
-      : combineDateAndTime(getDateKey(appointment.date), appointment.time);
+  const start = appointment.startAt
+    ? new Date(appointment.startAt)
+    : combineDateAndTime(getDateKey(appointment.date), appointment.time);
 
   if (Number.isNaN(start.getTime()) || start <= now) {
     return [];
@@ -509,10 +579,9 @@ export function getNextReminderPreview(
   service: BookingServiceConfig | undefined,
   settings: BookingSettings
 ): number | null {
-  const start =
-    appointment.startAt
-      ? new Date(appointment.startAt)
-      : combineDateAndTime(getDateKey(appointment.date), appointment.time);
+  const start = appointment.startAt
+    ? new Date(appointment.startAt)
+    : combineDateAndTime(getDateKey(appointment.date), appointment.time);
 
   if (Number.isNaN(start.getTime())) {
     return null;

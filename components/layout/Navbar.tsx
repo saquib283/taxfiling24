@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronDown, Search } from "lucide-react";
+import { sanitizeHref } from "@/lib/url-safety";
  
 interface NavItem {
   label: string;
@@ -66,11 +67,13 @@ export default function Navbar({
       label: "Tools",
       visible: true,
       children: [
+        { href: "/tools", label: "All Tax & GST Tools", visible: true },
         { href: "/tools/tax-calculator", label: "Income Tax Calculator", visible: true },
         { href: "/tools/gst-calculator", label: "GST Calculator (HSN)", visible: true }
       ]
     },
     { href: "/articles", label: "Articles", visible: true },
+    { href: "/book", label: "Book CA", visible: true },
     { href: "/contact", label: "Contact", visible: true },
   ];
 
@@ -127,7 +130,6 @@ export default function Navbar({
             width={170}
             height={60}
             priority
-            unoptimized
             className="h-11 sm:h-12 md:h-13 w-auto object-contain" 
             alt="TaxFiling24" 
           />
@@ -188,7 +190,7 @@ export default function Navbar({
                         return filtered.map((child: any) => (
                           <Link 
                             key={child.href} 
-                            href={child.href}
+                            href={sanitizeHref(child.href)}
                             role="menuitem"
                             onClick={() => setActiveDropdown(null)}
                             className="block px-4 py-2.5 text-sm text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] focus:bg-[var(--accent-soft)] focus:text-[var(--primary)] focus:outline-none transition-colors"
@@ -207,7 +209,7 @@ export default function Navbar({
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={sanitizeHref(item.href)}
                 className="rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all duration-200"
               >
                 {item.label}
@@ -303,7 +305,7 @@ export default function Navbar({
                                   return filtered?.map((child: any) => (
                                     <Link
                                       key={child.href}
-                                      href={child.href}
+                                      href={sanitizeHref(child.href)}
                                       onClick={() => {
                                         setMobileMenuOpen(false);
                                         setMobileExpandedLabel(null);
@@ -322,7 +324,7 @@ export default function Navbar({
                       </div>
                     ) : (
                       <Link
-                        href={item.href}
+                        href={sanitizeHref(item.href)}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`block rounded-lg py-2.5 px-3 text-left text-sm font-medium transition-colors ${
                           item.href === "/contact"

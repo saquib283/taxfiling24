@@ -16,14 +16,24 @@ const ICONS = {
   Briefcase, Shield, FileHeart, TrendingUp, Settings, Users
 };
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
 export default function ServiceForm({ service, isEdit = false }: ServiceFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [slugEdited, setSlugEdited] = useState(Boolean(isEdit && service?.slug));
 
   const [formData, setFormData] = useState({
     title: service?.title || "",
+    slug: service?.slug || "",
     description: service?.description || "",
     icon: service?.icon || "Briefcase",
     category: service?.category || "General",
@@ -39,7 +49,14 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === "title" && !isEdit && !slugEdited) {
+      setFormData((prev) => ({ ...prev, title: value, slug: slugify(value) }));
+      return;
+    }
+    if (name === "slug") {
+      setSlugEdited(true);
+    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleArrayChange = (field: keyof typeof formData, index: number, value: any) => {
@@ -55,9 +72,16 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
   };
 
   const handleArrayRemove = (field: keyof typeof formData, index: number) => {
-    setFormData(p => {
+    setFormData((p) => {
       const arr = [...(p[field] as any[])];
       arr.splice(index, 1);
+      if (field === "process") {
+        const renumbered = arr.map((step: any, i: number) => ({
+          ...step,
+          step: String(i + 1).padStart(2, "0"),
+        }));
+        return { ...p, process: renumbered };
+      }
       return { ...p, [field]: arr };
     });
   };
@@ -79,11 +103,12 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
 
       if (res.ok) {
         router.push("/admin/services");
+        router.refresh();
       } else {
-        const data = await res.json();
-        setError(data.error || "Failed to save service");
+        const data = await res.json().catch(() => null);
+        setError(data?.error || "Failed to save service");
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong saving the service.");
     } finally {
       setLoading(false);
@@ -168,6 +193,23 @@ export default function ServiceForm({ service, isEdit = false }: ServiceFormProp
             className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition outline-none shadow-sm"
             placeholder="e.g., Company Registration (Pvt Ltd)"
           />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live Route URL Slug</label>
+          <div className="flex items-center">
+            <span className="bg-slate-50 border border-r-0 border-slate-200 px-3.5 py-3 rounded-l-xl text-xs font-mono font-semibold text-slate-400 shrink-0">
+              /services/
+            </span>
+            <input
+              type="text"
+              name="slug"
+              value={formData.slug}
+              onChange={handleChange}
+              placeholder="company-registration-pvt-ltd"
+              className="w-full rounded-r-xl border border-slate-200 px-4 py-3 text-xs font-mono text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition outline-none shadow-sm bg-slate-50/30"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

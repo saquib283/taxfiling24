@@ -8,6 +8,7 @@ const SEO_PAGES = [
   { key: "about", label: "About Page" },
   { key: "services", label: "Services Page" },
   { key: "articles", label: "Articles Page" },
+  { key: "book", label: "Book Consultation" },
   { key: "contact", label: "Contact Page" },
   { key: "tools", label: "Tools Page" },
   { key: "tax_calculator", label: "Tax Calculator" },
@@ -17,24 +18,57 @@ const SEO_PAGES = [
   { key: "refund", label: "Refund Policy" },
 ];
 
+const SITE_BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://taxfiling24.com";
+
 export default function SEOManagerPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/settings").then(r => r.json()).then(data => { setValues(data); setLoaded(true); });
+    fetch("/api/admin/settings")
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Failed to load SEO settings");
+        return r.json();
+      })
+      .then((data) => {
+        const seoOnly: Record<string, string> = {};
+        for (const [k, v] of Object.entries(data || {})) {
+          if (k.startsWith("seo_") && typeof v === "string") seoOnly[k] = v;
+        }
+        setValues(seoOnly);
+      })
+      .catch(() => setFeedback({ text: "Failed to load SEO settings.", type: "error" }))
+      .finally(() => setLoaded(true));
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
-    await fetch("/api/admin/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings: values }),
-    });
-    setSaving(false);
+    setFeedback(null);
+    try {
+      const seoPayload: Record<string, string> = {};
+      for (const [k, v] of Object.entries(values)) {
+        if (k.startsWith("seo_")) seoPayload[k] = v;
+      }
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: seoPayload }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setFeedback({ text: "SEO settings saved successfully!", type: "success" });
+      } else {
+        setFeedback({ text: data.error || "Failed to save SEO settings.", type: "error" });
+      }
+    } catch {
+      setFeedback({ text: "Network error while saving SEO settings.", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!loaded) {
@@ -72,6 +106,18 @@ export default function SEOManagerPage() {
           {saving ? "Saving..." : "Save All SEO"}
         </button>
       </div>
+
+      {feedback && (
+        <div
+          className={`p-3.5 rounded-xl text-xs font-bold border shadow-2xs ${
+            feedback.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-rose-50 text-rose-800 border-rose-200"
+          }`}
+        >
+          {feedback.text}
+        </div>
+      )}
 
       {/* Main content split */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -118,7 +164,7 @@ export default function SEOManagerPage() {
                 <div className="flex flex-col">
                   <span className="text-xs font-medium text-slate-800 leading-tight">TaxFiling24</span>
                   <span className="text-[11px] text-slate-500 font-mono leading-tight">
-                    https://taxfiling24.com{page.key !== "home" ? ` › ${page.key}` : ""}
+                    {SITE_BASE_URL}{page.key !== "home" ? ` › ${page.key}` : ""}
                   </span>
                 </div>
               </div>
@@ -244,15 +290,27 @@ export default function SEOManagerPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Google Site Verification Code</label>
-                <input 
-                  type="text" 
-                  value={values.seo_google_verification || ""} 
-                  onChange={e => setValues({ ...values, seo_google_verification: e.target.value })} 
-                  placeholder="google-site-verification=..." 
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition outline-none font-mono shadow-sm" 
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Google Search Console Verification Token</label>
+                  <input 
+                    type="text" 
+                    value={values.seo_google_verification || ""} 
+                    onChange={e => setValues({ ...values, seo_google_verification: e.target.value })} 
+                    placeholder="Token only (e.g., abc123XYZ... without prefix)" 
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition outline-none font-mono shadow-sm" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Bing Webmaster Verification (msvalidate.01)</label>
+                  <input 
+                    type="text" 
+                    value={values.seo_other_verification || ""} 
+                    onChange={e => setValues({ ...values, seo_other_verification: e.target.value })} 
+                    placeholder="Bing msvalidate.01 token" 
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition outline-none font-mono shadow-sm" 
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import QuotationStudioClient from "@/components/admin/crm/QuotationStudioClient";
 
 export default async function EditQuotationPage({
@@ -9,6 +10,7 @@ export default async function EditQuotationPage({
 }: {
   params: Promise<{ id: string; proposalId: string }>;
 }) {
+  await requirePageRole(["ADMIN", "EDITOR", "VIEWER"]);
   const { id, proposalId } = await params;
 
   const [lead, proposal] = await Promise.all([
@@ -20,7 +22,7 @@ export default async function EditQuotationPage({
     }),
   ]);
 
-  if (!lead || !proposal) {
+  if (!lead || !proposal || proposal.inquiryId !== lead.id) {
     notFound();
   }
 

@@ -51,10 +51,38 @@ const TEXT_COLORS = [
 
 export default function RichTextEditor({ value, onChange }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const [showHeadingMenu, setShowHeadingMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [showHighlightMenu, setShowHighlightMenu] = useState(false);
   const [showTableMenu, setShowTableMenu] = useState(false);
+
+  const uploadAndInsertImage = useCallback(async (file: File) => {
+    const activeEditor = editorRef.current;
+    if (!activeEditor) return;
+    if (file.type === "image/svg+xml" || !file.type.startsWith("image/")) {
+      alert("Please upload a valid raster image (PNG, JPG, WebP, or GIF).");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.url) {
+        activeEditor.chain().focus().setImage({ src: data.url }).run();
+      } else {
+        alert(data?.error || "Failed to upload image");
+      }
+    } catch (err: unknown) {
+      alert(`Upload error: ${err instanceof Error ? err.message : "Network error"}`);
+    }
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -69,7 +97,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         },
       }),
       Image.configure({
-        allowBase64: true,
+        allowBase64: false,
         HTMLAttributes: {
           class: "rounded-lg max-w-full my-4 mx-auto block shadow-sm border border-gray-100",
         },
@@ -113,7 +141,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
           const file = event.dataTransfer.files[0];
           if (file.type.startsWith("image/")) {
             event.preventDefault();
-            uploadAndInsertImage(file);
+            void uploadAndInsertImage(file);
             return true;
           }
         }
@@ -127,7 +155,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
               const file = items[i].getAsFile();
               if (file) {
                 event.preventDefault();
-                uploadAndInsertImage(file);
+                void uploadAndInsertImage(file);
                 return true;
               }
             }
@@ -137,35 +165,16 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
       },
     },
   });
-  
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value);
     }
   }, [value, editor]);
-
-  const uploadAndInsertImage = useCallback(async (file: File) => {
-    if (!editor) return;
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        editor.chain().focus().setImage({ src: data.url }).run();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to upload image");
-      }
-    } catch (err: any) {
-      alert(`Upload error: ${err.message}`);
-    }
-  }, [editor]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,10 +185,20 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
 
   const setLink = () => {
     const previousUrl = editor?.getAttributes("link").href;
-    const url = window.prompt("URL", previousUrl);
-    if (url === null) return;
+    const rawUrl = window.prompt("URL (https://, http://, mailto:, tel:, or /path)", previousUrl);
+    if (rawUrl === null) return;
+    const url = rawUrl.trim();
     if (url === "") {
       editor?.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    const isSafeUrl =
+      url.startsWith("/") ||
+      /^https?:\/\//i.test(url) ||
+      /^mailto:/i.test(url) ||
+      /^tel:/i.test(url);
+    if (!isSafeUrl) {
+      alert("Please enter a valid URL starting with https://, http://, mailto:, tel:, or /.");
       return;
     }
     editor?.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
@@ -540,7 +559,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         type="file"
         ref={fileInputRef}
         onChange={handleImageUpload}
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/gif"
         className="hidden"
       />
     </div>

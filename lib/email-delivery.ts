@@ -18,8 +18,38 @@ export interface TransactionalEmailInput {
   to: string;
 }
 
+const VALID_DOMAIN_REGEX =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+export function isBlockedInternalHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  if (!normalized) return true;
+  if (
+    normalized === "localhost" ||
+    normalized === "0.0.0.0" ||
+    normalized === "::1" ||
+    normalized === "::" ||
+    normalized.endsWith(".localhost") ||
+    normalized.endsWith(".local") ||
+    normalized.endsWith(".internal")
+  ) {
+    return true;
+  }
+  // Block loopback, RFC1918 private, and cloud metadata IPv4 literals
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(normalized)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)) return true;
+  if (/^(fc|fd|fe80:)/i.test(normalized)) return true;
+  return false;
+}
+
+export function sanitizeHeaderText(value: string): string {
+  return value.replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
 function buildFromHeader(fromName: string, fromEmail: string) {
-  return fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
+  const cleanEmail = fromEmail.replace(/[\r\n<>]/g, "").trim();
+  const cleanName = sanitizeHeaderText(fromName);
+  return cleanName ? `"${cleanName}" <${cleanEmail}>` : cleanEmail;
 }
 
 async function sendWithSmtp(
@@ -28,8 +58,12 @@ async function sendWithSmtp(
 ) {
   const port = Number.parseInt(config.smtpPort, 10);
 
-  if (!Number.isFinite(port)) {
+  if (!Number.isFinite(port) || port < 1 || port > 65535) {
     throw new Error("SMTP port is missing or invalid.");
+  }
+
+  if (isBlockedInternalHost(config.smtpHost)) {
+    throw new Error("SMTP host points to a restricted internal address.");
   }
 
   const transporter = nodemailer.createTransport({
@@ -37,7 +71,7 @@ async function sendWithSmtp(
       pass: config.smtpPass,
       user: config.smtpUser,
     },
-    host: config.smtpHost,
+    host: config.smtpHost.trim(),
     port,
     secure: port === 465,
     connectionTimeout: 5000,
@@ -95,9 +129,13 @@ async function sendWithMailgun(
   input: TransactionalEmailInput,
   config: ReturnType<typeof resolveEmailProviderConfig>
 ) {
+  const cleanDomain = config.mailgunDomain.trim();
+  if (!VALID_DOMAIN_REGEX.test(cleanDomain)) {
+    throw new Error("Mailgun domain is invalid.");
+  }
   const apiHost =
     config.mailgunRegion === "EU" ? "api.eu.mailgun.net" : "api.mailgun.net";
-  const endpoint = `https://${apiHost}/v3/${config.mailgunDomain}/messages`;
+  const endpoint = `https://${apiHost}/v3/${encodeURIComponent(cleanDomain)}/messages`;
   const formData = new FormData();
 
   formData.set("from", buildFromHeader(config.fromName, config.fromEmail));

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import Link from "next/link";
 import { Plus, Edit, Briefcase, Shield, FileHeart, TrendingUp, Settings, Users, ExternalLink } from "lucide-react";
 import DeleteButton from "@/components/admin/DeleteButton";
@@ -22,6 +23,8 @@ const getCategoryStyle = (category: string) => {
 };
 
 export default async function ServicesListPage() {
+  await requirePageRole(["ADMIN", "EDITOR", "VIEWER"]);
+
   const services = await prisma.service.findMany({
     orderBy: { createdAt: "desc" },
   });

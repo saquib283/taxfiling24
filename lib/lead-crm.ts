@@ -1,7 +1,20 @@
 import prisma from "@/lib/prisma";
 import { sendTransactionalEmail } from "@/lib/email-delivery";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
-import { ProposalLineItem } from "@/lib/generateProposalPdf";
+import {
+  ProposalLineItem,
+  ProposalMilestone,
+  calculateProposalTotals,
+} from "@/lib/proposal-math";
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export type LeadStage =
   | "NEW"
@@ -113,6 +126,7 @@ export async function scheduleFollowUp(params: {
 // ── Complete Follow-Up ───────────────────────────────────────────────
 export async function completeFollowUp(params: {
   followUpId: string;
+  expectedInquiryId?: string;
   outcome?: string;
   nextFollowUpAt?: Date | string | null;
   nextFollowUpType?: FollowUpType;
@@ -124,8 +138,12 @@ export async function completeFollowUp(params: {
     include: { inquiry: true },
   });
 
-  if (!followUp) {
+  if (!followUp || (params.expectedInquiryId && followUp.inquiryId !== params.expectedInquiryId)) {
     throw new Error("Follow-up task not found");
+  }
+
+  if (followUp.status === "COMPLETED") {
+    throw new Error("Follow-up task is already completed");
   }
 
   const updated = await prisma.leadFollowUp.update({
@@ -200,17 +218,35 @@ export async function changeLeadStage(params: {
 }
 
 // ── Proposal & Quotation Engine ──────────────────────────────────────
-export async function generateProposalNumber(): Promise<string> {
+export async function generateProposalNumber(offset: number = 0): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.leadProposal.count({
+  const prefix = `TF24-QT-${year}-`;
+
+  const latest = await prisma.leadProposal.findFirst({
     where: {
-      createdAt: {
-        gte: new Date(`${year}-01-01T00:00:00.000Z`),
+      proposalNumber: {
+        startsWith: prefix,
       },
     },
+    orderBy: {
+      proposalNumber: "desc",
+    },
+    select: {
+      proposalNumber: true,
+    },
   });
-  const seq = String(count + 1).padStart(4, "0");
-  return `TF24-QT-${year}-${seq}`;
+
+  let maxSeq = 0;
+  if (latest?.proposalNumber) {
+    const suffix = latest.proposalNumber.slice(prefix.length);
+    const parsed = parseInt(suffix, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      maxSeq = parsed;
+    }
+  }
+
+  const seq = String(maxSeq + 1 + offset).padStart(4, "0");
+  return `${prefix}${seq}`;
 }
 
 export async function createProposal(params: {
@@ -225,60 +261,67 @@ export async function createProposal(params: {
   clientAddress?: string;
   placeOfSupply?: string;
   taxType?: string;
-  paymentMilestones?: any[];
+  paymentMilestones?: ProposalMilestone[];
   notes?: string;
   terms?: string;
   performedBy?: string;
 }) {
-  const discount = Math.max(0, Number(params.discount || 0));
+  const validUntilDate =
+    typeof params.validUntil === "string"
+      ? new Date(params.validUntil)
+      : params.validUntil;
 
-  let subtotal = 0;
-  let taxAmount = 0;
-
-  for (const item of params.lineItems) {
-    const qty = Number(item.qty || 1);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const gstPct = item.isGovFee ? 0 : Number(item.gstPercent ?? 18);
-    const lineTax = (lineSubtotal * gstPct) / 100;
-
-    item.amount = lineSubtotal;
-    subtotal += lineSubtotal;
-    taxAmount += lineTax;
+  if (isNaN(validUntilDate.getTime())) {
+    throw new Error("Invalid quotation validity date");
   }
 
-  const taxableAmount = Math.max(0, subtotal - discount);
-  const effectiveTax = discount > 0 ? (taxableAmount * 0.18) : taxAmount;
-  const totalAmount = Math.round((taxableAmount + effectiveTax) * 100) / 100;
+  const calc = calculateProposalTotals(
+    params.lineItems,
+    params.discount ?? 0,
+    params.paymentMilestones,
+    { strict: true }
+  );
 
-  const proposalNumber = await generateProposalNumber();
+  // Retry on unique proposalNumber collision (P2002) under concurrent creation
+  let proposal: Awaited<ReturnType<typeof prisma.leadProposal.create>> | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const proposalNumber = await generateProposalNumber(attempt);
+    try {
+      proposal = await prisma.leadProposal.create({
+        data: {
+          inquiryId: params.inquiryId,
+          proposalNumber,
+          title: params.title,
+          status: "DRAFT",
+          validUntil: validUntilDate,
+          lineItems: calc.lineItems as any,
+          subtotal: calc.subtotal,
+          discount: calc.discount,
+          taxAmount: calc.taxAmount,
+          totalAmount: calc.totalAmount,
+          currency: params.currency || "INR",
+          clientGstin: params.clientGstin?.trim() || null,
+          clientPan: params.clientPan?.trim() || null,
+          clientAddress: params.clientAddress?.trim() || null,
+          placeOfSupply: params.placeOfSupply?.trim() || null,
+          taxType: params.taxType === "CGST_SGST" ? "CGST_SGST" : "IGST",
+          paymentMilestones: (calc.paymentMilestones as any) || undefined,
+          notes: params.notes || null,
+          terms: params.terms || null,
+        },
+      });
+      break;
+    } catch (err: any) {
+      if (err?.code === "P2002" && attempt < 4) {
+        continue;
+      }
+      throw err;
+    }
+  }
 
-  const proposal = await prisma.leadProposal.create({
-    data: {
-      inquiryId: params.inquiryId,
-      proposalNumber,
-      title: params.title,
-      status: "DRAFT",
-      validUntil:
-        typeof params.validUntil === "string"
-          ? new Date(params.validUntil)
-          : params.validUntil,
-      lineItems: params.lineItems as any,
-      subtotal,
-      discount,
-      taxAmount: effectiveTax,
-      totalAmount,
-      currency: params.currency || "INR",
-      clientGstin: params.clientGstin?.trim() || null,
-      clientPan: params.clientPan?.trim() || null,
-      clientAddress: params.clientAddress?.trim() || null,
-      placeOfSupply: params.placeOfSupply?.trim() || null,
-      taxType: params.taxType || "IGST",
-      paymentMilestones: params.paymentMilestones || undefined,
-      notes: params.notes || null,
-      terms: params.terms || null,
-    },
-  });
+  if (!proposal) {
+    throw new Error("Failed to allocate unique proposal number. Please try again.");
+  }
 
   // Optionally set inquiry estimatedValue if none exists
   const inq = await prisma.inquiry.findUnique({
@@ -288,7 +331,7 @@ export async function createProposal(params: {
   if (!inq?.estimatedValue || inq.estimatedValue === 0) {
     await prisma.inquiry.update({
       where: { id: params.inquiryId },
-      data: { estimatedValue: totalAmount },
+      data: { estimatedValue: calc.totalAmount },
     });
   }
 
@@ -296,12 +339,12 @@ export async function createProposal(params: {
   await logLeadActivity({
     inquiryId: params.inquiryId,
     type: "PROPOSAL_CREATED",
-    title: `Quotation Drafted: ${proposalNumber}`,
-    description: `Title: ${params.title}\nAmount: ₹${totalAmount.toLocaleString("en-IN")} (${params.lineItems.length} deliverables)`,
+    title: `Quotation Drafted: ${proposal.proposalNumber}`,
+    description: `Title: ${params.title}\nAmount: ₹${calc.totalAmount.toLocaleString("en-IN")} (${calc.lineItems.length} deliverables)`,
     metadata: {
       proposalId: proposal.id,
-      proposalNumber,
-      totalAmount,
+      proposalNumber: proposal.proposalNumber,
+      totalAmount: calc.totalAmount,
     },
     performedBy: params.performedBy || "Admin",
   });
@@ -312,46 +355,75 @@ export async function createProposal(params: {
 // ── Send Proposal ────────────────────────────────────────────────────
 export async function sendProposalToClient(params: {
   proposalId: string;
+  expectedInquiryId?: string;
   channel?: "EMAIL" | "WHATSAPP";
   customMessage?: string;
   performedBy?: string;
 }) {
+  const channel = params.channel || "EMAIL";
+  if (channel !== "EMAIL" && channel !== "WHATSAPP") {
+    throw new Error("Invalid delivery channel. Expected EMAIL or WHATSAPP.");
+  }
+
   const proposal = await prisma.leadProposal.findUnique({
     where: { id: params.proposalId },
     include: { inquiry: true },
   });
 
-  if (!proposal) throw new Error("Proposal not found");
+  if (!proposal || (params.expectedInquiryId && proposal.inquiryId !== params.expectedInquiryId)) {
+    throw new Error("Proposal not found");
+  }
 
-  const channel = params.channel || "EMAIL";
   const inquiry = proposal.inquiry;
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://taxfiling24.com";
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://taxfiling24.com";
 
   if (channel === "EMAIL") {
     if (!inquiry.email) throw new Error("Inquiry does not have an email address");
 
     const items = (proposal.lineItems as any[]) || [];
     const itemRowsHtml = items
-      .map(
-        (it, idx) => `
+      .map((it, idx) => {
+        const qty = Number(it.qty || 1);
+        const rate = Number(it.rate || 0);
+        const amount = Number(it.amount ?? qty * rate);
+        const descSafe = escapeHtml(it.description || "Deliverable");
+        const detailsSafe = it.details
+          ? `<div style="font-size: 11px; color: #64748b; font-weight: 400; margin-top: 2px;">${escapeHtml(it.details)}</div>`
+          : "";
+        const govBadge = it.isGovFee
+          ? ` <span style="font-size: 10px; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 4px; font-weight: 700;">Govt Pure Agent</span>`
+          : "";
+        return `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 10px 12px; font-size: 13px; color: #475569;">${idx + 1}</td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #0f172a; font-weight: 600;">${it.description}</td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #475569; text-align: center;">${it.qty || 1}</td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #475569; text-align: right;">₹${(it.rate || 0).toLocaleString("en-IN")}</td>
-          <td style="padding: 10px 12px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right;">₹${((it.qty || 1) * (it.rate || 0)).toLocaleString("en-IN")}</td>
-        </tr>`
-      )
+          <td style="padding: 10px 12px; font-size: 13px; color: #0f172a; font-weight: 600;">${descSafe}${govBadge}${detailsSafe}</td>
+          <td style="padding: 10px 12px; font-size: 13px; color: #475569; text-align: center;">${qty}</td>
+          <td style="padding: 10px 12px; font-size: 13px; color: #475569; text-align: right;">₹${rate.toLocaleString("en-IN")}</td>
+          <td style="padding: 10px 12px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right;">₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+        </tr>`;
+      })
       .join("");
 
     const emailSubject = `Formal Fee Quotation ${proposal.proposalNumber} - ${proposal.title} | TaxFiling24`;
+    const safeSubject = escapeHtml(emailSubject);
+    const safeTitle = escapeHtml(proposal.title);
+    const safeName = escapeHtml(inquiry.name);
+    const safePropNum = escapeHtml(proposal.proposalNumber);
+    const safeMessage = params.customMessage
+      ? escapeHtml(params.customMessage).replace(/\n/g, "<br>")
+      : "Thank you for consulting TaxFiling24. We are pleased to submit our formal professional fee proposal for your review.";
+    const taxLabel =
+      proposal.taxType === "CGST_SGST" ? "GST (CGST + SGST):" : "GST (IGST):";
 
     const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${emailSubject}</title>
+  <title>${safeSubject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 640px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
@@ -359,33 +431,31 @@ export async function sendProposalToClient(params: {
     <tr>
       <td style="padding: 28px 32px; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
         <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">TaxFiling24</h1>
-        <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">Corporate Legal & Tax Advisory Services</p>
+        <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">Corporate Legal &amp; Tax Advisory Services</p>
       </td>
     </tr>
 
     <!-- Body -->
     <tr>
       <td style="padding: 32px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <span style="font-size: 11px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.5px;">FEE QUOTATION</span>
-            <h2 style="margin: 4px 0 0; font-size: 18px; color: #0f172a;">${proposal.title}</h2>
-          </div>
+        <div style="margin-bottom: 20px;">
+          <span style="font-size: 11px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.5px;">FEE QUOTATION</span>
+          <h2 style="margin: 4px 0 0; font-size: 18px; color: #0f172a;">${safeTitle}</h2>
         </div>
 
         <p style="font-size: 14px; color: #334155; margin: 0 0 16px;">
-          Dear <strong>${inquiry.name}</strong>,
+          Dear <strong>${safeName}</strong>,
         </p>
 
         <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px;">
-          ${params.customMessage || "Thank you for consulting TaxFiling24. We are pleased to submit our formal professional fee proposal for your review."}
+          ${safeMessage}
         </p>
 
         <!-- Meta Grid -->
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 24px;">
           <tr>
             <td style="padding: 12px 16px; font-size: 12px; color: #64748b;">Quotation Ref:</td>
-            <td style="padding: 12px 16px; font-size: 12px; font-weight: 700; color: #0f172a;">${proposal.proposalNumber}</td>
+            <td style="padding: 12px 16px; font-size: 12px; font-weight: 700; color: #0f172a;">${safePropNum}</td>
             <td style="padding: 12px 16px; font-size: 12px; color: #64748b;">Valid Until:</td>
             <td style="padding: 12px 16px; font-size: 12px; font-weight: 700; color: #0f172a;">${new Date(proposal.validUntil).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</td>
           </tr>
@@ -419,7 +489,7 @@ export async function sendProposalToClient(params: {
                 : ""
             }
             <tr style="background-color: #f8fafc;">
-              <td colspan="4" style="padding: 6px 12px; font-size: 13px; text-align: right; color: #64748b;">GST (18%):</td>
+              <td colspan="4" style="padding: 6px 12px; font-size: 13px; text-align: right; color: #64748b;">${taxLabel}</td>
               <td style="padding: 6px 12px; font-size: 13px; text-align: right; font-weight: 600; color: #0f172a;">₹${proposal.taxAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
             </tr>
             <tr style="background-color: #eff6ff; border-top: 2px solid #3b82f6;">
@@ -442,8 +512,8 @@ export async function sendProposalToClient(params: {
           To accept this proposal and begin your onboarding, please reply directly to this email or contact your assigned engagement manager.
         </p>
 
-        <a href="${siteUrl}/contact" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 8px;">
-          Accept Quotation & Connect
+        <a href="${escapeHtml(siteUrl)}/contact" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 8px;">
+          Accept Quotation &amp; Connect
         </a>
       </td>
     </tr>
@@ -465,9 +535,10 @@ export async function sendProposalToClient(params: {
       subject: emailSubject,
       html: emailHtml,
     });
-  } else if (channel === "WHATSAPP") {
+  } else {
     if (!inquiry.phone) throw new Error("Inquiry does not have a registered phone number.");
-    const waText = `Dear *${inquiry.name}*,\n\nTaxFiling24 has prepared your formal fee quotation *${proposal.proposalNumber}* for *${proposal.title}*.\n\n` +
+    const waText =
+      `Dear *${inquiry.name}*,\n\nTaxFiling24 has prepared your formal fee quotation *${proposal.proposalNumber}* for *${proposal.title}*.\n\n` +
       `📋 *Total Payable:* ₹${proposal.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}\n` +
       `📅 *Valid Until:* ${new Date(proposal.validUntil).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}\n\n` +
       (params.customMessage ? `${params.customMessage}\n\n` : "") +
@@ -477,6 +548,7 @@ export async function sendProposalToClient(params: {
     const sendRes = await sendWhatsAppMessage({
       to: inquiry.phone,
       text: waText,
+      inquiryId: inquiry.id,
     });
 
     if (!sendRes.success) {
@@ -484,31 +556,37 @@ export async function sendProposalToClient(params: {
     }
   }
 
-  // Update proposal status
+  // Update proposal status (preserve ACCEPTED if already accepted and being re-sent)
   const updatedProposal = await prisma.leadProposal.update({
     where: { id: params.proposalId },
     data: {
-      status: "SENT",
+      status: proposal.status === "ACCEPTED" ? "ACCEPTED" : "SENT",
       sentAt: new Date(),
     },
   });
 
-  // Advance lead stage to PROPOSAL_SENT
-  await prisma.inquiry.update({
-    where: { id: inquiry.id },
-    data: { status: "PROPOSAL_SENT" },
-  });
+  // Advance lead stage to PROPOSAL_SENT without downgrading already-WON deals
+  if (inquiry.status !== "WON") {
+    await prisma.inquiry.update({
+      where: { id: inquiry.id },
+      data: { status: "PROPOSAL_SENT" },
+    });
+  }
+
+  const recipientLabel =
+    channel === "WHATSAPP" ? inquiry.phone || "Phone" : inquiry.email || "Email";
 
   // Log activity
   await logLeadActivity({
     inquiryId: inquiry.id,
     type: "PROPOSAL_SENT",
     title: `Quotation Sent via ${channel} (${proposal.proposalNumber})`,
-    description: `Sent to: ${inquiry.email || inquiry.phone}\nTotal Amount: ₹${proposal.totalAmount.toLocaleString("en-IN")}`,
+    description: `Sent to: ${recipientLabel}\nTotal Amount: ₹${proposal.totalAmount.toLocaleString("en-IN")}`,
     metadata: {
       proposalId: proposal.id,
       proposalNumber: proposal.proposalNumber,
       channel,
+      recipient: recipientLabel,
       totalAmount: proposal.totalAmount,
     },
     performedBy: params.performedBy || "Admin",
@@ -520,6 +598,7 @@ export async function sendProposalToClient(params: {
 // ── Mark Proposal Accepted (Converts Lead to WON) ────────────────────
 export async function markProposalAccepted(params: {
   proposalId: string;
+  expectedInquiryId?: string;
   performedBy?: string;
 }) {
   const proposal = await prisma.leadProposal.findUnique({
@@ -527,7 +606,17 @@ export async function markProposalAccepted(params: {
     include: { inquiry: true },
   });
 
-  if (!proposal) throw new Error("Proposal not found");
+  if (!proposal || (params.expectedInquiryId && proposal.inquiryId !== params.expectedInquiryId)) {
+    throw new Error("Proposal not found");
+  }
+
+  if (proposal.status === "REJECTED" || proposal.status === "EXPIRED") {
+    throw new Error(`Cannot accept a proposal that is marked as ${proposal.status}`);
+  }
+
+  if (proposal.status === "ACCEPTED") {
+    return proposal;
+  }
 
   const updatedProposal = await prisma.leadProposal.update({
     where: { id: params.proposalId },

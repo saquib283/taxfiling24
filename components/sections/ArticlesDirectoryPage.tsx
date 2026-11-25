@@ -214,11 +214,11 @@ export default function ArticlesDirectoryPage({
 
       {/* ─── Articles Content Area ─── */}
       <div className="container mx-auto px-6 py-8 sm:py-10 lg:py-12">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false} mode="wait">
           {filteredArticles.length > 0 ? (
             <motion.div
               key="articles-content"
-              initial={{ opacity: 0 }}
+              initial={false}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
@@ -230,13 +230,17 @@ export default function ArticlesDirectoryPage({
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 items-stretch">
                     {/* Thumbnail */}
                     <div className="lg:col-span-7 relative min-h-[260px] sm:min-h-[320px] lg:min-h-[360px] overflow-hidden bg-slate-100">
-                      <div
-                        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                        style={{
-                          backgroundImage: featuredArticle.thumbnailUrl
-                            ? `url(${featuredArticle.thumbnailUrl})`
-                            : "url(https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=900&q=80)",
-                        }}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          featuredArticle.thumbnailUrl ||
+                          "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=900&q=80"
+                        }
+                        alt={featuredArticle.title}
+                        loading="eager"
+                        fetchPriority="high"
+                        decoding="async"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                       <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
                         <Sparkles className="h-3 w-3 text-[var(--accent)]" />
@@ -274,13 +278,13 @@ export default function ArticlesDirectoryPage({
                       <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
                           <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                          <span>
+                          <time dateTime={new Date(featuredArticle.createdAt).toISOString()}>
                             {new Date(featuredArticle.createdAt).toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
                               year: "numeric",
                             })}
-                          </span>
+                          </time>
                         </div>
 
                         <Link
@@ -299,26 +303,24 @@ export default function ArticlesDirectoryPage({
               {/* ── Standard Articles Grid ── */}
               {regularArticles.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-                  {regularArticles.map((article, idx) => (
-                    <motion.div
-                      key={article.id}
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.3) }}
-                    >
+                  {regularArticles.map((article) => (
+                    <div key={article.id}>
                       <Link
                         href={`/articles/${article.slug}`}
                         className="group flex flex-col h-full rounded-2xl border border-slate-200/60 bg-white overflow-hidden transition-all duration-300 hover:border-[var(--primary)]/20 hover:shadow-[0_8px_30px_-12px_rgba(10,37,64,0.12)]"
                       >
                         {/* Image Thumbnail */}
                         <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                          <div
-                            className="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                            style={{
-                              backgroundImage: article.thumbnailUrl
-                                ? `url(${article.thumbnailUrl})`
-                                : "url(https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&q=80)",
-                            }}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              article.thumbnailUrl ||
+                              "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&q=80"
+                            }
+                            alt={article.title}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                           />
                         </div>
 
@@ -334,9 +336,9 @@ export default function ArticlesDirectoryPage({
                             </span>
                           </div>
 
-                          <h3 className="text-base font-semibold text-slate-900 group-hover:text-[var(--primary)] transition-colors line-clamp-2 leading-snug mb-2">
+                          <h2 className="text-base font-semibold text-slate-900 group-hover:text-[var(--primary)] transition-colors line-clamp-2 leading-snug mb-2">
                             {article.title}
-                          </h3>
+                          </h2>
 
                           {article.excerpt && (
                             <p className="text-xs sm:text-sm text-slate-500 line-clamp-2 leading-relaxed mb-6 flex-1">
@@ -345,13 +347,16 @@ export default function ArticlesDirectoryPage({
                           )}
 
                           <div className="pt-4 border-t border-slate-100 mt-auto flex items-center justify-between">
-                            <span className="text-[11px] text-slate-400 font-medium">
+                            <time
+                              dateTime={new Date(article.createdAt).toISOString()}
+                              className="text-[11px] text-slate-400 font-medium"
+                            >
                               {new Date(article.createdAt).toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
                               })}
-                            </span>
+                            </time>
 
                             <div className="flex items-center gap-1 text-xs font-semibold text-slate-900 group-hover:text-[var(--primary)] transition-colors">
                               <span>Read</span>
@@ -360,7 +365,7 @@ export default function ArticlesDirectoryPage({
                           </div>
                         </div>
                       </Link>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Phone, MessageSquare, FileText, AlertCircle, Loader2, Check } from "lucide-react";
 import { InquiryLead } from "./types";
 
@@ -41,6 +41,20 @@ export default function LogInteractionModal({
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setType(defaultType);
+    setTitle(
+      defaultType === "CALL"
+        ? `Phone Call with ${lead.name}`
+        : defaultType === "WHATSAPP"
+        ? `WhatsApp Chat with ${lead.name}`
+        : `Internal Note on ${lead.name}`
+    );
+    setDescription("");
+    setError(null);
+  }, [isOpen, defaultType, lead.name]);
 
   if (!isOpen) return null;
 

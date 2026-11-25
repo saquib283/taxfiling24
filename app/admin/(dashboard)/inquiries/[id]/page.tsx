@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import LeadDetailPageClient from "@/components/admin/crm/LeadDetailPageClient";
 
 export default async function LeadDetailPage({
@@ -9,6 +10,7 @@ export default async function LeadDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePageRole(["ADMIN", "EDITOR", "VIEWER"]);
   const { id } = await params;
 
   const lead = await prisma.inquiry.findUnique({

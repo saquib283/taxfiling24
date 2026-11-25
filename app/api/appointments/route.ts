@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
 import { ingestContact } from "@/lib/audience-service";
+import { verifyAdmin } from "@/lib/auth";
 import {
   addMinutes,
   combineDateAndTime,
@@ -9,9 +10,11 @@ import {
   getAvailableSlots,
   getBookingConfig,
   getDateKey,
+  isValidDateKey,
 } from "@/lib/booking";
 import { sendAppointmentNotification } from "@/lib/booking-notifications";
 import { getSettings } from "@/lib/settings";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 type BookingRequestPayload = {
   customerTimezone?: string;
@@ -25,27 +28,16 @@ type BookingRequestPayload = {
   time?: string;
 };
 
-// In-memory rate limiting map (IP -> timestamp & count)
-const bookingRateLimitMap = new Map<string, { count: number; lastRequest: number }>();
-
-function checkRateLimit(request: Request): boolean {
-  const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
-  const now = Date.now();
-  const windowMs = 60 * 1000; // 1 minute
-  const maxRequests = 5; // 5 booking requests per minute per IP
-
-  const rateData = bookingRateLimitMap.get(clientIp) || { count: 0, lastRequest: now };
-
-  if (now - rateData.lastRequest > windowMs) {
-    rateData.count = 1;
-    rateData.lastRequest = now;
-  } else {
-    rateData.count = (rateData.count || 0) + 1;
+function sanitizeTimezone(raw: unknown, fallback: string): string {
+  if (typeof raw !== "string") return fallback;
+  const candidate = raw.trim();
+  if (!candidate || candidate.length > 64) return fallback;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: candidate });
+    return candidate;
+  } catch {
+    return fallback;
   }
-
-  bookingRateLimitMap.set(clientIp, { count: rateData.count, lastRequest: now });
-
-  return rateData.count <= maxRequests;
 }
 
 function getDayRange(dateKey: string) {
@@ -76,9 +68,29 @@ export async function GET(request: Request) {
     const settingsMap = await getSettings();
     const config = getBookingConfig(settingsMap);
     const activeServices = config.services.filter((service) => service.isActive);
-    const date = url.searchParams.get("date") || getDateKey(new Date());
+    const rawDate = url.searchParams.get("date");
+    const date = rawDate ? rawDate.trim() : getDateKey(new Date());
+
+    if (!isValidDateKey(date)) {
+      return NextResponse.json(
+        { error: "Invalid date format. Expected YYYY-MM-DD." },
+        { status: 400 }
+      );
+    }
+
     const serviceId = url.searchParams.get("serviceId") || activeServices[0]?.id;
     const selectedService = activeServices.find((service) => service.id === serviceId);
+
+    // Allow authenticated admin to exclude current appointment when rescheduling
+    let excludeAppointmentId: string | undefined;
+    const requestedExclude = url.searchParams.get("excludeAppointmentId")?.trim();
+    if (requestedExclude) {
+      const admin = await verifyAdmin();
+      if (admin) {
+        excludeAppointmentId = requestedExclude;
+      }
+    }
+
     const appointments = await getAppointmentsForDate(date);
     const availableSlots = selectedService
       ? getAvailableSlots({
@@ -86,6 +98,7 @@ export async function GET(request: Request) {
           availabilityRules: config.availabilityRules,
           blockedDates: config.blockedDates,
           date,
+          excludeAppointmentId,
           service: selectedService,
           settings: config.settings,
         })
@@ -109,23 +122,35 @@ export async function GET(request: Request) {
 
 export async function POST(req: Request) {
   try {
-    if (!checkRateLimit(req)) {
+    const clientIp = getClientIp(req);
+    const ipRate = checkRateLimit("public-booking-ip", clientIp, {
+      limit: 5,
+      windowMs: 60 * 1000,
+    });
+    if (!ipRate.allowed) {
       return NextResponse.json(
         { error: "Too many booking requests. Please wait a moment before trying again." },
-        { status: 429 }
+        { status: 429, headers: { "Retry-After": String(ipRate.retryAfterSeconds) } }
       );
     }
 
     const body = (await req.json()) as BookingRequestPayload;
-    const cleanName = (body.name || "").trim();
-    const cleanEmail = (body.email || "").trim().toLowerCase();
-    const cleanPhone = (body.phone || "").trim();
-    const cleanDate = (body.date || "").trim();
-    const cleanTime = (body.time || "").trim();
-    const cleanMessage = (body.message || "").trim();
+    const cleanName = String(body.name || "").trim().slice(0, 120);
+    const cleanEmail = String(body.email || "").trim().toLowerCase().slice(0, 180);
+    const cleanPhone = String(body.phone || "").trim().slice(0, 30);
+    const cleanDate = String(body.date || "").trim();
+    const cleanTime = String(body.time || "").trim();
+    const cleanMessage = String(body.message || "").trim().slice(0, 2000);
 
     if (!cleanName || !cleanEmail || !cleanPhone || !cleanDate || !cleanTime) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    }
+
+    if (!isValidDateKey(cleanDate)) {
+      return NextResponse.json(
+        { error: "Invalid booking date format. Expected YYYY-MM-DD." },
+        { status: 400 }
+      );
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
@@ -134,7 +159,21 @@ export async function POST(req: Request) {
 
     const phoneDigits = cleanPhone.replace(/\D/g, "");
     if (phoneDigits.length < 10) {
-      return NextResponse.json({ error: "Please provide a valid phone number (min 10 digits)." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Please provide a valid phone number (min 10 digits)." },
+        { status: 400 }
+      );
+    }
+
+    const emailRate = checkRateLimit("public-booking-email", cleanEmail, {
+      limit: 3,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (!emailRate.allowed) {
+      return NextResponse.json(
+        { error: "Too many booking attempts for this email. Please wait before scheduling again." },
+        { status: 429, headers: { "Retry-After": String(emailRate.retryAfterSeconds) } }
+      );
     }
 
     const settingsMap = await getSettings();
@@ -153,63 +192,82 @@ export async function POST(req: Request) {
 
     const status = config.settings.autoConfirmNewBookings ? "CONFIRMED" : "PENDING";
     const { dayEnd, dayStart } = getDayRange(cleanDate);
+    const lockName = `tf24_booking_${cleanDate}`;
 
-    // Concurrency-safe atomic reservation inside Prisma transaction
-    const appointment = await prisma.$transaction(async (tx) => {
-      const activeAppointments = await tx.appointment.findMany({
-        where: {
-          date: {
-            gte: dayStart,
-            lt: dayEnd,
-          },
-        },
-        orderBy: [{ date: "asc" }, { createdAt: "asc" }],
-      });
+    // Serialize concurrent booking reservations for the same date via MySQL session advisory lock
+    // inside a single Prisma transaction connection so two requests cannot double-book the same slot
+    const appointment = await prisma.$transaction(
+      async (tx) => {
+        const lockRows = await tx.$queryRaw<Array<{ acquired: number | bigint | null }>>`
+          SELECT GET_LOCK(${lockName}, 5) AS acquired
+        `;
+        const acquired = Number(lockRows?.[0]?.acquired ?? 0);
+        if (acquired !== 1) {
+          throw new Error("LOCK_TIMEOUT");
+        }
 
-      const availableSlots = getAvailableSlots({
-        appointments: activeAppointments,
-        availabilityRules: config.availabilityRules,
-        blockedDates: config.blockedDates,
-        date: cleanDate,
-        service,
-        settings: config.settings,
-      });
+        try {
+          const activeAppointments = await tx.appointment.findMany({
+            where: {
+              date: {
+                gte: dayStart,
+                lt: dayEnd,
+              },
+            },
+            orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+          });
 
-      const slot =
-        availableSlots.find((item) => item.startTime === cleanTime) ||
-        availableSlots.find((item) => item.label === cleanTime);
+          const availableSlots = getAvailableSlots({
+            appointments: activeAppointments,
+            availabilityRules: config.availabilityRules,
+            blockedDates: config.blockedDates,
+            date: cleanDate,
+            service,
+            settings: config.settings,
+          });
 
-      if (!slot) {
-        throw new Error("SLOT_UNAVAILABLE");
-      }
+          const slot =
+            availableSlots.find((item) => item.startTime === cleanTime) ||
+            availableSlots.find((item) => item.label === cleanTime);
 
-      return tx.appointment.create({
-        data: {
-          adminNotes: null,
-          bookingReference: createBookingReference(),
-          customerTimezone: body.customerTimezone || config.settings.timezone,
-          date: new Date(slot.startAt),
-          durationMinutes: service.durationMinutes,
-          email: cleanEmail,
-          endAt: new Date(slot.endAt),
-          locationLabel: service.locationLabel,
-          locationType: service.meetingType,
-          message: cleanMessage || null,
-          name: cleanName,
-          phone: cleanPhone,
-          service: service.name,
-          serviceId: service.id,
-          slotLabel: slot.label,
-          source: "WEBSITE",
-          startAt: new Date(slot.startAt),
-          status,
-          time: slot.startTime,
-        },
-      });
-    });
+          if (!slot) {
+            throw new Error("SLOT_UNAVAILABLE");
+          }
+
+          return await tx.appointment.create({
+            data: {
+              adminNotes: null,
+              bookingReference: createBookingReference(),
+              customerTimezone: sanitizeTimezone(body.customerTimezone, config.settings.timezone),
+              date: new Date(slot.startAt),
+              durationMinutes: service.durationMinutes,
+              email: cleanEmail,
+              endAt: new Date(slot.endAt),
+              locationLabel: service.locationLabel,
+              locationType: service.meetingType,
+              message: cleanMessage || null,
+              name: cleanName,
+              phone: cleanPhone,
+              service: service.name,
+              serviceId: service.id,
+              slotLabel: slot.label,
+              source: "WEBSITE",
+              startAt: new Date(slot.startAt),
+              status,
+              time: slot.startTime,
+            },
+          });
+        } finally {
+          await tx.$queryRaw`SELECT RELEASE_LOCK(${lockName})`.catch(() => {});
+        }
+      },
+      { timeout: 10000 }
+    );
 
     // Send customer notification outside transaction (never blocks booking response)
-    const notification = config.settings.autoConfirmNewBookings ? "CONFIRMATION" : "BOOKING_RECEIVED";
+    const notification = config.settings.autoConfirmNewBookings
+      ? "CONFIRMATION"
+      : "BOOKING_RECEIVED";
     const dispatchCustomerNotification = async () => {
       try {
         const sendResult = await sendAppointmentNotification({
@@ -247,17 +305,31 @@ export async function POST(req: Request) {
       appointment.id
     );
 
-    // Automatically synchronize booked appointment clients into Campaign Audience
     ingestContact({
       email: cleanEmail,
       name: cleanName,
       phone: cleanPhone,
       source: "APPOINTMENT",
       tags: [service.name || "CA Consultation Booking"],
-      updateIfExists: true,
+      updateIfExists: false,
     }).catch((e) => console.warn("[Audience] Failed to auto-ingest appointment client:", e));
 
-    return NextResponse.json(appointment, { status: 201 });
+    return NextResponse.json(
+      {
+        id: appointment.id,
+        bookingReference: appointment.bookingReference,
+        status: appointment.status,
+        service: appointment.service,
+        date: appointment.date,
+        time: appointment.time,
+        slotLabel: appointment.slotLabel,
+        durationMinutes: appointment.durationMinutes,
+        locationLabel: appointment.locationLabel,
+        locationType: appointment.locationType,
+        customerTimezone: appointment.customerTimezone,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof Error && error.message === "SLOT_UNAVAILABLE") {
       return NextResponse.json(
@@ -266,9 +338,16 @@ export async function POST(req: Request) {
       );
     }
 
+    if (error instanceof Error && error.message === "LOCK_TIMEOUT") {
+      return NextResponse.json(
+        { error: "The booking slot is currently busy. Please try again in a second." },
+        { status: 503 }
+      );
+    }
+
     console.error("Appointment Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to schedule appointment" },
+      { error: "Failed to schedule appointment" },
       { status: 500 }
     );
   }

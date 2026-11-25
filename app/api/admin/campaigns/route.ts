@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import {
   buildWebhookUrls,
   EMAIL_SETTING_KEYS,
   getProviderStatuses,
-  normalizeEmailProvider,
+  normalizeCampaignProvider,
   resolveEmailProviderConfig,
   settingsToMap,
 } from "@/lib/email-campaigns";
@@ -14,6 +14,7 @@ import {
 type CampaignPayload = {
   id?: string;
   audience?: string;
+  channel?: "EMAIL" | "WHATSAPP";
   content?: string;
   fromEmail?: string;
   fromName?: string;
@@ -83,11 +84,20 @@ function buildSummary(
 }
 
 export async function GET(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR", "VIEWER"]);
+  if (!auth.ok) return auth.response;
 
   try {
-    const [campaigns, templates, subscribers, settings] = await Promise.all([
+    const canReadAudiencePii = auth.user.role === "ADMIN" || auth.user.role === "EDITOR";
+
+    const [
+      campaigns,
+      templates,
+      subscribers,
+      subscriberCount,
+      activeSubscriberCount,
+      settings,
+    ] = await Promise.all([
       prisma.campaign.findMany({
         include: {
           template: {
@@ -99,13 +109,31 @@ export async function GET(request: Request) {
           },
         },
         orderBy: [{ sentAt: "desc" }, { createdAt: "desc" }],
+        take: 200,
       }),
       prisma.campaignTemplate.findMany({
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+        take: 100,
       }),
-      prisma.subscriber.findMany({
-        orderBy: { createdAt: "desc" },
-      }),
+      canReadAudiencePii
+        ? prisma.subscriber.findMany({
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              phone: true,
+              company: true,
+              source: true,
+              tags: true,
+              isActive: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: "desc" },
+            take: 2000,
+          })
+        : Promise.resolve([]),
+      prisma.subscriber.count(),
+      prisma.subscriber.count({ where: { isActive: true } }),
       prisma.setting.findMany({
         where: {
           key: { in: [...EMAIL_SETTING_KEYS] },
@@ -120,9 +148,6 @@ export async function GET(request: Request) {
     const settingsMap = settingsToMap(settings);
     const providerConfig = resolveEmailProviderConfig(settingsMap);
     const providerStatuses = getProviderStatuses(providerConfig);
-    const activeSubscriberCount = subscribers.filter(
-      (subscriber: { isActive: boolean }) => subscriber.isActive
-    ).length;
 
     return NextResponse.json({
       campaigns,
@@ -140,7 +165,7 @@ export async function GET(request: Request) {
       subscribers,
       summary: buildSummary(
         campaigns,
-        subscribers.length,
+        subscriberCount,
         activeSubscriberCount,
         templates.length
       ),
@@ -156,8 +181,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const payload = (await request.json()) as CampaignPayload;
@@ -176,6 +201,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const effectiveProvider =
+      payload.channel === "WHATSAPP"
+        ? "WHATSAPP"
+        : normalizeCampaignProvider(payload.provider);
+
     const data = {
       audience: payload.audience || "ALL_ACTIVE",
       content: payload.content.trim(),
@@ -183,27 +213,43 @@ export async function POST(request: Request) {
       fromName: payload.fromName?.trim() || null,
       name: payload.name?.trim() || payload.subject.trim(),
       preheader: payload.preheader?.trim() || null,
-      provider: normalizeEmailProvider(payload.provider),
+      provider: effectiveProvider,
       replyTo: payload.replyTo?.trim() || null,
-      status: payload.status || "DRAFT",
+      status: "DRAFT",
       subject: payload.subject.trim(),
       templateId: payload.templateId || null,
     };
 
-    const campaign = payload.id
-      ? await prisma.campaign.update({
+    let campaign;
+    if (payload.id) {
+      const existing = await prisma.campaign.findUnique({
+        where: { id: payload.id },
+        select: { id: true, status: true },
+      });
+
+      if (!existing) {
+        return NextResponse.json({ error: "Campaign draft not found." }, { status: 404 });
+      }
+
+      if (existing.status !== "DRAFT") {
+        // Protect sent campaign records & analytics by creating a new draft copy instead
+        campaign = await prisma.campaign.create({ data });
+      } else {
+        campaign = await prisma.campaign.update({
           where: { id: payload.id },
           data,
-        })
-      : await prisma.campaign.create({
-          data,
         });
+      }
+    } else {
+      campaign = await prisma.campaign.create({ data });
+    }
 
     await logActivity(
       payload.id ? "UPDATED" : "CREATED",
       "Campaign",
       `${payload.id ? "Updated" : "Created"} campaign draft: ${campaign.subject}`,
-      campaign.id
+      campaign.id,
+      auth.user.userId
     );
 
     return NextResponse.json({ campaign });

@@ -1,27 +1,44 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/auth";
-import { getBookingConfig, getDueReminderOffsets, parseSentReminderOffsets } from "@/lib/booking";
-import { sendAppointmentNotification, type AppointmentNotificationType } from "@/lib/booking-notifications";
+import { requireRole } from "@/lib/auth";
+import {
+  getBookingConfig,
+  getDueReminderOffsets,
+  isSafeHttpUrl,
+  parseSentReminderOffsets,
+} from "@/lib/booking";
+import {
+  sendAppointmentNotification,
+  type AppointmentNotificationType,
+} from "@/lib/booking-notifications";
 import { getSettings } from "@/lib/settings";
+
+const ALLOWED_NOTIFICATION_TYPES = new Set([
+  "CONFIRMATION",
+  "MEETING_LINK",
+  "REMINDER",
+  "RESCHEDULED",
+  "CANCELLED",
+]);
 
 type ReminderRequestPayload = {
   appointmentId?: string;
+  meetingLink?: string;
   reminderOffsetMinutes?: number;
   type?: "CONFIRMATION" | "MEETING_LINK" | "REMINDER" | "RESCHEDULED" | "CANCELLED";
 };
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const body = (await request.json()) as ReminderRequestPayload;
 
-    if (!body.appointmentId || !body.type) {
+    if (!body.appointmentId || !body.type || !ALLOWED_NOTIFICATION_TYPES.has(body.type)) {
       return NextResponse.json(
-        { error: "Appointment ID and reminder type are required." },
+        { error: "Valid appointment ID and notification type are required." },
         { status: 400 }
       );
     }
@@ -34,9 +51,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Appointment not found." }, { status: 404 });
     }
 
-    if (body.type === "MEETING_LINK" && !appointment.meetingLink) {
+    if (!appointment.email || appointment.email.includes("walkin@")) {
       return NextResponse.json(
-        { error: "Add a meeting link before sending it to the client." },
+        { error: "Cannot dispatch email notification: appointment has no valid client email." },
+        { status: 400 }
+      );
+    }
+
+    // If caller passes an updated meetingLink along with MEETING_LINK action, validate and persist it
+    let effectiveLink = appointment.meetingLink;
+    if (body.meetingLink !== undefined && body.meetingLink.trim()) {
+      if (!isSafeHttpUrl(body.meetingLink)) {
+        return NextResponse.json(
+          { error: "Meeting link must start with http:// or https://." },
+          { status: 400 }
+        );
+      }
+      effectiveLink = body.meetingLink.trim();
+    }
+
+    if (body.type === "MEETING_LINK" && !effectiveLink) {
+      return NextResponse.json(
+        { error: "Add a valid https:// meeting link before sending it to the client." },
         { status: 400 }
       );
     }
@@ -60,7 +96,7 @@ export async function POST(request: Request) {
       (dueOffsets.length > 0 ? dueOffsets[dueOffsets.length - 1] : null);
 
     const sendResult = await sendAppointmentNotification({
-      appointment,
+      appointment: { ...appointment, meetingLink: effectiveLink },
       reminderOffsetMinutes,
       service,
       settings: config.settings,
@@ -79,12 +115,15 @@ export async function POST(request: Request) {
     const updated = await prisma.appointment.update({
       where: { id: appointment.id },
       data: {
+        meetingLink: effectiveLink,
         confirmationSentAt:
           body.type === "CONFIRMATION" ? new Date() : appointment.confirmationSentAt,
         meetingLinkSentAt:
           body.type === "MEETING_LINK" ? new Date() : appointment.meetingLinkSentAt,
         reminderCount:
-          body.type === "REMINDER" ? (appointment.reminderCount || 0) + 1 : appointment.reminderCount,
+          body.type === "REMINDER"
+            ? (appointment.reminderCount || 0) + 1
+            : appointment.reminderCount,
         reminderSentAt:
           body.type === "REMINDER" ? new Date() : appointment.reminderSentAt,
         sentReminderOffsets:
@@ -102,7 +141,8 @@ export async function POST(request: Request) {
       "SENT",
       "Appointment",
       `Sent ${body.type.toLowerCase()} email for ${updated.bookingReference || updated.id} via ${sendResult.provider}`,
-      updated.id
+      updated.id,
+      auth.user.userId
     );
 
     return NextResponse.json({ appointment: updated, provider: sendResult.provider });
@@ -110,10 +150,7 @@ export async function POST(request: Request) {
     console.error("Failed to send appointment email", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to send appointment email",
+        error: "Failed to send appointment email. Verify email provider configuration and try again.",
       },
       { status: 500 }
     );

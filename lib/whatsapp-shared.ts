@@ -28,33 +28,53 @@ export interface WhatsAppSendResult {
 
 /**
  * Normalizes phone numbers to standard E.164 digits without "+" for Meta WhatsApp API.
- * Handles standard 10-digit Indian numbers, numbers with leading 0, and international numbers.
+ * - Preserves explicit international numbers starting with "+" or "00" (10-15 digits).
+ * - Prepends India country code "91" for local 10-digit Indian mobiles (6-9xxx) or 0-prefixed 11-digit mobiles.
+ * - Rejects invalid/too-short/too-long inputs by returning "".
  */
 export function normalizePhoneNumber(rawPhone: string): string {
   if (!rawPhone) return "";
-  const digits = rawPhone.replace(/\D/g, "");
+  const trimmed = rawPhone.trim();
+  const hasExplicitPlus = trimmed.startsWith("+");
+  let digits = trimmed.replace(/\D/g, "");
 
-  // If 10 digits starting with 6-9, standard Indian mobile -> prepend 91
+  if (!digits) return "";
+
+  // Strip international "00" dialing prefix
+  if (!hasExplicitPlus && digits.startsWith("00") && digits.length >= 12) {
+    digits = digits.slice(2);
+    return digits.length >= 10 && digits.length <= 15 ? digits : "";
+  }
+
+  // Respect explicit international prefix (e.g., +1..., +44..., +91..., +971...)
+  if (hasExplicitPlus) {
+    return digits.length >= 10 && digits.length <= 15 ? digits : "";
+  }
+
+  // Standard 10-digit Indian mobile starting with 6-9 -> prepend 91
   if (digits.length === 10 && /^[6-9]/.test(digits)) {
     return `91${digits}`;
   }
 
-  // If 11 digits starting with 0 followed by 6-9 -> replace 0 with 91
+  // 11-digit Indian mobile starting with 0 followed by 6-9 -> replace 0 with 91
   if (digits.length === 11 && digits.startsWith("0") && /^[6-9]/.test(digits.slice(1))) {
     return `91${digits.slice(1)}`;
   }
 
-  // If 12 digits starting with 91 -> return as-is
-  if (digits.length === 12 && digits.startsWith("91")) {
+  // Already includes country code (11-15 digits, e.g., 9198..., 1415..., 447...)
+  if (digits.length >= 11 && digits.length <= 15 && !digits.startsWith("0")) {
     return digits;
   }
 
-  // If 10 digits starting with US area code (e.g. 555-141-5730) -> prepend 1
-  if (digits.length === 10) {
-    return `1${digits}`;
-  }
+  return "";
+}
 
-  return digits;
+/**
+ * Extracts normalized last 10 digits for flexible phone lookup across formatted DB fields.
+ */
+export function getPhoneSuffix10(rawPhone: string): string {
+  const digits = (rawPhone || "").replace(/\D/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : "";
 }
 
 /**
@@ -84,4 +104,3 @@ export function buildWhatsAppWebUrl(phone: string, text?: string): string {
   const baseUrl = `https://wa.me/${normalized}`;
   return text ? `${baseUrl}?text=${encodeURIComponent(text)}` : baseUrl;
 }
-

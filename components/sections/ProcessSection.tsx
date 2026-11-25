@@ -6,6 +6,7 @@ import { slideInLeft, slideInRight } from "@/lib/animations";
 import { Shield, Award, Zap, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { sanitizeHref } from "@/lib/url-safety";
 
 interface ProcessProps {
   settings?: Record<string, string>;
@@ -90,7 +91,7 @@ export default function ProcessSection({ settings = {}, content }: ProcessProps)
                       {step.description}
                     </p>
                     <Link 
-                      href={step.ctaHref || "/about"}
+                      href={sanitizeHref(step.ctaHref, "/about")}
                       className="mt-6 flex items-center gap-2 text-[var(--primary)] font-bold text-sm underline-offset-4 hover:underline cursor-pointer group transition-all"
                     >
                       {step.ctaLabel || "Explore Framework"}
@@ -118,6 +119,7 @@ export default function ProcessSection({ settings = {}, content }: ProcessProps)
                               src={step.image || "/images/process_discovery.png"}
                               alt={step.title}
                               fill
+                              sizes="(max-width: 1024px) 100vw, 384px"
                               className="object-contain p-6 mix-blend-multiply brightness-[1.03] contrast-[1.05] transition-transform duration-700 group-hover:scale-110"
                             />
                          </div>

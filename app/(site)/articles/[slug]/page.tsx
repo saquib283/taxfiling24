@@ -8,7 +8,7 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 import JsonLd, { articleSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
 import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
 import { getSettings } from "@/lib/settings";
-import { absoluteUrl, buildMetadata } from "@/lib/seo";
+import { absoluteUrl, buildMetadata, buildNoIndexMetadata, resolveSeoImage } from "@/lib/seo";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface PageProps {
@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: PageProps) {
     const article = await prisma.article.findUnique({
       where: { slug },
       select: {
+        published: true,
         metaTitle: true,
         title: true,
         metaDescription: true,
@@ -37,7 +38,9 @@ export async function generateMetadata({ params }: PageProps) {
       },
     });
 
-    if (!article) return { title: "Article Not Found" };
+    if (!article || !article.published) {
+      return buildNoIndexMetadata("Article Not Found", settings);
+    }
 
     const description =
       article.metaDescription || article.excerpt || "Read our latest article insights.";
@@ -57,7 +60,7 @@ export async function generateMetadata({ params }: PageProps) {
     });
   } catch (error) {
     console.error("SEO Metadata Error (Articles):", error);
-    return { title: "Article | TaxFiling24" };
+    return buildNoIndexMetadata("Article");
   }
 }
 
@@ -118,7 +121,23 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  // Increment article views asynchronously without blocking SSR
+  prisma.article
+    .update({
+      where: { id: article.id },
+      data: { views: { increment: 1 } },
+    })
+    .catch(() => {});
+
   const articleTags = (article.tags as string[]) || [];
+  const publishedDate = article.publishedAt || article.createdAt;
+  const publishedIso = publishedDate.toISOString();
+  const modifiedIso = (article.updatedAt || article.createdAt).toISOString();
+  const schemaImage = resolveSeoImage(article.thumbnailUrl, settings, {
+    title: article.title,
+    description: article.metaDescription || article.excerpt || undefined,
+    category: "Article",
+  });
 
   return (
     <article className="min-h-screen bg-[var(--bg)] py-16 lg:py-24">
@@ -133,9 +152,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             title: article.title,
             description: article.metaDescription || article.excerpt || "",
             url: absoluteUrl(`/articles/${slug}`),
-            image: article.thumbnailUrl || undefined,
-            datePublished: article.createdAt.toISOString(),
-            dateModified: (article.updatedAt || article.createdAt).toISOString(),
+            image: schemaImage,
+            datePublished: publishedIso,
+            dateModified: modifiedIso,
             author: article.author,
             tags: articleTags,
           }),
@@ -143,7 +162,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         {/* ─── Back Link ─── */}
-        <AnimatedSection className="mb-6">
+        <div className="mb-6">
           <Link
             href="/articles"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)] hover:underline"
@@ -151,10 +170,10 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             <ArrowLeft className="h-4 w-4" />
             {String(template.backLabel || "Back to Articles")}
           </Link>
-        </AnimatedSection>
+        </div>
 
         {/* ─── Article Header & Meta ─── */}
-        <AnimatedSection className="mb-10 max-w-5xl">
+        <header className="mb-10 max-w-5xl">
           {article.category && (
             <span className="inline-block px-3 py-1 rounded-full bg-[var(--primary-soft)] bg-blue-50 text-[var(--primary)] text-xs font-bold mb-4 tracking-wide">
               {article.category.replace(/_/g, " ")}
@@ -167,11 +186,17 @@ export default async function ArticleDetailPage({ params }: PageProps) {
           <div className="flex flex-wrap items-center gap-6 text-sm text-[var(--fg-muted)] border-b border-[var(--border)] pb-8">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <span>{article.author}</span>
+              <span>{article.author?.toLowerCase() === "admin" ? "TaxFiling24 Editorial Team" : article.author}</span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              <span>{new Date(article.createdAt).toLocaleDateString()}</span>
+              <time dateTime={publishedIso}>
+                {new Date(publishedDate).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </time>
             </div>
             {article.readTime && (
               <div className="flex items-center gap-2">
@@ -182,14 +207,14 @@ export default async function ArticleDetailPage({ params }: PageProps) {
               </div>
             )}
           </div>
-        </AnimatedSection>
+        </header>
 
         {/* ─── Main Content & Sidebar Grid ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* Main Reading Column */}
           <div className="lg:col-span-8">
             {article.thumbnailUrl && (
-              <AnimatedSection className="mb-10">
+              <div className="mb-10">
                 {/* Thumbnail sources can be arbitrary CMS URLs, so keep a standard img here until remote patterns are curated. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -197,23 +222,24 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   alt={article.title}
                   decoding="async"
                   loading="eager"
+                  fetchPriority="high"
                   className="rounded-2xl w-full aspect-video object-cover shadow-[var(--shadow-md)] border border-slate-100"
                 />
-              </AnimatedSection>
+              </div>
             )}
 
-            <AnimatedSection className="max-w-none text-[var(--fg-soft)]">
+            <div className="max-w-none text-[var(--fg-soft)]">
               <div className="tiptap prose prose-slate max-w-none leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} />
-            </AnimatedSection>
+            </div>
 
             {articleTags.length > 0 && (
-              <AnimatedSection className="mt-12 pt-6 border-t border-[var(--border)] flex flex-wrap gap-2">
+              <div className="mt-12 pt-6 border-t border-[var(--border)] flex flex-wrap gap-2">
                 {articleTags.map((tag: string) => (
                   <span key={tag} className="px-3 py-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-md text-xs font-medium text-[var(--fg-muted)]">
                     #{tag}
                   </span>
                 ))}
-              </AnimatedSection>
+              </div>
             )}
           </div>
 
@@ -225,9 +251,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <CalendarClock className="h-3.5 w-3.5" />
                 Chartered Advisory Desk
               </span>
-              <h4 className="text-base font-extrabold text-slate-900 tracking-tight mb-2">
+              <h2 className="text-base font-extrabold text-slate-900 tracking-tight mb-2">
                 Need Expert Statutory Assistance?
-              </h4>
+              </h2>
               <p className="text-xs text-slate-600 leading-relaxed mb-5">
                 Connect directly with certified Chartered Accountants and Company Secretaries at TaxFiling24 for specialized guidance on your returns, filings, or incorporation.
               </p>
@@ -246,7 +272,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                   <Calculator className="h-4 w-4" />
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">Tax & Financial Tools</h4>
+                <h2 className="text-sm font-bold text-slate-900">Tax & Financial Tools</h2>
               </div>
               <p className="text-xs text-slate-500 mb-4 leading-relaxed">
                 Calculate your tax liabilities under Old vs New Tax Regime with our free statutory calculator.
@@ -266,7 +292,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                   <BookOpen className="h-4 w-4" />
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">Key Statutory Services</h4>
+                <h2 className="text-sm font-bold text-slate-900">Key Statutory Services</h2>
               </div>
               <ul className="space-y-2.5 text-xs">
                 <li>
@@ -306,9 +332,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <CalendarClock className="h-3.5 w-3.5" />
                 Chartered Accountancy Advisory
               </span>
-              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
                 Need Guidance on Statutory Filings or Compliance?
-              </h3>
+              </h2>
               <p className="text-sm text-slate-600 leading-relaxed">
                 Connect directly with certified Chartered Accountants and Company Secretaries at TaxFiling24 to review your returns, capital gains, or business structure.
               </p>
@@ -337,9 +363,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
           <AnimatedSection className="mt-16 pt-12 border-t border-[var(--border)]">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
                   Recommended Articles & Guides
-                </h3>
+                </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   Explore related regulatory updates, tax planning tips, and compliance procedures.
                 </p>
@@ -366,9 +392,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                         {rel.category.replace(/_/g, " ")}
                       </span>
                     )}
-                    <h4 className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition line-clamp-2 leading-snug">
+                    <h3 className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition line-clamp-2 leading-snug">
                       {rel.title}
-                    </h4>
+                    </h3>
                     {rel.excerpt && (
                       <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
                         {rel.excerpt}

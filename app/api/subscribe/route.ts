@@ -1,31 +1,31 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
-const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
-const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
 export async function POST(request: Request) {
   try {
-    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
-    const now = Date.now();
-    const rateData = rateLimitMap.get(clientIp) || { count: 0, lastRequest: now };
-
-    if (now - rateData.lastRequest > 60_000) {
-      rateData.count = 1;
-      rateData.lastRequest = now;
-    } else {
-      rateData.count += 1;
-    }
-    rateLimitMap.set(clientIp, rateData);
-
-    if (rateData.count > 10) {
+    const clientIp = getClientIp(request);
+    const rate = checkRateLimit("public-subscribe", clientIp, {
+      limit: 10,
+      windowMs: 60 * 1000,
+    });
+    if (!rate.allowed) {
       return NextResponse.json(
         { error: "Too many subscription attempts. Please try again in a minute." },
-        { status: 429 }
+        { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
       );
     }
 
-    const { email: rawEmail, name: rawName } = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
+    }
+
+    const rawEmail = (body as Record<string, unknown>).email;
+    const rawName = (body as Record<string, unknown>).name;
     const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
     const name = typeof rawName === "string" ? rawName.trim().slice(0, 100) : null;
 
@@ -37,34 +37,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please provide a valid email address" }, { status: 400 });
     }
 
-    // Check if already subscribed
     const existing = await prisma.subscriber.findUnique({
       where: { email },
+      select: { id: true },
     });
 
-    if (existing) {
-      if (!existing.isActive) {
-        // Re-activate
-        await prisma.subscriber.update({
-          where: { email },
-          data: { isActive: true, name: name || existing.name },
-        });
-        return NextResponse.json({ success: true, message: "Subscription reactivated successfully!" });
-      }
-      return NextResponse.json({ success: true, message: "You are already subscribed to our newsletter." });
+    // Never enumerate existing emails or bypass opt-out/bounce suppression (isActive: false)
+    if (!existing) {
+      await prisma.subscriber.create({
+        data: {
+          email,
+          name: name || null,
+          isActive: true,
+        },
+      });
     }
 
-    await prisma.subscriber.create({
-      data: {
-        email,
-        name: name || null,
-        isActive: true,
-      },
+    return NextResponse.json({
+      success: true,
+      message: "Thank you! Your subscription request has been recorded.",
     });
-
-    return NextResponse.json({ success: true, message: "Subscribed successfully!" });
   } catch (err) {
     console.error("Subscription error:", err);
-    return NextResponse.json({ error: "Failed to subscribe. Please try again later." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to subscribe. Please try again later." },
+      { status: 500 }
+    );
   }
 }

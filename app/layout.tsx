@@ -1,18 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import HtmlInjection from "@/components/seo/HtmlInjection";
-import JsonLd, {
-  localBusinessSchema,
-  organizationSchema,
-  webSiteSchema,
-} from "@/components/seo/JsonLd";
 import { getSettings } from "@/lib/settings";
 import {
   SITE_URL,
   buildPageMetadataFromSettings,
   getDefaultDescription,
   getSiteName,
+  normalizeGoogleVerification,
 } from "@/lib/seo";
 
 export const viewport: Viewport = {
@@ -34,16 +29,15 @@ async function getSiteSettings() {
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   const siteName = getSiteName(settings);
-  const title =
-    settings.seo_home_title || `${siteName} | Complete Business, Tax & Compliance Solutions`;
-  const description = settings.seo_home_description || getDefaultDescription(settings);
-  const ogImage = settings.seo_home_og_image || settings.seo_default_og_image || "/logo.png";
   const homeMetadata = buildPageMetadataFromSettings(settings, "home", {
     description:
       "Your trusted partner for business registration, taxation, compliance, and financial advisory services across India.",
     path: "/",
     title: `${siteName} | Complete Business, Tax & Compliance Solutions`,
   });
+
+  const googleVerification = normalizeGoogleVerification(settings.seo_google_verification);
+  const bingVerification = settings.seo_other_verification?.trim() || undefined;
 
   return {
     ...homeMetadata,
@@ -59,33 +53,11 @@ export async function generateMetadata(): Promise<Metadata> {
     description: settings.seo_home_description || getDefaultDescription(settings),
     manifest: "/manifest.webmanifest",
     referrer: "origin-when-cross-origin",
-    openGraph: {
-      type: "website",
-      locale: "en_IN",
-      siteName,
-      title,
-      description,
-      url: SITE_URL,
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: "TaxFiling24 — Complete Business, Tax & Compliance Solutions",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
     verification: {
-      google: settings.seo_google_verification || undefined,
-      other: settings.seo_other_verification
+      google: googleVerification,
+      other: bingVerification
         ? {
-            custom: settings.seo_other_verification,
+            "msvalidate.01": bingVerification,
           }
         : undefined,
     },
@@ -100,13 +72,24 @@ export default async function RootLayout({
 }>) {
   const theme = await getSiteSettings();
 
-  const primary = theme.theme_primary || "#0A2540";
-  const accent = theme.theme_accent || "#D4AF37";
-  const radius = theme.theme_radius ? `${theme.theme_radius}rem` : "0.75rem";
-  const fontFamily = theme.theme_font || "Outfit";
-  const fontSize = theme.theme_font_size ? `${theme.theme_font_size}px` : "15px";
+  const primary = /^#[0-9a-fA-F]{3,8}$/.test((theme.theme_primary || "").trim())
+    ? theme.theme_primary.trim()
+    : "#0A2540";
+  const accent = /^#[0-9a-fA-F]{3,8}$/.test((theme.theme_accent || "").trim())
+    ? theme.theme_accent.trim()
+    : "#D4AF37";
+  const parsedRadius = Number(theme.theme_radius);
+  const radius =
+    Number.isFinite(parsedRadius) && parsedRadius >= 0 && parsedRadius <= 3
+      ? `${parsedRadius}rem`
+      : "0.75rem";
+  const fontFamily = (theme.theme_font || "Outfit").replace(/[^A-Za-z0-9 -]/g, "").trim() || "Outfit";
+  const parsedFontSize = Number(theme.theme_font_size);
+  const fontSize =
+    Number.isFinite(parsedFontSize) && parsedFontSize >= 12 && parsedFontSize <= 22
+      ? `${parsedFontSize}px`
+      : "15px";
   const shadowStyle = theme.theme_shadow || "subtle";
-  const siteName = getSiteName(theme);
 
   // Map shadow style to actual CSS values
   const shadowMap: Record<string, { sm: string; md: string; lg: string }> = {
@@ -135,12 +118,6 @@ export default async function RootLayout({
   const shadows = shadowMap[shadowStyle] || shadowMap.subtle;
   const googleFontUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
 
-  // Code injection from admin
-  const injectHead = theme.inject_head || "";
-  const injectBody = theme.inject_body || "";
-  const injectCss = theme.inject_css || "";
-  const gaId = theme.ga_id || "";
-
   return (
     <html lang="en-IN" className={outfit.variable}>
       <head>
@@ -168,26 +145,9 @@ export default async function RootLayout({
             font-family: var(--font-body);
             font-size: var(--font-size-base);
           }
-          ${injectCss}
         `}</style>
-        {gaId && (
-          <>
-            <link rel="preconnect" href="https://www.googletagmanager.com" />
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
-            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');` }} />
-          </>
-        )}
-        <HtmlInjection html={injectHead} />
       </head>
       <body className={`${outfit.variable} ${outfit.className} antialiased selection:bg-[var(--accent)] selection:text-white`}>
-        {/* Site-wide Structured Data */}
-        <JsonLd
-          data={[
-            organizationSchema(theme),
-            webSiteSchema(siteName),
-            localBusinessSchema(theme),
-          ]}
-        />
         {/* Ambient Background Glows */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="absolute top-[10%] left-[5%] h-80 w-80 rounded-full bg-blue-400 opacity-[0.07] blur-[100px]" />
@@ -203,7 +163,6 @@ export default async function RootLayout({
           Skip to main content
         </a>
         {children}
-        <HtmlInjection html={injectBody} />
       </body>
     </html>
   );

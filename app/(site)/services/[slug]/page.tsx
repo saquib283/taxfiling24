@@ -22,13 +22,13 @@ import {
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { fadeUp } from "@/lib/animations";
 import Link from "next/link";
-import JsonLd, { serviceSchema, breadcrumbSchema } from "@/components/seo/JsonLd";
+import JsonLd, { serviceSchema, breadcrumbSchema, faqSchema } from "@/components/seo/JsonLd";
 import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
 import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages";
 import { getSettings } from "@/lib/settings";
 import { getSiteContact } from "@/lib/site-contact";
-import { absoluteUrl, buildMetadata } from "@/lib/seo";
+import { absoluteUrl, buildMetadata, buildNoIndexMetadata } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const data = dbData || SERVICES_DETAIL_DATA[slug];
-  if (!data) return { title: "Service Not Found" };
+  if (!data) return buildNoIndexMetadata("Service Not Found", settings);
 
   return buildMetadata({
     description: data.description,
@@ -197,6 +197,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             description: data.description,
             url: absoluteUrl(`/services/${slug}`),
           }),
+          ...(faqs.length > 0 ? [faqSchema(faqs)] : []),
         ]}
       />
 
@@ -355,9 +356,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-[var(--primary)] mb-4 border border-slate-100">
                         <Zap className="h-4 w-4" />
                       </div>
-                      <h4 className="text-base font-semibold text-slate-900 mb-1.5">
+                      <h3 className="text-base font-semibold text-slate-900 mb-1.5">
                         {sub.title}
-                      </h4>
+                      </h3>
                       <p className="text-xs sm:text-sm text-slate-500 leading-relaxed flex-1">
                         {sub.description}
                       </p>
@@ -384,9 +385,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                         {p.step || `0${idx + 1}`}
                       </div>
                       <div className="flex-1 pt-0.5">
-                        <h4 className="text-base font-semibold text-slate-900 mb-1">
+                        <h3 className="text-base font-semibold text-slate-900 mb-1">
                           {p.title}
-                        </h4>
+                        </h3>
                         <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                           {p.description}
                         </p>
@@ -462,9 +463,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 <span>Certified Advisory</span>
               </div>
 
-              <h3 className="text-lg font-bold text-slate-900 mb-2 leading-snug">
+              <h2 className="text-lg font-bold text-slate-900 mb-2 leading-snug">
                 Need Guidance on {data.title}?
-              </h3>
+              </h2>
 
               <p className="text-xs text-slate-500 leading-relaxed mb-6">
                 Consult with verified Chartered Accountants and Company Secretaries for tailored compliance, filings, and audit representation.
@@ -531,9 +532,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           <div className="container mx-auto px-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                   Complementary Compliance Services
-                </h3>
+                </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   Businesses frequently bundle these statutory services for complete legal and financial coverage.
                 </p>
@@ -560,9 +561,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                         {rel.category}
                       </span>
                     )}
-                    <h4 className="font-semibold text-slate-900 text-base group-hover:text-[var(--primary)] transition-colors leading-snug line-clamp-2">
+                    <h3 className="font-semibold text-slate-900 text-base group-hover:text-[var(--primary)] transition-colors leading-snug line-clamp-2">
                       {rel.title}
-                    </h4>
+                    </h3>
                     <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
                       {rel.description}
                     </p>

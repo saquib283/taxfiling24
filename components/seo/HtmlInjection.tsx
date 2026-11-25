@@ -4,8 +4,9 @@ type HtmlInjectionProps = {
   html?: string | null;
 };
 
+// Explicitly exclude <base> to prevent base-URI hijacking of relative scripts/links
 const SUPPORTED_TAG_PATTERN =
-  /<(script|style|noscript)\b([^>]*)>([\s\S]*?)<\/\1>|<(meta|link|base)\b([^>]*)\/?>/gi;
+  /<(script|style|noscript)\b([^>]*)>([\s\S]*?)<\/\1>|<(meta|link)\b([^>]*)\/?>/gi;
 
 const BOOLEAN_ATTRIBUTES = new Set([
   "async",
@@ -13,6 +14,8 @@ const BOOLEAN_ATTRIBUTES = new Set([
   "disabled",
   "nomodule",
 ]);
+
+const DANGEROUS_URI_PATTERN = /^\s*(?:javascript|vbscript|data\s*:\s*text\/html):/i;
 
 function normalizeAttributeName(name: string) {
   switch (name.toLowerCase()) {
@@ -38,11 +41,28 @@ function parseAttributes(rawAttributes: string) {
 
   while (match) {
     const [, rawName, doubleQuoted, singleQuoted, unquoted] = match;
+    const lowerName = rawName.toLowerCase();
+
+    // Strip inline DOM event handlers and React internal escape hatches
+    if (lowerName.startsWith("on") || lowerName === "dangerouslysetinnerhtml") {
+      match = attributePattern.exec(rawAttributes);
+      continue;
+    }
+
     const normalizedName = normalizeAttributeName(rawName);
     const value = doubleQuoted ?? singleQuoted ?? unquoted;
 
+    if (
+      (lowerName === "href" || lowerName === "src") &&
+      typeof value === "string" &&
+      DANGEROUS_URI_PATTERN.test(value)
+    ) {
+      match = attributePattern.exec(rawAttributes);
+      continue;
+    }
+
     attributes[normalizedName] =
-      value !== undefined ? value : BOOLEAN_ATTRIBUTES.has(rawName.toLowerCase()) ? true : "";
+      value !== undefined ? value : BOOLEAN_ATTRIBUTES.has(lowerName) ? true : "";
 
     match = attributePattern.exec(rawAttributes);
   }
@@ -65,14 +85,15 @@ export default function HtmlInjection({ html }: HtmlInjectionProps) {
     const blockContent = match[3];
     const selfClosingTag = match[4];
     const selfClosingAttributes = match[5];
-    const tag = blockTag || selfClosingTag;
+    const rawTag = blockTag || selfClosingTag;
     const rawAttributes = blockAttributes || selfClosingAttributes || "";
 
-    if (!tag) {
+    if (!rawTag) {
       match = tagPattern.exec(html);
       continue;
     }
 
+    const tag = rawTag.toLowerCase();
     const props = {
       key: `${tag}-${elements.length}`,
       ...parseAttributes(rawAttributes),

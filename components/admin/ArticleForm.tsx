@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Save, ArrowLeft, Eye, Edit3, Upload, Sparkles, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Save, ArrowLeft, Eye, Edit3, Sparkles, X, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import RichTextEditor from "./RichTextEditor";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -103,39 +103,15 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
 
       if (res.ok) {
         router.push("/admin/articles");
+        router.refresh();
       } else {
-        const data = await res.json();
-        setError(data.error || "Failed to save article");
+        const data = await res.json().catch(() => null);
+        setError(data?.error || "Failed to save article");
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong saving the article.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fd = new FormData();
-    fd.append("file", file);
-
-    try {
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: fd,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setFormData(p => ({ ...p, thumbnailUrl: data.url }));
-      } else {
-        const data = await res.json();
-        setToast({ message: data.error || "Failed to upload thumbnail", type: "error" });
-      }
-    } catch (err: any) {
-      setToast({ message: `Upload error: ${err.message}`, type: "error" });
     }
   };
 
@@ -314,7 +290,7 @@ export default function ArticleForm({ article, isEdit = false }: ArticleFormProp
                 label="Article Cover Image"
                 description="Upload an image file (PNG, JPG, WebP) or enter an image URL. Recommended 1200×630px."
                 value={formData.thumbnailUrl}
-                defaultImage={article?.thumbnailUrl || "/images/hero_bg.png"}
+                defaultImage={article?.thumbnailUrl || undefined}
                 aspectRatio="banner"
                 onChange={(url) => setFormData((prev) => ({ ...prev, thumbnailUrl: url }))}
               />

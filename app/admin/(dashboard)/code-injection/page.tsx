@@ -7,19 +7,51 @@ export default function CodeInjectionPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  const INJECTION_KEYS = ["inject_head", "inject_body", "inject_css", "ga_id"] as const;
 
   useEffect(() => {
-    fetch("/api/admin/settings").then(r => r.json()).then(data => { setValues(data); setLoaded(true); });
+    fetch("/api/admin/settings")
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Failed to load code injection settings");
+        return r.json();
+      })
+      .then((data) => {
+        const scoped: Record<string, string> = {};
+        for (const key of INJECTION_KEYS) {
+          if (typeof data?.[key] === "string") scoped[key] = data[key];
+        }
+        setValues(scoped);
+      })
+      .catch(() => setFeedback({ text: "Failed to load code injection settings.", type: "error" }))
+      .finally(() => setLoaded(true));
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
-    await fetch("/api/admin/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings: values }),
-    });
-    setSaving(false);
+    setFeedback(null);
+    try {
+      const payload: Record<string, string> = {};
+      for (const key of INJECTION_KEYS) {
+        payload[key] = values[key] || "";
+      }
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: payload }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setFeedback({ text: "Scripts and analytics settings saved!", type: "success" });
+      } else {
+        setFeedback({ text: data.error || "Failed to save scripts.", type: "error" });
+      }
+    } catch {
+      setFeedback({ text: "Network error while saving scripts.", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!loaded) {
@@ -55,6 +87,19 @@ export default function CodeInjectionPage() {
           {saving ? "Saving..." : "Save All Scripts"}
         </button>
       </div>
+
+      {feedback && (
+        <div
+          className={`p-3.5 rounded-xl text-xs font-bold border shadow-2xs flex items-center gap-2 ${
+            feedback.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-rose-50 text-rose-800 border-rose-200"
+          }`}
+        >
+          <CheckCircle className="h-4 w-4 shrink-0" />
+          <span>{feedback.text}</span>
+        </div>
+      )}
 
       {/* Warning Callout Card */}
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3.5 shadow-2xs">

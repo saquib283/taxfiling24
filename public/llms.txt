@@ -1,19 +1,24 @@
 # TaxFiling24
 
-> TaxFiling24 is a premier Chartered Accountancy, corporate compliance, and taxation advisory platform based in India. We help startups, small businesses, corporations, and individual taxpayers manage statutory tax filings, GST compliance, company registration, and legal accounting.
+> TaxFiling24 is a premier Chartered Accountancy, corporate compliance, and taxation advisory platform based in India. We help startups, small businesses, corporations, and individual taxpayers manage statutory tax filings, GST compliance, company registration, audit, Virtual CFO advisory, and legal accounting.
 
 ## Primary Services
 
-- [Income Tax Return (ITR) Filing](https://taxfiling24.com/services/taxation-gst-compliance-management): E-filing for salaried employees, capital gains, freelance professionals, business ITR-3/4, and corporate tax ITR-6 under Indian Income Tax Act 1961.
-- [GST Registration & Return Filing](https://taxfiling24.com/services/taxation-gst-compliance-management): New GSTIN registration, monthly GSTR-1 & GSTR-3B filings, annual GSTR-9 reconciliation, and input tax credit (ITC) audits.
-- [Company Registration & Incorporation](https://taxfiling24.com/services/business-setup-registration-services): End-to-end incorporation for Private Limited Company, Limited Liability Partnership (LLP), One Person Company (OPC), and Section 8 NGO.
-- [ROC Statutory Compliance](https://taxfiling24.com/services/business-setup-registration-services): Annual Ministry of Corporate Affairs (MCA) filings (AOC-4, MGT-7), Director KYC (DIR-3 KYC), and secretarial audits.
-- [Trademark & IP Protection](https://taxfiling24.com/services/licences-ip-certifications-legal-registrations): Brand trademark search, class classification, TM application filing, and objection responses.
+- [All Services Directory](https://taxfiling24.com/services): Complete catalog of TaxFiling24 business registration, taxation, audit, accounting, and compliance advisory services.
+- [Income Tax Return (ITR) & GST Compliance](https://taxfiling24.com/services/taxation-gst-compliance-management): E-filing for salaried employees, capital gains, freelance professionals, business ITR-3/4, corporate ITR-6, GSTIN registration, monthly GSTR-1 & GSTR-3B filings, GSTR-9 reconciliation, and ITC audits.
+- [Business Setup & Company Registration](https://taxfiling24.com/services/business-setup-registration-services): End-to-end incorporation for Private Limited Company, Limited Liability Partnership (LLP), One Person Company (OPC), and Section 8 NGO.
+- [Corporate, ROC & Secretarial Filings](https://taxfiling24.com/services/corporate-roc-secretarial-filings): Annual Ministry of Corporate Affairs (MCA) filings (AOC-4, MGT-7), Director KYC (DIR-3 KYC), share allotments, and secretarial audits.
+- [Accounting, Financial Management & Reporting](https://taxfiling24.com/services/accounting-financial-management-reporting): Cloud bookkeeping (Zoho Books, Tally Prime, QuickBooks), payroll & PF/ESIC processing, and MIS reporting.
+- [Audit, Forensic, Risk & Corporate Investigation](https://taxfiling24.com/services/audit-forensic-risk-corporate-investigation): Statutory financial audit, Section 44AB tax audit, and internal financial control (IFC) assessments.
+- [Licences, IP, Certifications & Trademark Registration](https://taxfiling24.com/services/licences-ip-certifications-legal-registrations): Trademark filing & protection, MSME / Udyam registration, FSSAI food license, Import-Export Code (IEC), and ISO certifications.
+- [Virtual CFO & Strategic Advisory](https://taxfiling24.com/services/virtual-cfo-advisory-services): Startup financial modeling, fundraising support, 13-week cashflow forecasting, and board reporting.
+- [E-Commerce Reconciliation & Banking Documentation](https://taxfiling24.com/services/special-services-e-commerce-banking-documentation): Amazon/Flipkart/Meesho payment reconciliation, bank loan CMA reports, startup valuation, and ESOP frameworks.
 
 ## Free Interactive Tax Tools
 
-- [Income Tax Calculator FY 2025-26 & AY 2026-27](https://taxfiling24.com/tools/tax-calculator): Instant comparison between Old and New Tax Regimes with Budget ₹75,000 standard deduction, Section 87A rebate, Section 10(13A) HRA exemption, and revised STCG/LTCG capital gains rates.
-- [Online GST & Invoice Calculator](https://taxfiling24.com/tools/gst-calculator): Multi-rate GST calculator supporting 0%, 5%, 12%, 18%, 28% slabs with CGST+SGST / IGST breakdown, HSN/SAC presets, and PDF invoice generation.
+- [Tax & Compliance Tools Hub](https://taxfiling24.com/tools): Free interactive Indian tax and GST calculation utilities.
+- [Income Tax Calculator FY 2025-26 & AY 2026-27](https://taxfiling24.com/tools/tax-calculator): Instant comparison between Old and New Tax Regimes with ₹75,000 standard deduction, Section 87A rebate, Section 10(13A) HRA exemption, and revised STCG/LTCG capital gains rates.
+- [Online GST & Invoice Calculator](https://taxfiling24.com/tools/gst-calculator): Multi-rate GST calculator supporting 0%, 5%, 12%, 18%, 28% slabs with CGST+SGST / IGST breakdown, HSN/SAC presets, and PDF/Excel invoice export.
 
 ## Expert Consultations
 
@@ -21,6 +26,6 @@
 
 ## Official Resources
 
+- [About TaxFiling24](https://taxfiling24.com/about): Firm background, certified CA & CS team, and statutory practice overview.
 - [Taxation & Compliance Articles](https://taxfiling24.com/articles): Authoritative compliance guides, statutory deadlines, and Union Budget tax analysis.
 - [Contact Support](https://taxfiling24.com/contact): Direct assistance via email, phone, and WhatsApp.
-

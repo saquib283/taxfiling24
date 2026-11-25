@@ -33,6 +33,14 @@ function createPagesState(keys: ManagedPageKey[]): PagesState {
   return Object.fromEntries(keys.map((key) => [key, [] as ManagedSection[]])) as PagesState;
 }
 
+function resolvePreviewRoute(route: string) {
+  if (!route || !route.startsWith("/")) return "/";
+  if (route.includes("[slug]")) {
+    return route.replace(/\/\[slug\].*$/, "") || "/";
+  }
+  return route;
+}
+
 function moveItem<T>(items: T[], index: number, direction: "up" | "down") {
   const target = direction === "up" ? index - 1 : index + 1;
   if (target < 0 || target >= items.length) {
@@ -126,7 +134,11 @@ function RepeaterEditor({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onChange(safeItems.filter((_, entryIndex) => entryIndex !== index))}
+                  onClick={() => {
+                    if (window.confirm("Remove this item from the list?")) {
+                      onChange(safeItems.filter((_, entryIndex) => entryIndex !== index));
+                    }
+                  }}
                   className="rounded-lg p-1.5 border border-rose-100 text-rose-600 hover:bg-rose-50 transition active:scale-95 cursor-pointer"
                   title="Delete item"
                 >
@@ -218,6 +230,7 @@ export default function WebsiteContentManager() {
   const [activePage, setActivePage] = useState<ManagedPageKey>(pageKeys[0] || "home");
   const [pages, setPages] = useState<PagesState>(() => createPagesState(pageKeys));
   const [selectedSectionId, setSelectedSectionId] = useState("");
+  const [dirtyPages, setDirtyPages] = useState<ManagedPageKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -231,7 +244,10 @@ export default function WebsiteContentManager() {
 
   useEffect(() => {
     fetch("/api/admin/settings")
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Failed to load website settings");
+        return response.json();
+      })
       .then((data) => {
         setPages(
           Object.fromEntries(
@@ -246,6 +262,7 @@ export default function WebsiteContentManager() {
             definitions.map((definition) => [definition.key, getManagedPageSections(definition.key)])
           ) as PagesState
         );
+        setMessage({ text: "Could not load saved page sections. Showing defaults.", type: "error" });
         setLoading(false);
       });
   }, [definitions]);
@@ -270,6 +287,7 @@ export default function WebsiteContentManager() {
       ...current,
       [activePage]: nextSections,
     }));
+    setDirtyPages((prev) => (prev.includes(activePage) ? prev : [...prev, activePage]));
   };
 
   const updateSelectedSection = (updater: (section: ManagedSection) => ManagedSection) => {
@@ -287,8 +305,11 @@ export default function WebsiteContentManager() {
     setMessage(null);
 
     try {
+      const keysToSave = dirtyPages.length > 0 ? dirtyPages : [activePage];
       const settings = Object.fromEntries(
-        definitions.map((definition) => [definition.settingKey, JSON.stringify(pages[definition.key] || [])])
+        definitions
+          .filter((definition) => keysToSave.includes(definition.key))
+          .map((definition) => [definition.settingKey, JSON.stringify(pages[definition.key] || [])])
       );
 
       const response = await fetch("/api/admin/settings", {
@@ -302,9 +323,10 @@ export default function WebsiteContentManager() {
         throw new Error(d.error || "Failed to save website content.");
       }
 
+      setDirtyPages([]);
       setMessage({ text: "Website content saved and published successfully!", type: "success" });
       setTimeout(() => setMessage(null), 4000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setMessage({ text: error instanceof Error ? error.message : "Something went wrong while saving.", type: "error" });
     } finally {
       setSaving(false);
@@ -399,7 +421,7 @@ export default function WebsiteContentManager() {
           </p>
         </div>
         <a
-          href={currentDefinition.route.startsWith("/") ? currentDefinition.route : "/"}
+          href={resolvePreviewRoute(currentDefinition.route)}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline shrink-0 bg-white border border-indigo-100 px-4 py-2.5 rounded-xl shadow-xs transition active:scale-98"
@@ -501,6 +523,9 @@ export default function WebsiteContentManager() {
                         <button
                           type="button"
                           onClick={() => {
+                            if (!window.confirm(`Remove the "${section.label}" block from this page?`)) {
+                              return;
+                            }
                             const next = currentSections.filter((entry) => entry.id !== section.id);
                             updateCurrentSections(next);
                             if (selectedSectionId === section.id) {
@@ -698,7 +723,7 @@ export default function WebsiteContentManager() {
 
         <div className="flex items-center gap-3">
           <a
-            href={currentDefinition.route.startsWith("/") ? currentDefinition.route : "/"}
+            href={resolvePreviewRoute(currentDefinition.route)}
             target="_blank"
             rel="noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition"

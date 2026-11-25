@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { logActivity } from "@/lib/activity-log";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id } = await params;
     const body = await request.json();
 
-    const updateData: any = {};
+    const updateData: Record<string, any> = {};
 
     if (typeof body.isActive === "boolean") {
       updateData.isActive = body.isActive;
@@ -42,27 +43,49 @@ export async function PATCH(
       data: updateData,
     });
 
+    await logActivity(
+      "UPDATED",
+      "Subscriber",
+      `Updated audience contact: ${subscriber.email}`,
+      subscriber.id,
+      auth.user.userId
+    );
+
     return NextResponse.json({ subscriber });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
     console.error("Failed to update audience contact:", error);
     return NextResponse.json({ error: "Failed to update contact" }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  request: Request,
+  _: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
 
   try {
     const { id } = await params;
-    await prisma.subscriber.delete({ where: { id } });
+    const deleted = await prisma.subscriber.delete({ where: { id } });
+
+    await logActivity(
+      "DELETED",
+      "Subscriber",
+      `Deleted audience contact: ${deleted.email}`,
+      deleted.id,
+      auth.user.userId
+    );
+
     return NextResponse.json({ message: "Contact deleted successfully." });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
     console.error("Failed to delete audience contact:", error);
     return NextResponse.json({ error: "Failed to delete contact" }, { status: 500 });
   }
 }
-

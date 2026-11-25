@@ -23,13 +23,24 @@ export default function FAQManagerPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchFAQs = async () => {
-    const res = await fetch("/api/admin/faqs");
-    const data = await res.json();
-    setFaqs(data);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/faqs");
+      const data = await res.json().catch(() => null);
+      if (res.ok && Array.isArray(data)) {
+        setFaqs(data);
+      } else {
+        setErrorMsg(data?.error || "Failed to load FAQs.");
+      }
+    } catch {
+      setErrorMsg("Failed to load FAQs.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchFAQs(); }, []);
+  useEffect(() => {
+    void fetchFAQs();
+  }, []);
 
   const handleAIGenerateAnswer = async () => {
     if (!form.question) {
@@ -59,46 +70,91 @@ export default function FAQManagerPage() {
   };
 
   const handleAdd = async () => {
-    if (!form.question || !form.answer) return;
+    if (!form.question.trim() || !form.answer.trim()) return;
     setSaving(true);
-    await fetch("/api/admin/faqs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, sortOrder: faqs.length }),
-    });
-    setForm({ question: "", answer: "" });
-    setShowAdd(false);
-    setSaving(false);
-    fetchFAQs();
+    setErrorMsg(null);
+    try {
+      const res = await fetch("/api/admin/faqs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: form.question.trim(),
+          answer: form.answer.trim(),
+          sortOrder: faqs.length,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to create FAQ.");
+      }
+      setForm({ question: "", answer: "" });
+      setShowAdd(false);
+      await fetchFAQs();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to create FAQ.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleUpdate = async (id: string) => {
-    if (!form.question || !form.answer) return;
+    if (!form.question.trim() || !form.answer.trim()) return;
     setSaving(true);
-    await fetch(`/api/admin/faqs/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setEditingId(null);
-    setForm({ question: "", answer: "" });
-    setSaving(false);
-    fetchFAQs();
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/admin/faqs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: form.question.trim(),
+          answer: form.answer.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to update FAQ.");
+      }
+      setEditingId(null);
+      setForm({ question: "", answer: "" });
+      await fetchFAQs();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to update FAQ.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const confirmDelete = async (id: string) => {
-    await fetch(`/api/admin/faqs/${id}`, { method: "DELETE" });
-    setDeletingId(null);
-    fetchFAQs();
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/admin/faqs/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete FAQ.");
+      }
+      setDeletingId(null);
+      await fetchFAQs();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to delete FAQ.");
+    }
   };
 
   const toggleActive = async (id: string, isActive: boolean) => {
-    await fetch(`/api/admin/faqs/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !isActive }),
-    });
-    fetchFAQs();
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/admin/faqs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !isActive }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to update FAQ visibility.");
+      }
+      await fetchFAQs();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to update FAQ visibility.");
+    }
   };
 
   if (loading) {
@@ -126,7 +182,8 @@ export default function FAQManagerPage() {
           </p>
         </div>
         <button 
-          onClick={() => { setShowAdd(true); setForm({ question: "", answer: "" }); }}
+          type="button"
+          onClick={() => { setShowAdd(true); setEditingId(null); setForm({ question: "", answer: "" }); setErrorMsg(null); }}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-xs hover:bg-indigo-700 transition active:scale-98 cursor-pointer shrink-0"
         >
           <Plus className="h-4 w-4" /> Add FAQ
@@ -293,7 +350,8 @@ export default function FAQManagerPage() {
                     </button>
                     
                     <button 
-                      onClick={() => { setEditingId(faq.id); setForm({ question: faq.question, answer: faq.answer }); }} 
+                      type="button"
+                      onClick={() => { setEditingId(faq.id); setShowAdd(false); setForm({ question: faq.question, answer: faq.answer }); setErrorMsg(null); }} 
                       className="p-2 border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition active:scale-95 cursor-pointer"
                       title="Edit FAQ"
                       aria-label="Edit FAQ"

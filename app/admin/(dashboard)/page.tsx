@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import prisma from "@/lib/prisma";
+import { requirePageRole } from "@/lib/auth";
 import {
   FileText,
   Briefcase,
@@ -11,7 +12,6 @@ import {
   PenSquare,
   HelpCircle,
   Calendar,
-  Users,
   Star,
   Download,
 } from "lucide-react";
@@ -26,19 +26,15 @@ async function getStats() {
       totalInquiries,
       pendingInquiries,
       totalReviews,
-      totalFaqs,
-      totalTeam,
       totalAppointments,
       pendingAppointments
     ] = await Promise.all([
-      prisma.article.count(),
+      prisma.article.count({ where: { published: true } }),
       prisma.service.count(),
       prisma.article.aggregate({ _sum: { views: true } }),
       prisma.inquiry.count(),
-      prisma.inquiry.count({ where: { status: "PENDING" } }),
+      prisma.inquiry.count({ where: { status: { in: ["NEW", "PENDING"] } } }),
       prisma.review.count(),
-      prisma.fAQ.count(),
-      prisma.teamMember.count(),
       prisma.appointment.count().catch(() => 0),
       prisma.appointment.count({ where: { status: "PENDING" } }).catch(() => 0),
     ]);
@@ -62,8 +58,6 @@ async function getStats() {
       totalInquiries,
       pendingInquiries,
       totalReviews,
-      totalFaqs,
-      totalTeam,
       totalAppointments,
       pendingAppointments,
       recentArticles,
@@ -78,8 +72,6 @@ async function getStats() {
       totalInquiries: 0,
       pendingInquiries: 0,
       totalReviews: 0,
-      totalFaqs: 0,
-      totalTeam: 0,
       totalAppointments: 0,
       pendingAppointments: 0,
       recentArticles: [],
@@ -89,7 +81,9 @@ async function getStats() {
 }
 
 export default async function AdminDashboard() {
+  const currentUser = await requirePageRole(["ADMIN", "EDITOR", "VIEWER"]);
   const stats = await getStats();
+  const isAdmin = currentUser.role === "ADMIN";
 
   const statCards = [
     { 
@@ -140,12 +134,14 @@ export default async function AdminDashboard() {
           >
             <Calendar className="w-3.5 h-3.5" /> Bookings Studio
           </Link>
-          <a
-            href="/api/admin/export?type=inquiries&format=csv"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-400" /> Export Leads
-          </a>
+          {isAdmin && (
+            <a
+              href="/api/admin/export?type=inquiries&format=csv"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-400" /> Export Leads
+            </a>
+          )}
         </div>
       </div>
 
@@ -280,7 +276,7 @@ export default async function AdminDashboard() {
                 { href: "/admin/content", label: "Website Content", icon: PenSquare },
                 { href: "/admin/faqs", label: "FAQ Manager", icon: HelpCircle },
                 { href: "/admin/calendar", label: "Compliance Calendar", icon: Calendar },
-                { href: "/admin/settings", label: "Global Settings", icon: Settings },
+                ...(isAdmin ? [{ href: "/admin/settings", label: "Global Settings", icon: Settings }] : []),
               ].map((action: any) => (
                 <Link
                   key={action.href}
