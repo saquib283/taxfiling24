@@ -17,14 +17,48 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 function getAllowedOrigins(request: NextRequest): Set<string> {
   const origins = new Set<string>([request.nextUrl.origin]);
+
+  // Support reverse-proxy deployments (e.g., CloudPanel Nginx terminating HTTPS -> localhost:3000)
+  const forwardedHost = (
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    ""
+  )
+    .split(",")[0]
+    .trim();
+  const forwardedProto = (request.headers.get("x-forwarded-proto") || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+
+  if (forwardedHost && /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(forwardedHost)) {
+    const proto =
+      forwardedProto === "https" || forwardedProto === "http"
+        ? forwardedProto
+        : request.nextUrl.protocol.replace(":", "");
+    origins.add(`${proto}://${forwardedHost}`);
+    // CloudPanel Nginx often terminates TLS on 443 and proxies to 127.0.0.1 over HTTP
+    if (process.env.NODE_ENV === "production") {
+      origins.add(`https://${forwardedHost}`);
+    }
+  }
+
   for (const envUrl of [process.env.NEXT_PUBLIC_SITE_URL, process.env.NEXT_PUBLIC_APP_URL]) {
     if (!envUrl) continue;
     try {
-      origins.add(new URL(envUrl).origin);
+      const parsed = new URL(envUrl);
+      origins.add(parsed.origin);
+      // Allow both apex and www sibling for the configured canonical domain
+      if (parsed.hostname.startsWith("www.")) {
+        origins.add(`${parsed.protocol}//${parsed.hostname.slice(4)}${parsed.port ? `:${parsed.port}` : ""}`);
+      } else if (parsed.hostname.includes(".") && !/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)) {
+        origins.add(`${parsed.protocol}//www.${parsed.hostname}${parsed.port ? `:${parsed.port}` : ""}`);
+      }
     } catch {
       // ignore invalid env URL
     }
   }
+
   return origins;
 }
 
