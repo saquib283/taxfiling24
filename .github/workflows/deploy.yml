@@ -27,6 +27,8 @@ jobs:
         run: npm ci
 
       - name: Validate Prisma schema
+        env:
+          DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
         run: npx prisma validate
 
       - name: TypeScript typecheck
