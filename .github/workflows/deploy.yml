@@ -1,0 +1,99 @@
+name: CI/CD Deploy to CloudPanel VPS
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Typecheck & Prisma Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+  deploy:
+    name: Build & Reload on CloudPanel VPS
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+              nvm use 22 || (nvm install 22 && nvm alias default 22 && nvm use 22)
+            fi
+
+            command -v pm2 >/dev/null 2>&1 || npm install -g pm2
+
+            APP_DIR="${{ secrets.VPS_APP_DIR }}"
+            cd "$APP_DIR"
+
+            if [ ! -f ".env" ]; then
+              echo "ERROR: Missing $APP_DIR/.env on VPS. Create .env before deploying."
+              exit 1
+            fi
+
+            # Sync latest main branch while preserving untracked .env and uploads/
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install dependencies (runs postinstall -> prisma generate)
+            npm ci
+
+            # Sync Prisma schema non-destructively
+            npx prisma db push
+
+            # Build Next.js production bundle
+            NODE_OPTIONS="--max-old-space-size=1536" npm run build
+
+            # Zero-downtime PM2 reload (or initial start)
+            pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs
+            pm2 save
+
+            # Read configured PORT from .env (default 3000) and run health check
+            APP_PORT="$(grep -E '^\s*PORT=' .env | tail -n 1 | cut -d '=' -f2 | tr -d '\"'\''[:space:]' || true)"
+            APP_PORT="${APP_PORT:-3000}"
+
+            for i in 1 2 3 4 5; do
+              if curl -fsS "http://127.0.0.1:${APP_PORT}/api/services" >/dev/null; then
+                echo "Deployment verified on 127.0.0.1:${APP_PORT}."
+                exit 0
+              fi
+              sleep 3
+            done
+
+            echo "ERROR: Health check failed on 127.0.0.1:${APP_PORT}."
+            pm2 logs taxfiling24 --lines 40 --nostream
+            exit 1
+
