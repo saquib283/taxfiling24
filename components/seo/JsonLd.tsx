@@ -59,7 +59,9 @@ export function organizationSchema(settings: SiteSettings = {}) {
     url: BASE_URL,
     logo: {
       "@type": "ImageObject",
-      url: `${BASE_URL}/logo.png`,
+      url: `${BASE_URL}/brand-logo.png`,
+      width: 1277,
+      height: 444,
     },
     description:
       "Your Trusted Partner for Business Registration, Taxation, Compliance & Financial Advisory across India.",
@@ -82,7 +84,8 @@ export function webSiteSchema(siteName = "TaxFiling24") {
     "@type": "WebSite",
     "@id": WEBSITE_ID,
     name: siteName,
-    url: BASE_URL,
+    alternateName: ["TaxFiling24.com", "Tax Filing 24"],
+    url: `${BASE_URL}/`,
     publisher: {
       "@id": ORG_ID,
     },

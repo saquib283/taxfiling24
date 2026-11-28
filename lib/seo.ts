@@ -35,8 +35,8 @@ type PageMetadataDefaults = {
 
 const DEFAULT_SITE_NAME = "TaxFiling24";
 const DEFAULT_DESCRIPTION =
-  "Trusted business registration, tax filing, GST compliance, and financial advisory services across India.";
-const DEFAULT_OG_IMAGE = "/logo.png";
+  "TaxFiling24 provides CA-led Income Tax (ITR) filing, GST registration & returns, company incorporation, ROC compliance, and Virtual CFO services across India.";
+const DEFAULT_OG_IMAGE = "/brand-logo.png";
 const DEFAULT_KEYWORDS = [
   "tax filing",
   "GST registration",
@@ -175,6 +175,10 @@ export function buildMetadata({
         alt: title,
       };
 
+  const formattedOgTitle =
+    openGraphTitle ||
+    (title.toLowerCase().includes(siteName.toLowerCase()) ? title : `${title} | ${siteName}`);
+
   return {
     title,
     description,
@@ -209,7 +213,7 @@ export function buildMetadata({
       type,
       locale: "en_IN",
       siteName,
-      title: openGraphTitle || `${title} | ${siteName}`,
+      title: formattedOgTitle,
       description,
       url: canonicalUrl,
       images: [ogImageEntry],

@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteName = getSiteName(settings);
   const homeMetadata = buildPageMetadataFromSettings(settings, "home", {
     description:
-      "Your trusted partner for business registration, taxation, compliance, and financial advisory services across India.",
+      "TaxFiling24 provides CA-led Income Tax (ITR) filing, GST registration & returns, company incorporation, ROC compliance, and Virtual CFO services across India.",
     path: "/",
     title: `${siteName} | Complete Business, Tax & Compliance Solutions`,
   });
@@ -50,7 +50,20 @@ export async function generateMetadata(): Promise<Metadata> {
     authors: [{ name: siteName, url: SITE_URL }],
     creator: siteName,
     publisher: siteName,
-    description: settings.seo_home_description || getDefaultDescription(settings),
+    description:
+      settings.seo_home_description?.trim() ||
+      (typeof homeMetadata.description === "string" && homeMetadata.description) ||
+      getDefaultDescription(settings),
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icons/icon-48.png", type: "image/png", sizes: "48x48" },
+        { url: "/icons/icon-96.png", type: "image/png", sizes: "96x96" },
+        { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      ],
+      shortcut: [{ url: "/favicon.ico" }],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    },
     manifest: "/manifest.webmanifest",
     referrer: "origin-when-cross-origin",
     verification: {
