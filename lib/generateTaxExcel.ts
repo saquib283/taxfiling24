@@ -1,115 +1,61 @@
 import ExcelJS from "exceljs";
+import type { IncomeTaxInput, IncomeTaxResult } from "./calculators/income-tax-engine";
 
-// ── Types ──────────────────────────────────────────────────────────
-interface TaxExcelData {
-  financialYear: string;
-  assessmentYear: string;
-  ageGroup: string;
-  salary: number;
-  rentalIncome: number;
-  otherIncome: number;
-  professionalIncome: number;
-  businessExpenses: number;
-  deduction80C: number;
-  deduction80D: number;
-  deduction80D_Parents: number;
-  deductionNPS: number;
-  homeLoanInterest: number;
-  deduction80G: number;
-  deduction80E: number;
-  deduction80TTA: number;
-  hra: number;
-  otherDeductions: number;
-  stcgEquity: number;
-  ltcgEquity: number;
-  stcgOther: number;
-  ltcgOther: number;
-  taxPaid: number;
-  monthsDelay234A: number;
-  monthsDelay234B: number;
-  results: {
-    grossTotalIncome: number;
-    totalDeductions: number;
-    taxableOld: number;
-    taxableNew: number;
-    oldTax: number;
-    newTax: number;
-    savings: number;
-    better: string;
-    surchargeOld: number;
-    surchargeNew: number;
-    capitalGainsTax: number;
-    interest234A: number;
-    interest234B: number;
-    totalPayable: number;
-    breakdownOld: { slab: string; tax: number }[];
-    breakdownNew: { slab: string; tax: number }[];
-    advanceTax: { june: number; sept: number; dec: number; march: number };
-  };
+export interface TaxExcelPayload {
+  input: IncomeTaxInput;
+  result: IncomeTaxResult;
 }
 
-// ── Color Palette ──────────────────────────────────────────────────
+// ── TaxFiling24 Deep Navy & Heritage Gold Excel Palette ────────────
 const CLR = {
-  darkNavy: "0D0E1A",
-  primary: "4A54C7",
-  primaryDark: "2D3580",
-  accent: "5B73EB",
+  navy: "0A2540",
+  navyDark: "061829",
+  navySoft: "EAF0F6",
+  gold: "D4AF37",
+  goldInk: "8A6D14",
   white: "FFFFFF",
-  offWhite: "F7F8FC",
-  lightGray: "EEF0F6",
-  midGray: "D0D3DE",
-  textDark: "1A1C2E",
-  textMuted: "6B6F82",
-  green: "0F7A3B",
-  greenBg: "E8F5EE",
-  red: "C42B30",
-  redBg: "FDF0F0",
-  gold: "B8941F",
-  goldBg: "FFF9E5",
-  blueBg: "EEF1FC",
+  offWhite: "F8FAFC",
+  lightGray: "F1F5F9",
+  midGray: "CBD5E1",
+  textDark: "0F172A",
+  textMuted: "475569",
+  green: "047857",
+  greenBg: "ECFDF5",
+  red: "BE123C",
+  redBg: "FFF1F2",
 };
 
 function ageLabel(group: string): string {
-  if (group === "senior") return "Senior Citizen (60-80 years)";
-  if (group === "super-senior") return "Super Senior Citizen (80+ years)";
-  return "Individual (Below 60 years)";
+  if (group === "senior") return "Senior Citizen (60–80 Yrs)";
+  if (group === "super-senior") return "Super Senior Citizen (80+ Yrs)";
+  return "Individual (< 60 Yrs)";
 }
 
-// ── Style Presets ──────────────────────────────────────────────────
 const FONT_BRAND: Partial<ExcelJS.Font> = { name: "Calibri", size: 16, bold: true, color: { argb: CLR.white } };
-const FONT_SUBTITLE: Partial<ExcelJS.Font> = { name: "Calibri", size: 9, color: { argb: "A0A8D0" } };
-const FONT_SECTION: Partial<ExcelJS.Font> = { name: "Calibri", size: 11, bold: true, color: { argb: CLR.primaryDark } };
+const FONT_SECTION: Partial<ExcelJS.Font> = { name: "Calibri", size: 11, bold: true, color: { argb: CLR.navy } };
 const FONT_HEADER: Partial<ExcelJS.Font> = { name: "Calibri", size: 9, bold: true, color: { argb: CLR.white } };
 const FONT_BODY: Partial<ExcelJS.Font> = { name: "Calibri", size: 9.5, color: { argb: CLR.textDark } };
-const FONT_BODY_MUTED: Partial<ExcelJS.Font> = { name: "Calibri", size: 9, color: { argb: CLR.textMuted } };
+const FONT_MUTED: Partial<ExcelJS.Font> = { name: "Calibri", size: 9, color: { argb: CLR.textMuted } };
 const FONT_BOLD: Partial<ExcelJS.Font> = { name: "Calibri", size: 9.5, bold: true, color: { argb: CLR.textDark } };
-const FONT_TOTAL: Partial<ExcelJS.Font> = { name: "Calibri", size: 10, bold: true, color: { argb: CLR.primaryDark } };
-const FONT_GRAND_TOTAL: Partial<ExcelJS.Font> = { name: "Calibri", size: 11, bold: true, color: { argb: CLR.white } };
+const FONT_TOTAL: Partial<ExcelJS.Font> = { name: "Calibri", size: 10, bold: true, color: { argb: CLR.navy } };
+const FONT_GRAND: Partial<ExcelJS.Font> = { name: "Calibri", size: 11, bold: true, color: { argb: CLR.white } };
 
-const BORDER_THIN: Partial<ExcelJS.Borders> = {
-  bottom: { style: "thin", color: { argb: CLR.midGray } },
-};
-const BORDER_BOTTOM_MEDIUM: Partial<ExcelJS.Borders> = {
-  bottom: { style: "medium", color: { argb: CLR.primary } },
-};
+const BORDER_THIN: Partial<ExcelJS.Borders> = { bottom: { style: "thin", color: { argb: CLR.midGray } } };
+const BORDER_MED: Partial<ExcelJS.Borders> = { bottom: { style: "medium", color: { argb: CLR.navy } } };
+const NUM_FMT_INR = '₹ #,##0';
 
-const NUM_FMT = '#,##0';
-const NUM_FMT_CURRENCY = '₹ #,##0';
-
-// ── Helper: add a section header row ───────────────────────────────
-function addSectionHeader(ws: ExcelJS.Worksheet, title: string, row: number, lastCol: string): number {
-  ws.mergeCells(`A${row}:${lastCol}${row}`);
+function addSectionHeader(ws: ExcelJS.Worksheet, title: string, row: number): number {
+  ws.mergeCells(`A${row}:D${row}`);
   const cell = ws.getCell(`A${row}`);
   cell.value = title;
   cell.font = FONT_SECTION;
-  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.blueBg } };
-  cell.border = { bottom: { style: "medium", color: { argb: CLR.primary } } };
+  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.navySoft } };
+  cell.border = { bottom: { style: "medium", color: { argb: CLR.gold } } };
   cell.alignment = { vertical: "middle", indent: 1 };
   ws.getRow(row).height = 24;
   return row + 1;
 }
 
-// ── Helper: add a table header row ─────────────────────────────────
 function addTableHeader(ws: ExcelJS.Worksheet, cols: string[], row: number): number {
   const r = ws.getRow(row);
   r.height = 22;
@@ -117,95 +63,96 @@ function addTableHeader(ws: ExcelJS.Worksheet, cols: string[], row: number): num
     const cell = r.getCell(i + 1);
     cell.value = text;
     cell.font = FONT_HEADER;
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.darkNavy } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.navy } };
     cell.alignment = { vertical: "middle", horizontal: i === 0 ? "left" : "right", indent: i === 0 ? 1 : 0 };
-    cell.border = { bottom: { style: "thin", color: { argb: CLR.primary } } };
   });
   return row + 1;
 }
 
-// ── Helper: add a data row ─────────────────────────────────────────
 function addDataRow(
-  ws: ExcelJS.Worksheet, label: string, values: (number | string | null)[], row: number,
-  options?: { bold?: boolean; muted?: boolean; indent?: number; striped?: boolean; numFmt?: string }
+  ws: ExcelJS.Worksheet,
+  label: string,
+  values: (number | string | null)[],
+  row: number,
+  options?: { bold?: boolean; muted?: boolean; indent?: number; striped?: boolean }
 ): number {
   const r = ws.getRow(row);
   r.height = 19;
-  const stripe = options?.striped;
-  const bgColor = stripe ? CLR.offWhite : CLR.white;
+  const bg = options?.striped ? CLR.offWhite : CLR.white;
 
-  const labelCell = r.getCell(1);
-  labelCell.value = label;
-  labelCell.font = options?.bold ? FONT_BOLD : options?.muted ? FONT_BODY_MUTED : FONT_BODY;
-  labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
-  labelCell.alignment = { vertical: "middle", indent: options?.indent ?? 1 };
-  labelCell.border = BORDER_THIN;
+  const lc = r.getCell(1);
+  lc.value = label;
+  lc.font = options?.bold ? FONT_BOLD : options?.muted ? FONT_MUTED : FONT_BODY;
+  lc.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+  lc.alignment = { vertical: "middle", indent: options?.indent ?? 1 };
+  lc.border = BORDER_THIN;
 
   values.forEach((val, i) => {
-    const cell = r.getCell(i + 2);
+    const c = r.getCell(i + 2);
     if (val === null || val === undefined) {
-      cell.value = "—";
-      cell.font = FONT_BODY_MUTED;
+      c.value = "—";
+      c.font = FONT_MUTED;
     } else if (typeof val === "string") {
-      cell.value = val;
-      cell.font = options?.bold ? FONT_BOLD : FONT_BODY;
+      c.value = val;
+      c.font = options?.bold ? FONT_BOLD : FONT_BODY;
     } else {
-      cell.value = val;
-      cell.numFmt = options?.numFmt ?? NUM_FMT_CURRENCY;
-      cell.font = options?.bold ? FONT_BOLD : FONT_BODY;
+      c.value = val;
+      c.numFmt = NUM_FMT_INR;
+      c.font = options?.bold ? FONT_BOLD : FONT_BODY;
     }
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
-    cell.alignment = { vertical: "middle", horizontal: "right" };
-    cell.border = BORDER_THIN;
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+    c.alignment = { vertical: "middle", horizontal: "right" };
+    c.border = BORDER_THIN;
   });
+
   return row + 1;
 }
 
-// ── Helper: add a total/summary row ────────────────────────────────
 function addTotalRow(
-  ws: ExcelJS.Worksheet, label: string, values: (number | string | null)[], row: number,
-  options?: { bg?: string; font?: Partial<ExcelJS.Font>; numFmt?: string }
+  ws: ExcelJS.Worksheet,
+  label: string,
+  values: (number | string | null)[],
+  row: number,
+  options?: { bg?: string; font?: Partial<ExcelJS.Font> }
 ): number {
   const r = ws.getRow(row);
   r.height = 24;
   const bg = options?.bg ?? CLR.lightGray;
   const font = options?.font ?? FONT_TOTAL;
 
-  const labelCell = r.getCell(1);
-  labelCell.value = label;
-  labelCell.font = font;
-  labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
-  labelCell.alignment = { vertical: "middle", indent: 1 };
-  labelCell.border = BORDER_BOTTOM_MEDIUM;
+  const lc = r.getCell(1);
+  lc.value = label;
+  lc.font = font;
+  lc.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+  lc.alignment = { vertical: "middle", indent: 1 };
+  lc.border = BORDER_MED;
 
   values.forEach((val, i) => {
-    const cell = r.getCell(i + 2);
-    if (typeof val === "string") {
-      cell.value = val;
-    } else if (val !== null && val !== undefined) {
-      cell.value = val;
-      cell.numFmt = options?.numFmt ?? NUM_FMT_CURRENCY;
+    const c = r.getCell(i + 2);
+    if (typeof val === "number") {
+      c.value = val;
+      c.numFmt = NUM_FMT_INR;
     } else {
-      cell.value = "";
+      c.value = val ?? "";
     }
-    cell.font = font;
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
-    cell.alignment = { vertical: "middle", horizontal: "right" };
-    cell.border = BORDER_BOTTOM_MEDIUM;
+    c.font = font;
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+    c.alignment = { vertical: "middle", horizontal: "right" };
+    c.border = BORDER_MED;
   });
+
   return row + 1;
 }
 
-// ── Helper: spacer row ─────────────────────────────────────────────
 function addSpacer(ws: ExcelJS.Worksheet, row: number): number {
   ws.getRow(row).height = 8;
   return row + 1;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-// Main Export Function
-// ══════════════════════════════════════════════════════════════════════
-export async function generateTaxExcel(data: TaxExcelData): Promise<ArrayBuffer> {
+export async function generateTaxExcel(payload: TaxExcelPayload): Promise<ArrayBuffer> {
+  const { input, result } = payload;
+  const { config, oldRegime, newRegime } = result;
+
   const wb = new ExcelJS.Workbook();
   wb.creator = "TaxFiling24";
   wb.created = new Date();
@@ -216,67 +163,56 @@ export async function generateTaxExcel(data: TaxExcelData): Promise<ArrayBuffer>
     views: [{ showGridLines: false }],
   });
 
-  // Column widths
-  ws.getColumn(1).width = 42;
+  ws.getColumn(1).width = 46;
   ws.getColumn(2).width = 20;
   ws.getColumn(3).width = 20;
-  ws.getColumn(4).width = 20;
+  ws.getColumn(4).width = 22;
 
   let row = 1;
 
-  // ═══════════════════════════════════════════════════════════════════
-  // BRANDED HEADER
-  // ═══════════════════════════════════════════════════════════════════
+  // Branded Navy Header
   ws.mergeCells(`A${row}:D${row + 2}`);
   const headerCell = ws.getCell(`A${row}`);
-  headerCell.value = "TaxFiling24";
+  headerCell.value = "TaxFiling24 — Income Tax Computation Statement";
   headerCell.font = FONT_BRAND;
-  headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.darkNavy } };
   headerCell.alignment = { vertical: "middle", horizontal: "left", indent: 2 };
-  ws.getRow(row).height = 18;
-  ws.getRow(row + 1).height = 18;
-  ws.getRow(row + 2).height = 18;
-  // Fill remaining header rows
   for (let r = row; r <= row + 2; r++) {
+    ws.getRow(r).height = 17;
     for (let c = 1; c <= 4; c++) {
-      const cell = ws.getRow(r).getCell(c);
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.darkNavy } };
+      ws.getRow(r).getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.navy } };
     }
   }
   row += 3;
 
-  // Sub-header bar with report info
+  // Sub-header strip
   const infoRow = ws.getRow(row);
   infoRow.height = 22;
-  const infoItems = [
-    `Income Tax Computation Statement`,
-    `FY ${data.financialYear}`,
-    `AY ${data.assessmentYear}`,
+  [
+    config.actName,
+    config.periodLabel,
+    input.residency === "nri" ? "Non-Resident (NRI)" : "Resident Individual",
     new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-  ];
-  infoItems.forEach((text, i) => {
+  ].forEach((text, i) => {
     const cell = infoRow.getCell(i + 1);
     cell.value = text;
-    cell.font = { name: "Calibri", size: i === 0 ? 9 : 9, bold: i === 0, color: { argb: "C0C8F0" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "1A1D30" } };
+    cell.font = { name: "Calibri", size: 9, bold: i === 0, color: { argb: CLR.gold } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.navyDark } };
     cell.alignment = { vertical: "middle", horizontal: i === 0 ? "left" : "center", indent: i === 0 ? 2 : 0 };
   });
   row++;
 
-  // Assessor details strip
   row = addSpacer(ws, row);
-  const detailRow = ws.getRow(row);
-  detailRow.height = 22;
-  const details = [
-    `Assessee Category: ${ageLabel(data.ageGroup)}`,
-    `Status: Individual / HUF`,
-    `Recommended: ${data.results.better}`,
+  const dRow = ws.getRow(row);
+  dRow.height = 20;
+  [
+    `Assessee: ${ageLabel(input.ageGroup)}`,
+    `Optimal: ${result.betterRegime}`,
+    `Annual Savings: ₹${result.savings.toLocaleString("en-IN")}`,
     "",
-  ];
-  details.forEach((text, i) => {
-    const cell = detailRow.getCell(i + 1);
+  ].forEach((text, i) => {
+    const cell = dRow.getCell(i + 1);
     cell.value = text;
-    cell.font = { name: "Calibri", size: 8.5, color: { argb: CLR.textMuted } };
+    cell.font = { name: "Calibri", size: 8.5, bold: i === 1, color: { argb: CLR.textMuted } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.lightGray } };
     cell.alignment = { vertical: "middle", indent: i === 0 ? 1 : 0 };
     cell.border = BORDER_THIN;
@@ -284,189 +220,132 @@ export async function generateTaxExcel(data: TaxExcelData): Promise<ArrayBuffer>
   row++;
   row = addSpacer(ws, row);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 1: INCOME DETAILS
-  // ═══════════════════════════════════════════════════════════════════
-  row = addSectionHeader(ws, "A. Gross Total Income", row, "D");
-  row = addTableHeader(ws, ["Particulars", "Amount (₹)", "Section / Remarks", ""], row);
+  // Section A: Gross Total Income
+  row = addSectionHeader(ws, "A. Gross Total Income", row);
+  row = addTableHeader(ws, ["Income Head", "Amount (₹)", "Statutory Reference", ""], row);
+  row = addDataRow(ws, "Income from Salary / Pension", [input.salary, "Gross Salary", null], row);
+  row = addDataRow(ws, "Income from House Property (Net of 30% Sec 24(a))", [Math.round(input.rentalIncome * 0.7), "Sec 24(a)", null], row, { striped: true });
+  row = addDataRow(ws, "Income from Other Sources", [input.otherIncome, "Interest / Dividends", null], row);
+  row = addDataRow(ws, `Profits from Business / Profession (${input.businessMode.toUpperCase()})`, [result.netBusinessIncome, input.businessMode === "regular" ? "Regular Books" : "Presumptive", null], row, { striped: true });
 
-  const netRental = data.rentalIncome * 0.7;
-  const netBiz = Math.max(0, data.professionalIncome - data.businessExpenses);
+  if (input.stcgOther > 0) row = addDataRow(ws, "STCG — Non-Equity Assets", [input.stcgOther, "Normal Slab Rate", null], row);
+  if (input.stcgEquity > 0) row = addDataRow(ws, "STCG — Listed Equity / Equity MF", [input.stcgEquity, `${config.sections.stcgEquity} @ 20%`, null], row, { striped: true });
+  if (input.ltcgEquity > 0) row = addDataRow(ws, "LTCG — Listed Equity / Equity MF", [input.ltcgEquity, `${config.sections.ltcgEquity} @ 12.5% (>₹1.25L)`, null], row);
+  if (input.ltcgOther > 0) row = addDataRow(ws, "LTCG — Other Capital Assets", [input.ltcgOther, `${config.sections.ltcgOther} @ ${input.ltcgOtherUseIndexation ? "20% indexed" : "12.5%"}`, null], row, { striped: true });
 
-  row = addDataRow(ws, "Income from Salary / Pension", [data.salary, "Sec 17(1)", null], row);
-  row = addDataRow(ws, "Income from House Property (Net of 30% Std Ded)", [netRental, "Sec 24", null], row, { striped: true });
-  row = addDataRow(ws, "Income from Other Sources (Interest, Dividends)", [data.otherIncome, "Sec 56", null], row);
-  row = addDataRow(ws, "Profits from Business / Profession (Net)", [netBiz, "Sec 44AD/44ADA", null], row, { striped: true });
-
-  if (data.stcgEquity > 0 || data.ltcgEquity > 0 || data.stcgOther > 0 || data.ltcgOther > 0) {
-    row = addDataRow(ws, "Short Term Capital Gains — Equity (Listed)", [data.stcgEquity, "Sec 111A @20%", null], row);
-    row = addDataRow(ws, "Long Term Capital Gains — Equity (Listed)", [data.ltcgEquity, "Sec 112A @12.5%", null], row, { striped: true });
-    row = addDataRow(ws, "Short Term Capital Gains — Other Assets", [data.stcgOther, "Sec 111 @15%", null], row);
-    row = addDataRow(ws, "Long Term Capital Gains — Other Assets", [data.ltcgOther, "Sec 112 @20%", null], row, { striped: true });
-  }
-
-  row = addTotalRow(ws, "Gross Total Income (A)", [data.results.grossTotalIncome, null, null], row);
+  row = addTotalRow(ws, "Gross Total Income (A)", [result.grossTotalIncome, null, null], row);
   row = addSpacer(ws, row);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 2: DEDUCTIONS UNDER OLD REGIME
-  // ═══════════════════════════════════════════════════════════════════
-  row = addSectionHeader(ws, "B. Deductions (Applicable under Old Regime Only)", row, "D");
-  row = addTableHeader(ws, ["Deduction", "Claimed (₹)", "Max Limit (₹)", "Allowed (₹)"], row);
-
-  const deductions: [string, number, number | string, number][] = [
-    ["Standard Deduction u/s 16(ia)", 50000, "50,000", 50000],
-    ["Section 80C — PPF / EPF / ELSS / LIC / NSC", data.deduction80C, "1,50,000", Math.min(data.deduction80C, 150000)],
-    ["Section 80D — Health Insurance (Self & Family)", data.deduction80D, "25,000", Math.min(data.deduction80D, 25000)],
-    ["Section 80D — Health Insurance (Parents)", data.deduction80D_Parents, "50,000", Math.min(data.deduction80D_Parents, 50000)],
-    ["Section 80CCD(1B) — NPS Contribution", data.deductionNPS, "50,000", Math.min(data.deductionNPS, 50000)],
-    ["Section 24(b) — Home Loan Interest", data.homeLoanInterest, "2,00,000", Math.min(data.homeLoanInterest, 200000)],
-    ["Section 80G — Charitable Donations", data.deduction80G, "As applicable", data.deduction80G],
-    ["Section 80E — Education Loan Interest", data.deduction80E, "No limit", data.deduction80E],
-    ["Section 80TTA — Savings Interest", data.deduction80TTA, "10,000", Math.min(data.deduction80TTA, 10000)],
-    ["HRA Exemption u/s 10(13A)", data.hra, "Computed", data.hra],
-    ["Other Deductions", data.otherDeductions, "As applicable", data.otherDeductions],
-  ];
-
-  deductions.forEach(([label, claimed, limit, allowed], i) => {
-    row = addDataRow(ws, label, [claimed, typeof limit === "string" ? limit : limit, allowed], row, {
-      striped: i % 2 === 1,
-      numFmt: typeof limit === "string" ? undefined : NUM_FMT_CURRENCY,
-    });
+  // Section B: Old Regime Deductions
+  row = addSectionHeader(ws, "B. Eligible Deductions — Old Regime", row);
+  row = addTableHeader(ws, ["Deduction / Exemption", "Claimed (₹)", "Statutory Limit", "Allowed (₹)"], row);
+  result.deductionBreakdownOld.forEach((d, idx) => {
+    row = addDataRow(ws, `${d.label} (${d.section})`, [d.claimed, d.limit, d.allowed], row, { striped: idx % 2 === 1 });
   });
-
-  row = addTotalRow(ws, "Total Deductions (B)", [data.results.totalDeductions, null, data.results.totalDeductions], row);
+  row = addTotalRow(ws, "Total Deductions — Old Regime", [null, null, oldRegime.totalDeductions], row);
   row = addSpacer(ws, row);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 3: TAX COMPUTATION — SIDE BY SIDE
-  // ═══════════════════════════════════════════════════════════════════
-  row = addSectionHeader(ws, "C. Tax Computation — Old Regime vs New Regime", row, "D");
+  // Section C: Regime Comparison
+  row = addSectionHeader(ws, "C. Tax Computation — Old Regime vs. New Regime", row);
   row = addTableHeader(ws, ["Particulars", "Old Regime (₹)", "New Regime (₹)", "Difference (₹)"], row);
+  row = addDataRow(ws, "Gross Total Income", [oldRegime.grossIncome, newRegime.grossIncome, 0], row);
+  row = addDataRow(ws, "Less: Total Eligible Deductions", [oldRegime.totalDeductions, newRegime.totalDeductions, oldRegime.totalDeductions - newRegime.totalDeductions], row, { striped: true });
+  row = addDataRow(ws, "Net Taxable Income (Rounded u/s 288A)", [oldRegime.totalTaxableIncome, newRegime.totalTaxableIncome, oldRegime.totalTaxableIncome - newRegime.totalTaxableIncome], row, { bold: true });
+  row = addDataRow(ws, "Slab Tax (Before Rebate)", [oldRegime.slabTaxBeforeRebate, newRegime.slabTaxBeforeRebate, oldRegime.slabTaxBeforeRebate - newRegime.slabTaxBeforeRebate], row, { striped: true });
+  row = addDataRow(ws, `Less: Rebate & Marginal Relief (${config.sections.rebate})`, [-(oldRegime.rebate87A + oldRegime.rebateMarginalRelief), -(newRegime.rebate87A + newRegime.rebateMarginalRelief), null], row);
 
-  row = addDataRow(ws, "Gross Total Income", [data.results.grossTotalIncome, data.results.grossTotalIncome, 0], row);
-  row = addDataRow(ws, "Less: Total Deductions", [data.results.totalDeductions, 75000, data.results.totalDeductions - 75000], row, { striped: true });
-  row = addDataRow(ws, "Net Taxable Income", [data.results.taxableOld, data.results.taxableNew, data.results.taxableOld - data.results.taxableNew], row, { bold: true });
-
-  row = addSpacer(ws, row);
-
-  // Slab Breakdown — OLD
-  row = addDataRow(ws, "Slab-wise Tax — Old Regime", [null, null, null], row, { bold: true, muted: true });
-  data.results.breakdownOld.forEach((b, i) => {
-    row = addDataRow(ws, `    ${b.slab}`, [b.tax, null, null], row, { indent: 3, striped: i % 2 === 1 });
-  });
-
-  // Slab Breakdown — NEW
-  row = addDataRow(ws, "Slab-wise Tax — New Regime", [null, null, null], row, { bold: true, muted: true });
-  data.results.breakdownNew.forEach((b, i) => {
-    row = addDataRow(ws, `    ${b.slab}`, [null, b.tax, null], row, { indent: 3, striped: i % 2 === 1 });
-  });
-
-  row = addSpacer(ws, row);
-
-  const taxBeforeCessOld = data.results.oldTax / 1.04;
-  const taxBeforeCessNew = data.results.newTax / 1.04;
-  const cessOld = data.results.oldTax - taxBeforeCessOld;
-  const cessNew = data.results.newTax - taxBeforeCessNew;
-
-  row = addDataRow(ws, "Tax Before Cess", [taxBeforeCessOld, taxBeforeCessNew, taxBeforeCessOld - taxBeforeCessNew], row);
-
-  if (data.results.surchargeOld > 0 || data.results.surchargeNew > 0) {
-    row = addDataRow(ws, "Surcharge", [data.results.surchargeOld, data.results.surchargeNew, data.results.surchargeOld - data.results.surchargeNew], row, { striped: true });
+  if (oldRegime.totalSpecialCgTax > 0 || newRegime.totalSpecialCgTax > 0) {
+    row = addDataRow(ws, "Special-Rate Capital Gains Tax", [oldRegime.totalSpecialCgTax, newRegime.totalSpecialCgTax, oldRegime.totalSpecialCgTax - newRegime.totalSpecialCgTax], row, { striped: true });
   }
-
-  row = addDataRow(ws, "Health & Education Cess (4%)", [cessOld, cessNew, cessOld - cessNew], row, { striped: true });
-
-  if (data.results.capitalGainsTax > 0) {
-    row = addDataRow(ws, "Capital Gains Tax (included above)", [data.results.capitalGainsTax, data.results.capitalGainsTax, 0], row);
+  if (oldRegime.surcharge > 0 || newRegime.surcharge > 0) {
+    row = addDataRow(ws, "Surcharge (after Marginal Relief & 15% CG Cap)", [oldRegime.surcharge, newRegime.surcharge, oldRegime.surcharge - newRegime.surcharge], row);
   }
-
-  row = addTotalRow(ws, "Total Tax Liability (incl. Cess)", [data.results.oldTax, data.results.newTax, data.results.oldTax - data.results.newTax], row);
+  row = addDataRow(ws, "Health & Education Cess (4%)", [oldRegime.cess, newRegime.cess, oldRegime.cess - newRegime.cess], row, { striped: true });
+  row = addDataRow(ws, "Effective Tax Rate", [`${oldRegime.effectiveTaxRatePct.toFixed(1)}%`, `${newRegime.effectiveTaxRatePct.toFixed(1)}%`, null], row);
+  row = addTotalRow(ws, "Total Tax Liability (Rounded u/s 288B)", [oldRegime.totalTax, newRegime.totalTax, oldRegime.totalTax - newRegime.totalTax], row);
   row = addSpacer(ws, row);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // RECOMMENDATION BOX
-  // ═══════════════════════════════════════════════════════════════════
+  // Separate Slab Breakdowns
+  row = addSectionHeader(ws, "D. Detailed Slab Breakdowns", row);
+  row = addDataRow(ws, `New Regime (${config.sections.newRegime})`, [null, null, null], row, { bold: true, muted: true });
+  newRegime.breakdown.forEach((b, i) => {
+    row = addDataRow(ws, `  ${b.slab}`, [null, b.tax, null], row, { indent: 2, striped: i % 2 === 1 });
+  });
+  row = addDataRow(ws, "Old Regime", [null, null, null], row, { bold: true, muted: true });
+  oldRegime.breakdown.forEach((b, i) => {
+    row = addDataRow(ws, `  ${b.slab}`, [b.tax, null, null], row, { indent: 2, striped: i % 2 === 1 });
+  });
+  row = addSpacer(ws, row);
+
+  // Recommendation Highlight
   ws.mergeCells(`A${row}:D${row}`);
   const recCell = ws.getCell(`A${row}`);
-  const betterIsNew = data.results.better === "New Regime";
-  recCell.value = `✦  ${data.results.better} is Optimal  —  You save ₹ ${data.results.savings.toLocaleString("en-IN")}  ✦`;
-  recCell.font = FONT_GRAND_TOTAL;
-  recCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: betterIsNew ? CLR.primary : CLR.green } };
+  recCell.value =
+    result.savings > 0
+      ? `${result.betterRegime} is Optimal — Estimated Annual Tax Savings: ₹${result.savings.toLocaleString("en-IN")}`
+      : `Both Regimes Result in Equal Tax Liability (₹${result.activeTax.toLocaleString("en-IN")})`;
+  recCell.font = FONT_GRAND;
   recCell.alignment = { vertical: "middle", horizontal: "center" };
   for (let c = 1; c <= 4; c++) {
-    ws.getRow(row).getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: betterIsNew ? CLR.primary : CLR.green } };
+    ws.getRow(row).getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.green } };
   }
-  ws.getRow(row).height = 30;
+  ws.getRow(row).height = 28;
   row++;
   row = addSpacer(ws, row);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 4: COMPLIANCE & INTEREST
-  // ═══════════════════════════════════════════════════════════════════
-  if (data.taxPaid > 0 || data.results.interest234A > 0 || data.results.interest234B > 0) {
-    row = addSectionHeader(ws, "D. TDS / Advance Tax & Interest on Default", row, "D");
-    row = addTableHeader(ws, ["Particulars", "Amount (₹)", "Remarks", ""], row);
+  // Section E: Prepaid Tax, Interest & Refund / Payable
+  row = addSectionHeader(ws, `E. Compliance, Prepaid Tax & Final Balance (${result.betterRegime})`, row);
+  row = addTableHeader(ws, ["Particulars", "Amount (₹)", "Remarks", ""], row);
+  row = addDataRow(ws, `Assessed Tax Liability (${result.betterRegime})`, [result.activeTax, "Incl. Surcharge & Cess", null], row);
+  if (result.interest234A > 0) row = addDataRow(ws, `Interest (${config.sections.interest234A})`, [result.interest234A, `${input.monthsDelay234A} mo @ 1%/mo`, null], row, { striped: true });
+  if (result.interest234B > 0) row = addDataRow(ws, `Interest (${config.sections.interest234B})`, [result.interest234B, `${input.monthsDelay234B} mo @ 1%/mo`, null], row);
+  if (result.lateFee234F > 0) row = addDataRow(ws, `Late Filing Fee (${config.sections.lateFee234F})`, [result.lateFee234F, "Late return statutory fee", null], row, { striped: true });
+  row = addDataRow(ws, "Less: TDS / Advance Tax Already Paid", [-result.taxPaid, "Prepaid tax credit", null], row);
 
-    row = addDataRow(ws, "TDS / Advance Tax Already Paid", [data.taxPaid, "Credit claimed", null], row);
-    row = addDataRow(ws, "Balance Tax Payable / (Refundable)", [Math.max(0, (betterIsNew ? data.results.newTax : data.results.oldTax) - data.taxPaid), null, null], row, { striped: true, bold: true });
-
-    if (data.results.interest234A > 0) {
-      row = addDataRow(ws, `Interest u/s 234A — Filing Delay (${data.monthsDelay234A} months)`, [data.results.interest234A, "@ 1% per month", null], row);
-    }
-    if (data.results.interest234B > 0) {
-      row = addDataRow(ws, `Interest u/s 234B — Advance Tax Shortfall (${data.monthsDelay234B} months)`, [data.results.interest234B, "@ 1% per month", null], row, { striped: true });
-    }
-
-    row = addTotalRow(ws, "Net Tax + Interest Payable", [data.results.totalPayable, null, null], row, { bg: CLR.redBg, font: { ...FONT_TOTAL, color: { argb: CLR.red } } });
-    row = addSpacer(ws, row);
+  if (result.refundDue > 0) {
+    row = addTotalRow(ws, "Income Tax Refund Due", [result.refundDue, "Excess prepaid tax", null], row, {
+      bg: CLR.greenBg,
+      font: { ...FONT_TOTAL, color: { argb: CLR.green } },
+    });
+  } else {
+    row = addTotalRow(ws, "Final Self-Assessment Tax Payable", [result.netPayable, "Rounded u/s 288B", null], row, {
+      bg: result.netPayable > 0 ? CLR.redBg : CLR.greenBg,
+      font: { ...FONT_TOTAL, color: { argb: result.netPayable > 0 ? CLR.red : CLR.green } },
+    });
   }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // SECTION 5: ADVANCE TAX SCHEDULE
-  // ═══════════════════════════════════════════════════════════════════
-  row = addSectionHeader(ws, "E. Advance Tax Installment Schedule", row, "D");
-  row = addTableHeader(ws, ["Due Date", "Cumulative %", "Amount Payable (₹)", ""], row);
-
-  const advTax = data.results.advanceTax;
-  const schedule: [string, string, number][] = [
-    ["On or before 15th June", "15% of estimated tax", advTax.june],
-    ["On or before 15th September", "45% of estimated tax", advTax.sept],
-    ["On or before 15th December", "75% of estimated tax", advTax.dec],
-    ["On or before 15th March", "100% of estimated tax", advTax.march],
-  ];
-
-  schedule.forEach(([date, desc, amt], i) => {
-    row = addDataRow(ws, date, [amt, desc, null], row, { striped: i % 2 === 1 });
-  });
-
   row = addSpacer(ws, row);
 
-  // ═══════════════════════════════════════════════════════════════════
-  // FOOTER / DISCLAIMER
-  // ═══════════════════════════════════════════════════════════════════
+  // Section F: Advance Tax Schedule
+  row = addSectionHeader(ws, "F. Advance Tax Installment Schedule", row);
+  if (!result.advanceTax.applicable) {
+    row = addDataRow(ws, result.advanceTax.exemptReason || "Advance Tax Not Applicable", [0, "Exempt", null], row);
+  } else {
+    row = addTableHeader(ws, ["Due Date", "Cumulative Amount (₹)", "Statutory Milestone", ""], row);
+    result.advanceTax.installments.forEach((inst, i) => {
+      row = addDataRow(ws, inst.dueDate, [inst.cumulativeAmount, inst.percentageLabel, null], row, { striped: i % 2 === 1 });
+    });
+  }
+  row = addSpacer(ws, row);
+
+  // Footer
   ws.mergeCells(`A${row}:D${row}`);
   const discCell = ws.getCell(`A${row}`);
-  discCell.value = "Disclaimer: This is a computer-generated estimate for informational purposes only. Consult a qualified Chartered Accountant for professional tax advice.";
+  discCell.value = `Disclaimer: Computer-generated computation per ${config.actName} (${config.periodLabel}). Consult a qualified Chartered Accountant before filing.`;
   discCell.font = { name: "Calibri", size: 7.5, italic: true, color: { argb: CLR.textMuted } };
   discCell.alignment = { vertical: "middle", wrapText: true, indent: 1 };
   ws.getRow(row).height = 24;
   row++;
 
   ws.mergeCells(`A${row}:D${row}`);
-  const footerCell = ws.getCell(`A${row}`);
-  footerCell.value = `Generated by TaxFiling24  •  www.taxfiling24.com  •  ${new Date().toLocaleString("en-IN")}`;
-  footerCell.font = { name: "Calibri", size: 7.5, color: { argb: "9CA0B8" } };
-  footerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.darkNavy } };
-  footerCell.alignment = { vertical: "middle", horizontal: "center" };
+  const fCell = ws.getCell(`A${row}`);
+  fCell.value = `Generated by TaxFiling24  •  www.taxfiling24.com  •  ${new Date().toLocaleString("en-IN")}`;
+  fCell.font = { name: "Calibri", size: 8, color: { argb: CLR.gold } };
+  fCell.alignment = { vertical: "middle", horizontal: "center" };
   for (let c = 1; c <= 4; c++) {
-    ws.getRow(row).getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.darkNavy } };
+    ws.getRow(row).getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLR.navy } };
   }
   ws.getRow(row).height = 22;
 
-  // ═══════════════════════════════════════════════════════════════════
-  // Print Setup
-  // ═══════════════════════════════════════════════════════════════════
   ws.pageSetup.printArea = `A1:D${row}`;
   ws.pageSetup.margins = { left: 0.4, right: 0.4, top: 0.3, bottom: 0.3, header: 0.15, footer: 0.15 };
 

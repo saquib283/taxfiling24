@@ -12,18 +12,20 @@ import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 
 const TOOL_ITEMS = [
   {
+    badge: "TY 2026-27 · Income-tax Act, 2025",
     description:
-      "Estimate income tax under old and new regimes with a detailed, printable breakdown.",
+      "Compare Old vs. New Tax Regime across Tax Year 2026-27, FY 2025-26, and FY 2024-25 with Sec 87A/156 rebate, marginal relief, surcharge caps, HRA, capital gains, and CA-ready PDF/Excel reports.",
     href: "/tools/tax-calculator",
     icon: Landmark,
     title: "Income Tax Calculator",
   },
   {
+    badge: "GST 2.0 · 56th Council & Rule 88A",
     description:
-      "Calculate GST payable in inclusive or exclusive mode with item-level bill summaries.",
+      "Calculate inclusive or exclusive GST across 0%, 3%, 5%, 18%, and 40% slabs, build multi-item Tax Invoices or Composition Bills of Supply, and compute Rule 88A ITC offset & Cess.",
     href: "/tools/gst-calculator",
     icon: ReceiptText,
-    title: "GST Calculator",
+    title: "GST & Invoice Calculator",
   },
 ];
 
@@ -31,10 +33,16 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
   return buildPageMetadataFromSettings(settings, "tools", {
     description:
-      "Free tax and GST calculators from TaxFiling24 to help users estimate liabilities and plan compliance faster.",
-    keywords: ["GST calculator", "income tax calculator", "tax tools", "financial tools"],
+      "Free Indian Income Tax Calculator (Tax Year 2026-27 & FY 2025-26) and GST 2.0 Calculator with Rule 88A ITC, Composition Bill of Supply, and printable PDF/Excel statements.",
+    keywords: [
+      "income tax calculator 2026-27",
+      "Income-tax Act 2025 calculator",
+      "GST 2.0 calculator India",
+      "Rule 88A ITC calculator",
+      "tax tools India",
+    ],
     path: "/tools",
-    title: "Tax & Compliance Tools",
+    title: "Tax & Compliance Calculators",
   });
 }
 
@@ -81,8 +89,13 @@ export default function ToolsPage() {
                 href={tool.href}
                 className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-8 shadow-[var(--shadow-sm)] transition-all hover:-translate-y-1 hover:border-[var(--primary-border)] hover:shadow-[var(--shadow-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius)] bg-[var(--primary-soft)] text-[var(--primary)] transition-colors group-hover:bg-[var(--primary)] group-hover:text-white">
-                  <Icon className="h-7 w-7" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius)] bg-[var(--primary-soft)] text-[var(--primary)] transition-colors group-hover:bg-[var(--primary)] group-hover:text-white">
+                    <Icon className="h-7 w-7" />
+                  </div>
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg-muted)] px-3 py-1 text-[11px] font-bold tracking-wide text-[var(--primary)]">
+                    {tool.badge}
+                  </span>
                 </div>
                 <h2 className="mt-6 text-2xl font-bold tracking-tight text-[var(--fg)] transition-colors group-hover:text-[var(--primary)]">
                   {tool.title}

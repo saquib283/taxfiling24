@@ -11,14 +11,28 @@ import { findManagedSection, getManagedPageSections } from "@/lib/managed-pages"
 import { getSettings } from "@/lib/settings";
 import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 
+type ManagedPresetItem = {
+  hsn?: string;
+  desc?: string;
+  rate?: string;
+  category?: string;
+  isVisible?: boolean;
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
   return buildPageMetadataFromSettings(settings, "gst_calculator", {
     description:
-      "Free online GST calculator for India. Instantly calculate GST in inclusive and exclusive modes with item-level summaries.",
-    keywords: ["GST calculator", "GST tax calculator", "HSN calculator", "GST invoice calculator"],
+      "Free GST 2.0 Calculator for India (56th GST Council slabs: 0%, 3%, 5%, 18%, 40%). Compute exclusive/inclusive GST, HSN/SAC invoices, Rule 88A ITC offset, RCM, and Composition Bills of Supply.",
+    keywords: [
+      "GST 2.0 calculator India",
+      "56th GST Council slabs calculator",
+      "HSN SAC GST invoice calculator",
+      "Rule 88A ITC utilization calculator",
+      "GST composition bill of supply",
+    ],
     path: "/tools/gst-calculator",
-    title: "Online GST Calculator (HSN & SAC)",
+    title: "GST 2.0 Calculator & Invoice Builder (HSN / SAC)",
   });
 }
 
@@ -36,14 +50,15 @@ export default async function GSTCalculatorPage() {
             { name: "GST Calculator", url: absoluteUrl("/tools/gst-calculator") },
           ]),
           webPageSchema({
-            name: "GST Calculator",
-            description: "Free online GST calculator with HSN/SAC lookup.",
+            name: "GST 2.0 Calculator & Invoice Builder",
+            description:
+              "Free GST 2.0 online calculator with HSN/SAC lookup, Rule 88A ITC offset, Reverse Charge, and Section 10 Composition Bill of Supply.",
             url: absoluteUrl("/tools/gst-calculator"),
           }),
           softwareApplicationSchema({
             description:
-              "Interactive GST calculator for India with item-based billing and tax summary support.",
-            name: "GST Calculator",
+              "Interactive GST 2.0 calculator and multi-item Tax Invoice / Bill of Supply studio for India with Rule 88A ITC ledger utilization and PDF/Excel exports.",
+            name: "GST 2.0 Calculator",
             url: absoluteUrl("/tools/gst-calculator"),
           }),
         ]}
@@ -57,9 +72,9 @@ export default async function GSTCalculatorPage() {
           entries: findManagedSection<Record<string, unknown>>(sections, "gst.entries")?.data as Record<string, string> | undefined,
           summary: findManagedSection<Record<string, unknown>>(sections, "gst.summary")?.data as Record<string, string> | undefined,
           goodsPresets: (findManagedSection<Record<string, unknown>>(sections, "gst.goods-presets")?.data
-            ?.items as Array<Record<string, string>>) || undefined,
+            ?.items as ManagedPresetItem[]) || undefined,
           servicePresets: (findManagedSection<Record<string, unknown>>(sections, "gst.service-presets")?.data
-            ?.items as Array<Record<string, string>>) || undefined,
+            ?.items as ManagedPresetItem[]) || undefined,
         }}
       />
     </div>

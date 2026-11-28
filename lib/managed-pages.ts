@@ -1412,12 +1412,12 @@ const taxCalculatorTemplates: SectionTemplate[] = [
     label: "Hero",
     description: "Tax calculator page heading.",
     fields: [
-      textField("titlePrefix", "Title Prefix", "Tax Calculator"),
-      textField("titleHighlight", "Title Highlight", "FY 2025-26"),
+      textField("titlePrefix", "Title Prefix", "Income Tax"),
+      textField("titleHighlight", "Title Highlight", "TY 2026-27"),
       textareaField(
         "description",
         "Description",
-        "A professional assessment of the Old vs New tax regimes tailored for the latest financial regulations."
+        "Compare Old vs. New Tax Regimes under the Income-tax Act, 2025 (Tax Year 2026-27) and Finance Act 2025 (FY 2025-26) with statutory rebates, marginal relief, capital gains, and CA reports."
       ),
     ],
     createSection: () => ({
@@ -1427,10 +1427,10 @@ const taxCalculatorTemplates: SectionTemplate[] = [
       description: "Tax calculator page heading.",
       isVisible: true,
       data: {
-        titlePrefix: "Tax Calculator",
-        titleHighlight: "FY 2025-26",
+        titlePrefix: "Income Tax",
+        titleHighlight: "TY 2026-27",
         description:
-          "A professional assessment of the Old vs New tax regimes tailored for the latest financial regulations.",
+          "Compare Old vs. New Tax Regimes under the Income-tax Act, 2025 (Tax Year 2026-27) and Finance Act 2025 (FY 2025-26) with statutory rebates, marginal relief, capital gains, and CA reports.",
       },
     }),
   },
@@ -1600,12 +1600,12 @@ const gstCalculatorTemplates: SectionTemplate[] = [
     label: "Hero",
     description: "GST calculator page heading.",
     fields: [
-      textField("titlePrefix", "Title Prefix", "GST &"),
-      textField("titleHighlight", "Title Highlight", "Invoicing"),
+      textField("titlePrefix", "Title Prefix", "GST 2.0"),
+      textField("titleHighlight", "Title Highlight", "Calculator"),
       textareaField(
         "description",
         "Description",
-        "Professional itemized billing and tax calculations compliant with the latest GST regulations."
+        "Compute exclusive or inclusive GST across 56th Council slabs (0%, 3%, 5%, 18%, 40%), build multi-item Tax Invoices or Composition Bills of Supply, and calculate Rule 88A ITC offset."
       ),
     ],
     createSection: () => ({
@@ -1615,10 +1615,10 @@ const gstCalculatorTemplates: SectionTemplate[] = [
       description: "GST calculator page heading.",
       isVisible: true,
       data: {
-        titlePrefix: "GST &",
-        titleHighlight: "Invoicing",
+        titlePrefix: "GST 2.0",
+        titleHighlight: "Calculator",
         description:
-          "Professional itemized billing and tax calculations compliant with the latest GST regulations.",
+          "Compute exclusive or inclusive GST across 56th Council slabs (0%, 3%, 5%, 18%, 40%), build multi-item Tax Invoices or Composition Bills of Supply, and calculate Rule 88A ITC offset.",
       },
     }),
   },
@@ -1836,11 +1836,12 @@ const gstCalculatorTemplates: SectionTemplate[] = [
       isVisible: true,
       data: {
         items: [
-          { id: "goods-preset-1", hsn: "0101", desc: "Live Horses", rate: "0", category: "Agriculture", isVisible: true },
-          { id: "goods-preset-2", hsn: "2106", desc: "Food Preparations", rate: "18", category: "Food", isVisible: true },
-          { id: "goods-preset-3", hsn: "3004", desc: "Medicaments / Medicines", rate: "5", category: "Pharma", isVisible: true },
-          { id: "goods-preset-4", hsn: "8471", desc: "Laptops / Computers", rate: "18", category: "Electronics", isVisible: true },
-          { id: "goods-preset-5", hsn: "8517", desc: "Mobile Phones", rate: "18", category: "Electronics", isVisible: true },
+          { id: "goods-preset-1", hsn: "2523", desc: "Portland Cement (GST 2.0)", rate: "18", category: "Construction", isVisible: true },
+          { id: "goods-preset-2", hsn: "3004", desc: "Essential Medicaments / Medicines", rate: "5", category: "Pharma", isVisible: true },
+          { id: "goods-preset-3", hsn: "8471", desc: "Laptops / Desktop Computers", rate: "18", category: "Electronics", isVisible: true },
+          { id: "goods-preset-4", hsn: "8517", desc: "Mobile Phones & Telecom Gear", rate: "18", category: "Electronics", isVisible: true },
+          { id: "goods-preset-5", hsn: "8703", desc: "Luxury / High-Capacity Motor Cars", rate: "40", category: "Automobile", isVisible: true },
+          { id: "goods-preset-6", hsn: "7113", desc: "Gold & Silver Jewellery", rate: "3", category: "Precious Metals", isVisible: true },
         ],
       },
     }),
@@ -1871,10 +1872,10 @@ const gstCalculatorTemplates: SectionTemplate[] = [
       isVisible: true,
       data: {
         items: [
-          { id: "service-preset-1", hsn: "9954", desc: "Construction Services", rate: "18", category: "Construction", isVisible: true },
-          { id: "service-preset-2", hsn: "9963", desc: "Hotel stays < Rs. 7,500/day", rate: "5", category: "Hospitality", isVisible: true },
-          { id: "service-preset-3", hsn: "9983", desc: "IT / Software Services", rate: "18", category: "IT", isVisible: true },
-          { id: "service-preset-4", hsn: "9993", desc: "CA / Professional Services", rate: "18", category: "Professional", isVisible: true },
+          { id: "service-preset-1", hsn: "9971", desc: "Individual Life & Health Insurance (GST 2.0)", rate: "0", category: "Insurance", isVisible: true },
+          { id: "service-preset-2", hsn: "9963", desc: "Hotel Stays up to Rs. 7,500/night", rate: "5", category: "Hospitality", isVisible: true },
+          { id: "service-preset-3", hsn: "9983", desc: "IT, SaaS & Software Services", rate: "18", category: "IT", isVisible: true },
+          { id: "service-preset-4", hsn: "9982", desc: "CA, Legal & Advisory Services", rate: "18", category: "Professional", isVisible: true },
         ],
       },
     }),

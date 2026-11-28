@@ -15,10 +15,16 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
   return buildPageMetadataFromSettings(settings, "tax_calculator", {
     description:
-      "Free online income tax calculator for FY 2025-26. Calculate your tax liability under old and new tax regimes instantly.",
-    keywords: ["income tax calculator", "tax calculator India", "old vs new regime"],
+      "Free statutory Indian Income Tax Calculator for Tax Year 2026-27 (Income-tax Act, 2025) and FY 2025-26. Compare Old vs. New Regime with Sec 87A/156 rebate, marginal relief, capital gains, HRA, and CA PDF/Excel reports.",
+    keywords: [
+      "income tax calculator TY 2026-27",
+      "Income-tax Act 2025 calculator",
+      "income tax calculator FY 2025-26",
+      "old vs new tax regime India",
+      "section 87A marginal relief calculator",
+    ],
     path: "/tools/tax-calculator",
-    title: "Income Tax Calculator",
+    title: "Income Tax Calculator (TY 2026-27 & FY 2025-26)",
   });
 }
 
@@ -36,13 +42,14 @@ export default async function TaxCalculatorPage() {
             { name: "Tax Calculator", url: absoluteUrl("/tools/tax-calculator") },
           ]),
           webPageSchema({
-            name: "Income Tax Calculator",
-            description: "Free online income tax calculator for FY 2025-26.",
+            name: "Income Tax Calculator (TY 2026-27 & FY 2025-26)",
+            description:
+              "Free statutory Indian income tax calculator for Tax Year 2026-27 (Income-tax Act, 2025), FY 2025-26, and FY 2024-25.",
             url: absoluteUrl("/tools/tax-calculator"),
           }),
           softwareApplicationSchema({
             description:
-              "Interactive web-based income tax calculator for comparing old and new tax regimes in India.",
+              "Interactive statutory income tax calculator comparing Old and New tax regimes in India with surcharge caps, marginal relief, capital gains, and Advance Tax schedules.",
             name: "Income Tax Calculator",
             url: absoluteUrl("/tools/tax-calculator"),
           }),

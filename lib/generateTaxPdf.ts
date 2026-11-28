@@ -1,26 +1,27 @@
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from "pdf-lib";
+import type { IncomeTaxInput, IncomeTaxResult } from "./calculators/income-tax-engine";
 
-// ── Corporate Clean Color Palette (No Dark Fills) ──────────────────
+// ── TaxFiling24 Deep Navy & Heritage Gold Print Palette ────────────
 const C = {
-  primary: rgb(0.12, 0.22, 0.36),        // Deep Slate Navy
-  primaryLight: rgb(0.24, 0.38, 0.58),   // Soft Slate
-  accent: rgb(0.16, 0.44, 0.82),         // CA Professional Blue
-  textDark: rgb(0.12, 0.16, 0.24),       // Near-black text
-  textBody: rgb(0.26, 0.32, 0.42),       // Readable body
-  textMuted: rgb(0.48, 0.54, 0.64),      // Subtle text
-  textLight: rgb(0.62, 0.68, 0.76),      // Light text
+  primary: rgb(0.039, 0.145, 0.251),      // #0A2540 Deep Navy
+  primaryLight: rgb(0.11, 0.25, 0.40),
+  gold: rgb(0.71, 0.54, 0.12),            // Accessible Heritage Gold Ink
+  goldBar: rgb(0.831, 0.686, 0.216),      // #D4AF37 Heritage Gold
+  textDark: rgb(0.06, 0.09, 0.16),        // #0F172A Slate 900
+  textBody: rgb(0.28, 0.33, 0.41),        // #475569 Slate 600
+  textMuted: rgb(0.39, 0.45, 0.55),       // #64748B Slate 500
+  textLight: rgb(0.55, 0.60, 0.68),
   white: rgb(1, 1, 1),
-  bgLight: rgb(0.97, 0.98, 0.99),        // Light table header
-  bgCard: rgb(0.985, 0.99, 1),           // Light card fill
-  border: rgb(0.86, 0.89, 0.93),         // Subtle border
-  borderStrong: rgb(0.72, 0.78, 0.86),   // Stronger separator
-  success: rgb(0.08, 0.52, 0.32),        // Emerald
-  successBg: rgb(0.94, 0.98, 0.95),      // Soft emerald tint
-  successBorder: rgb(0.70, 0.88, 0.76),  // Emerald border
-  danger: rgb(0.78, 0.17, 0.22),
-  dangerBg: rgb(0.99, 0.94, 0.94),
-  stripeBg: rgb(0.985, 0.988, 0.995),    // Table alternating row
-  accentBar: rgb(0.16, 0.44, 0.82),
+  bgLight: rgb(0.973, 0.98, 0.988),       // #F8FAFC
+  bgCard: rgb(0.945, 0.961, 0.976),       // #F1F5F9
+  border: rgb(0.886, 0.91, 0.941),        // #E2E8F0
+  borderStrong: rgb(0.72, 0.78, 0.85),
+  success: rgb(0.02, 0.47, 0.34),         // Emerald 700
+  successBg: rgb(0.925, 0.992, 0.961),    // Emerald 50
+  successBorder: rgb(0.65, 0.88, 0.78),
+  danger: rgb(0.75, 0.12, 0.22),
+  dangerBg: rgb(0.996, 0.945, 0.95),
+  stripeBg: rgb(0.984, 0.988, 0.994),
 };
 
 const PAGE_W = 595.28;
@@ -29,78 +30,39 @@ const MARGIN_L = 44;
 const MARGIN_R = 44;
 const CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R;
 
-interface TaxReportData {
-  financialYear: string;
-  assessmentYear: string;
-  ageGroup: string;
-  salary: number;
-  rentalIncome: number;
-  otherIncome: number;
-  professionalIncome: number;
-  businessExpenses: number;
-  deduction80C: number;
-  deduction80D: number;
-  deduction80D_Parents: number;
-  deductionNPS: number;
-  homeLoanInterest: number;
-  hra: number;
-  otherDeductions: number;
-  stcgEquity: number;
-  ltcgEquity: number;
-  results: {
-    grossTotalIncome: number;
-    totalDeductions: number;
-    taxableOld: number;
-    taxableNew: number;
-    oldTax: number;
-    newTax: number;
-    savings: number;
-    better: string;
-    surchargeOld: number;
-    surchargeNew: number;
-    capitalGainsTax: number;
-    interest234A: number;
-    interest234B: number;
-    totalPayable: number;
-    breakdownOld: { slab: string; tax: number }[];
-    breakdownNew: { slab: string; tax: number }[];
-    advanceTax: { june: number; sept: number; dec: number; march: number };
-  };
+export interface TaxReportPayload {
+  input: IncomeTaxInput;
+  result: IncomeTaxResult;
 }
 
-// ── Text sanitizer: Replaces non-WinAnsi characters to prevent pdf-lib crash ──
 function clean(str: string | number | undefined | null): string {
   if (str === undefined || str === null) return "";
   return String(str)
     .replace(/₹/g, "Rs. ")
     .replace(/[—–]/g, "-")
-    .replace(/[""]/g, '"')
-    .replace(/['']/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/•/g, "|")
     .replace(/[^\x20-\x7E]/g, " ")
     .trim();
 }
 
 function formatINR(val: number): string {
-  const formatted = new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 0,
-  }).format(Math.round(val));
-  return `Rs. ${formatted}`;
+  const sign = val < 0 ? "-" : "";
+  const formatted = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(
+    Math.round(Math.abs(val))
+  );
+  return `${sign}Rs. ${formatted}`;
 }
 
 function ageLabel(group: string): string {
-  if (group === "senior") return "Senior Citizen (60-80)";
-  if (group === "super-senior") return "Super Senior (80+)";
-  return "Individual (Below 60)";
+  if (group === "senior") return "Senior Citizen (60-80 Yrs)";
+  if (group === "super-senior") return "Super Senior (80+ Yrs)";
+  return "Individual (< 60 Yrs)";
 }
 
-// ── Draw helpers ───────────────────────────────────────────────────
 function drawLine(page: PDFPage, y: number, color = C.border, thickness = 0.5) {
-  page.drawLine({
-    start: { x: MARGIN_L, y },
-    end: { x: PAGE_W - MARGIN_R, y },
-    thickness,
-    color,
-  });
+  page.drawLine({ start: { x: MARGIN_L, y }, end: { x: PAGE_W - MARGIN_R, y }, thickness, color });
 }
 
 function drawRect(page: PDFPage, x: number, y: number, w: number, h: number, color: ReturnType<typeof rgb>) {
@@ -116,19 +78,11 @@ function drawBorderedBox(
   bg: ReturnType<typeof rgb>,
   border: ReturnType<typeof rgb>
 ) {
-  page.drawRectangle({
-    x,
-    y,
-    width: w,
-    height: h,
-    color: bg,
-    borderColor: border,
-    borderWidth: 0.75,
-  });
+  page.drawRectangle({ x, y, width: w, height: h, color: bg, borderColor: border, borderWidth: 0.75 });
 }
 
 function drawSectionHeader(page: PDFPage, title: string, y: number, fontBold: PDFFont): number {
-  drawRect(page, MARGIN_L, y - 2, 3, 13, C.accent);
+  drawRect(page, MARGIN_L, y - 2, 3, 13, C.goldBar);
   page.drawText(clean(title.toUpperCase()), {
     x: MARGIN_L + 10,
     y,
@@ -136,10 +90,10 @@ function drawSectionHeader(page: PDFPage, title: string, y: number, fontBold: PD
     font: fontBold,
     color: C.primary,
   });
-  return y - 22;
+  return y - 20;
 }
 
-function drawTableRow(
+function drawThreeColRow(
   page: PDFPage,
   label: string,
   val1: string,
@@ -147,45 +101,47 @@ function drawTableRow(
   y: number,
   font: PDFFont,
   fontBold: PDFFont,
-  isHeader = false,
-  isTotal = false,
-  isStriped = false
+  opts?: { isHeader?: boolean; isTotal?: boolean; isStriped?: boolean }
 ): number {
-  const rowH = isHeader ? 20 : 18;
+  const rowH = opts?.isHeader ? 20 : 18;
   const colLabel = MARGIN_L + 8;
-  const colMid = MARGIN_L + CONTENT_W * 0.55;
+  const colMid = MARGIN_L + CONTENT_W * 0.64;
   const colRight = PAGE_W - MARGIN_R - 8;
 
-  if (isHeader) {
-    drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.bgLight, C.border);
-    page.drawText(clean(label), { x: colLabel, y: y + 2, size: 7.2, font: fontBold, color: C.primary });
-    const tw1 = fontBold.widthOfTextAtSize(clean(val1), 7.2);
-    page.drawText(clean(val1), { x: colMid - tw1, y: y + 2, size: 7.2, font: fontBold, color: C.primary });
-    const tw2 = fontBold.widthOfTextAtSize(clean(val2), 7.2);
-    page.drawText(clean(val2), { x: colRight - tw2, y: y + 2, size: 7.2, font: fontBold, color: C.primary });
-    return y - rowH - 2;
+  if (opts?.isHeader) {
+    drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.primary, C.primary);
+    page.drawText(clean(label), { x: colLabel, y: y + 2, size: 7.5, font: fontBold, color: C.white });
+    const tw1 = fontBold.widthOfTextAtSize(clean(val1), 7.5);
+    page.drawText(clean(val1), { x: colMid - tw1, y: y + 2, size: 7.5, font: fontBold, color: C.white });
+    const tw2 = fontBold.widthOfTextAtSize(clean(val2), 7.5);
+    page.drawText(clean(val2), { x: colRight - tw2, y: y + 2, size: 7.5, font: fontBold, color: C.white });
+    return y - rowH - 1;
   }
 
-  if (isStriped) {
-    drawRect(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.stripeBg);
-  }
+  if (opts?.isStriped) drawRect(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.stripeBg);
+  if (opts?.isTotal) drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.bgCard, C.borderStrong);
 
-  if (isTotal) {
-    drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, rowH, C.bgCard, C.borderStrong);
-  }
-
-  const usedFont = isTotal ? fontBold : font;
-  const usedColor = isTotal ? C.primary : C.textDark;
-  const fontSize = isTotal ? 8.5 : 7.8;
+  const usedFont = opts?.isTotal ? fontBold : font;
+  const usedColor = opts?.isTotal ? C.primary : C.textDark;
+  const fontSize = opts?.isTotal ? 8.3 : 7.8;
 
   page.drawText(clean(label), { x: colLabel, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
   const cVal1 = clean(val1);
-  const tw1 = usedFont.widthOfTextAtSize(cVal1, fontSize);
-  page.drawText(cVal1, { x: colMid - tw1, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
-
+  page.drawText(cVal1, {
+    x: colMid - usedFont.widthOfTextAtSize(cVal1, fontSize),
+    y: y + 2,
+    size: fontSize,
+    font: usedFont,
+    color: usedColor,
+  });
   const cVal2 = clean(val2);
-  const tw2 = usedFont.widthOfTextAtSize(cVal2, fontSize);
-  page.drawText(cVal2, { x: colRight - tw2, y: y + 2, size: fontSize, font: usedFont, color: usedColor });
+  page.drawText(cVal2, {
+    x: colRight - usedFont.widthOfTextAtSize(cVal2, fontSize),
+    y: y + 2,
+    size: fontSize,
+    font: usedFont,
+    color: usedColor,
+  });
 
   return y - rowH;
 }
@@ -197,20 +153,21 @@ function drawKVRow(
   y: number,
   font: PDFFont,
   fontBold: PDFFont,
-  isStriped = false
+  isStriped = false,
+  valColor = C.textDark
 ): number {
-  if (isStriped) drawRect(page, MARGIN_L, y - 4, CONTENT_W, 18, C.stripeBg);
-  page.drawText(clean(label), { x: MARGIN_L + 8, y: y + 2, size: 8, font, color: C.textDark });
+  if (isStriped) drawRect(page, MARGIN_L, y - 4, CONTENT_W, 17, C.stripeBg);
+  page.drawText(clean(label), { x: MARGIN_L + 8, y: y + 2, size: 7.8, font, color: C.textDark });
   const cleanedVal = clean(value);
-  const tw = fontBold.widthOfTextAtSize(cleanedVal, 8);
-  page.drawText(cleanedVal, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8, font: fontBold, color: C.textDark });
-  return y - 18;
+  const tw = fontBold.widthOfTextAtSize(cleanedVal, 7.8);
+  page.drawText(cleanedVal, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 7.8, font: fontBold, color: valColor });
+  return y - 17;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-// Main Clean Income Tax PDF Builder
-// ══════════════════════════════════════════════════════════════════════
-export async function generateTaxReportPdf(data: TaxReportData): Promise<Uint8Array> {
+export async function generateTaxReportPdf(payload: TaxReportPayload): Promise<Uint8Array> {
+  const { input, result } = payload;
+  const { config, oldRegime, newRegime } = result;
+
   const doc = await PDFDocument.create();
   const fontRegular = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -221,279 +178,265 @@ export async function generateTaxReportPdf(data: TaxReportData): Promise<Uint8Ar
 
   const drawPageFooter = (p: PDFPage, pageNum: number, total: number) => {
     drawLine(p, 36, C.border, 0.5);
-    p.drawText("TaxFiling24 - Chartered Tax Practice", { x: MARGIN_L, y: 22, size: 7, font: fontBold, color: C.textMuted });
-    const disclaimer = "Computer-generated tax estimation. Consult a CA before filing.";
-    p.drawText(disclaimer, { x: MARGIN_L, y: 12, size: 6, font: fontItalic, color: C.textLight });
-
+    p.drawText("TaxFiling24 - Chartered Tax & Compliance Practice", {
+      x: MARGIN_L,
+      y: 22,
+      size: 7,
+      font: fontBold,
+      color: C.primary,
+    });
+    p.drawText(
+      clean(`Computed per ${config.actName} (${config.periodLabel}). Advisory estimate; consult a CA before filing.`),
+      { x: MARGIN_L, y: 12, size: 6, font: fontItalic, color: C.textMuted }
+    );
     const pgText = `Page ${pageNum} of ${total}`;
-    const pgW = fontRegular.widthOfTextAtSize(pgText, 7);
-    p.drawText(pgText, { x: PAGE_W - MARGIN_R - pgW, y: 22, size: 7, font: fontRegular, color: C.textMuted });
+    p.drawText(pgText, {
+      x: PAGE_W - MARGIN_R - fontRegular.widthOfTextAtSize(pgText, 7),
+      y: 22,
+      size: 7,
+      font: fontRegular,
+      color: C.textMuted,
+    });
     const urlText = "www.taxfiling24.com";
-    const uW = fontRegular.widthOfTextAtSize(urlText, 6.5);
-    p.drawText(urlText, { x: PAGE_W - MARGIN_R - uW, y: 12, size: 6.5, font: fontRegular, color: C.accent });
+    p.drawText(urlText, {
+      x: PAGE_W - MARGIN_R - fontBold.widthOfTextAtSize(urlText, 6.5),
+      y: 12,
+      size: 6.5,
+      font: fontBold,
+      color: C.gold,
+    });
   };
 
   const addPageIfNeeded = (needed: number) => {
-    if (y - needed < 70) {
+    if (y - needed < 66) {
       page = doc.addPage([PAGE_W, PAGE_H]);
-      y = PAGE_H - 44;
+      drawRect(page, 0, PAGE_H - 4, PAGE_W, 4, C.primary);
+      y = PAGE_H - 40;
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────
-  // TOP ACCENT BRAND BAR
-  // ─────────────────────────────────────────────────────────────────
-  drawRect(page, 0, PAGE_H - 4, PAGE_W, 4, C.accentBar);
+  // Top Dual Brand Bar (Navy + Gold)
+  drawRect(page, 0, PAGE_H - 5, PAGE_W, 5, C.primary);
+  drawRect(page, 0, PAGE_H - 7, PAGE_W, 2, C.goldBar);
 
-  // ─────────────────────────────────────────────────────────────────
-  // HEADER (Pure Clean White Paper Letterhead)
-  // ─────────────────────────────────────────────────────────────────
-  y = PAGE_H - 38;
+  // Header
+  y = PAGE_H - 36;
   page.drawText("TaxFiling24", { x: MARGIN_L, y, size: 18, font: fontBold, color: C.primary });
-  const brandSub = "INCOME TAX COMPUTATION & REGIME ANALYSIS";
-  page.drawText(brandSub, { x: MARGIN_L, y: y - 14, size: 8, font: fontBold, color: C.accent });
+  page.drawText("INCOME TAX COMPUTATION & STATUTORY REGIME REPORT", {
+    x: MARGIN_L,
+    y: y - 14,
+    size: 7.5,
+    font: fontBold,
+    color: C.gold,
+  });
 
-  // FY & AY on Right
-  const fyText = `FY ${data.financialYear} | AY ${data.assessmentYear}`;
-  const dateStr = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-  const refCode = `REF-ITR-${Date.now().toString().slice(-6)}`;
+  const periodStr = clean(config.periodLabel);
+  const actStr = clean(config.actName);
+  const dateStr = `Generated: ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`;
 
-  let tw = fontBold.widthOfTextAtSize(fyText, 9.5);
-  page.drawText(fyText, { x: PAGE_W - MARGIN_R - tw, y, size: 9.5, font: fontBold, color: C.primary });
-
-  const dateLine = `Generated: ${dateStr}`;
-  tw = fontRegular.widthOfTextAtSize(dateLine, 7.5);
-  page.drawText(dateLine, { x: PAGE_W - MARGIN_R - tw, y: y - 12, size: 7.5, font: fontRegular, color: C.textMuted });
-
-  tw = fontRegular.widthOfTextAtSize(refCode, 7);
-  page.drawText(refCode, { x: PAGE_W - MARGIN_R - tw, y: y - 22, size: 7, font: fontRegular, color: C.textLight });
+  page.drawText(periodStr, {
+    x: PAGE_W - MARGIN_R - fontBold.widthOfTextAtSize(periodStr, 9.5),
+    y,
+    size: 9.5,
+    font: fontBold,
+    color: C.primary,
+  });
+  page.drawText(actStr, {
+    x: PAGE_W - MARGIN_R - fontRegular.widthOfTextAtSize(actStr, 7.5),
+    y: y - 12,
+    size: 7.5,
+    font: fontRegular,
+    color: C.textBody,
+  });
+  page.drawText(dateStr, {
+    x: PAGE_W - MARGIN_R - fontRegular.widthOfTextAtSize(dateStr, 7),
+    y: y - 22,
+    size: 7,
+    font: fontRegular,
+    color: C.textMuted,
+  });
 
   y -= 34;
   drawLine(page, y, C.border, 0.75);
-  y -= 16;
+  y -= 14;
 
-  // ─────────────────────────────────────────────────────────────────
-  // ASSESSMENT DETAILS STRIP (Light subtle container)
-  // ─────────────────────────────────────────────────────────────────
-  drawBorderedBox(page, MARGIN_L, y - 16, CONTENT_W, 26, C.bgLight, C.border);
+  // Assessee Details Strip
+  drawBorderedBox(page, MARGIN_L, y - 16, CONTENT_W, 24, C.bgLight, C.border);
+  const metaLine = clean(
+    `Category: ${ageLabel(input.ageGroup)}   |   Residency: ${input.residency === "nri" ? "Non-Resident (NRI)" : "Resident Individual"}   |   Optimal: ${result.betterRegime} (Saves ${formatINR(result.savings)})`
+  );
+  page.drawText(metaLine, { x: MARGIN_L + 10, y: y - 7, size: 7.2, font: fontBold, color: C.primary });
+  y -= 32;
 
-  const detailItems = [
-    { label: "Category:", value: ageLabel(data.ageGroup) },
-    { label: "Status:", value: "Individual / HUF" },
-    { label: "Recommended:", value: `${data.results.better} (Saves ${formatINR(data.results.savings)})` },
+  // Section 1: Gross Total Income
+  addPageIfNeeded(115);
+  y = drawSectionHeader(page, "1. Gross Total Income Summary", y, fontBold);
+
+  const incomeRows: [string, number][] = [
+    ["Gross Salary / Pension Income", input.salary],
+    ["Net Rental Income (after 30% Sec 24(a) Std Deduction)", Math.round(input.rentalIncome * 0.7)],
+    ["Interest & Other Sources Income", input.otherIncome],
+    [`Business / Profession Net Income (${input.businessMode.toUpperCase()})`, result.netBusinessIncome],
+    ...(input.stcgOther > 0 ? [["STCG - Non-Equity Assets (Slab Rate)", input.stcgOther] as [string, number]] : []),
+    ...(input.stcgEquity > 0 ? [[`STCG - Listed Equity (${config.sections.stcgEquity} @ 20%)`, input.stcgEquity] as [string, number]] : []),
+    ...(input.ltcgEquity > 0 ? [[`LTCG - Listed Equity (${config.sections.ltcgEquity} @ 12.5%)`, input.ltcgEquity] as [string, number]] : []),
+    ...(input.ltcgOther > 0 ? [[`LTCG - Other Assets (${config.sections.ltcgOther})`, input.ltcgOther] as [string, number]] : []),
   ];
 
-  let detailX = MARGIN_L + 10;
-  detailItems.forEach((item) => {
-    const lClean = clean(item.label);
-    const vClean = clean(item.value);
-    page.drawText(lClean, { x: detailX, y: y - 7, size: 7, font: fontRegular, color: C.textMuted });
-    detailX += fontRegular.widthOfTextAtSize(lClean, 7) + 3;
-    page.drawText(vClean, { x: detailX, y: y - 7, size: 7.2, font: fontBold, color: C.primary });
-    detailX += fontBold.widthOfTextAtSize(vClean, 7.2) + 20;
-  });
-
-  y -= 34;
-
-  // ─────────────────────────────────────────────────────────────────
-  // SECTION 1: GROSS TOTAL INCOME
-  // ─────────────────────────────────────────────────────────────────
-  addPageIfNeeded(110);
-  y = drawSectionHeader(page, "Gross Total Income Breakdown", y, fontBold);
-
-  const incomeItems: [string, number][] = [
-    ["Salary / Pension Income", data.salary],
-    ["Net Rental Income (after 30% std deduction)", data.rentalIncome * 0.7],
-    ["Interest & Other Income", data.otherIncome],
-    ["Professional / Business Income (Net)", Math.max(0, data.professionalIncome - data.businessExpenses)],
-  ];
-
-  incomeItems.forEach(([label, val], i) => {
-    addPageIfNeeded(20);
+  incomeRows.forEach(([label, val], i) => {
+    addPageIfNeeded(19);
     y = drawKVRow(page, label, formatINR(val), y, fontRegular, fontBold, i % 2 === 1);
   });
 
-  // GTI Total Bar
   addPageIfNeeded(24);
-  drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, 20, C.bgCard, C.border);
-  page.drawText("Gross Total Income (GTI)", {
-    x: MARGIN_L + 8,
+  drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, 20, C.bgCard, C.borderStrong);
+  page.drawText("Gross Total Income (GTI)", { x: MARGIN_L + 8, y: y + 2, size: 8.2, font: fontBold, color: C.primary });
+  const gtiStr = formatINR(result.grossTotalIncome);
+  page.drawText(gtiStr, {
+    x: PAGE_W - MARGIN_R - 8 - fontBold.widthOfTextAtSize(gtiStr, 8.4),
     y: y + 2,
-    size: 8,
+    size: 8.4,
     font: fontBold,
     color: C.primary,
   });
-  const gtiStr = formatINR(data.results.grossTotalIncome);
-  tw = fontBold.widthOfTextAtSize(gtiStr, 8.5);
-  page.drawText(gtiStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8.5, font: fontBold, color: C.primary });
   y -= 28;
 
-  // ─────────────────────────────────────────────────────────────────
-  // SECTION 2: DEDUCTIONS (Old Regime Chapter VI-A)
-  // ─────────────────────────────────────────────────────────────────
+  // Section 2: Side-by-Side Regime Comparison
+  addPageIfNeeded(180);
+  y = drawSectionHeader(page, "2. Side-by-Side Regime Tax Comparison", y, fontBold);
+  y = drawThreeColRow(page, "Particulars", "Old Regime", `New Regime (${config.sections.newRegime})`, y, fontRegular, fontBold, { isHeader: true });
+
+  const compRows: [string, string, string][] = [
+    ["Gross Total Income", formatINR(oldRegime.grossIncome), formatINR(newRegime.grossIncome)],
+    ["Less: Total Eligible Deductions", `(${formatINR(oldRegime.totalDeductions)})`, `(${formatINR(newRegime.totalDeductions)})`],
+    ["Net Taxable Income (Rounded u/s 288A)", formatINR(oldRegime.totalTaxableIncome), formatINR(newRegime.totalTaxableIncome)],
+    ["Normal Slab Tax (Before Rebate)", formatINR(oldRegime.slabTaxBeforeRebate), formatINR(newRegime.slabTaxBeforeRebate)],
+    [`Less: Rebate & Marginal Relief (${config.sections.rebate})`, `(${formatINR(oldRegime.rebate87A + oldRegime.rebateMarginalRelief)})`, `(${formatINR(newRegime.rebate87A + newRegime.rebateMarginalRelief)})`],
+    ...(oldRegime.totalSpecialCgTax > 0 || newRegime.totalSpecialCgTax > 0
+      ? [["Special-Rate Capital Gains Tax", formatINR(oldRegime.totalSpecialCgTax), formatINR(newRegime.totalSpecialCgTax)] as [string, string, string]]
+      : []),
+    ...(oldRegime.surcharge > 0 || newRegime.surcharge > 0
+      ? [["Surcharge (after Marginal Relief & 15% CG Cap)", formatINR(oldRegime.surcharge), formatINR(newRegime.surcharge)] as [string, string, string]]
+      : []),
+    ["Health & Education Cess (4%)", formatINR(oldRegime.cess), formatINR(newRegime.cess)],
+    ["Effective Tax Rate (%)", `${oldRegime.effectiveTaxRatePct.toFixed(1)}%`, `${newRegime.effectiveTaxRatePct.toFixed(1)}%`],
+  ];
+
+  compRows.forEach(([lbl, v1, v2], idx) => {
+    addPageIfNeeded(20);
+    y = drawThreeColRow(page, lbl, v1, v2, y, fontRegular, fontBold, { isStriped: idx % 2 === 1 });
+  });
+
+  addPageIfNeeded(24);
+  y = drawThreeColRow(page, "Total Tax Liability (Rounded u/s 288B)", formatINR(oldRegime.totalTax), formatINR(newRegime.totalTax), y, fontRegular, fontBold, { isTotal: true });
+  y -= 8;
+
+  // Optimal Recommendation Banner
+  addPageIfNeeded(44);
+  drawBorderedBox(page, MARGIN_L, y - 22, CONTENT_W, 30, C.successBg, C.successBorder);
+  const recHeadline = clean(
+    result.savings > 0
+      ? `${result.betterRegime} is Optimal - Saves ${formatINR(result.savings)} annually`
+      : `Both Regimes Result in Equal Tax Liability (${formatINR(result.activeTax)})`
+  );
+  page.drawText(recHeadline, {
+    x: (PAGE_W - fontBold.widthOfTextAtSize(recHeadline, 9.5)) / 2,
+    y: y - 10,
+    size: 9.5,
+    font: fontBold,
+    color: C.success,
+  });
+  y -= 38;
+
+  // Section 3: Separate Slab Breakdowns (Zero Label Corruption!)
+  addPageIfNeeded(120);
+  y = drawSectionHeader(page, "3. New Regime Slab Breakdown", y, fontBold);
+  newRegime.breakdown.forEach((row, i) => {
+    addPageIfNeeded(18);
+    y = drawKVRow(page, row.slab, formatINR(row.tax), y, fontRegular, fontBold, i % 2 === 1);
+  });
+  y -= 10;
+
   addPageIfNeeded(110);
-  y = drawSectionHeader(page, "Eligible Deductions (Old Regime)", y, fontBold);
-
-  const deductionItems: [string, number][] = [
-    ["Standard Deduction (u/s 16)", 50000],
-    ["Section 80C (PPF, ELSS, EPF, LIC)", Math.min(data.deduction80C, 150000)],
-    ["Section 80D - Self Health Insurance", Math.min(data.deduction80D, 25000)],
-    ["Section 80D - Parents Health Insurance", Math.min(data.deduction80D_Parents, 50000)],
-    ["Section 80CCD(1B) - NPS", Math.min(data.deductionNPS, 50000)],
-    ["Section 24(b) - Home Loan Interest", Math.min(data.homeLoanInterest, 200000)],
-    ["HRA Exemption (u/s 10)", data.hra],
-    ["Other Chapter VI-A (80G, 80E, 80TTA, etc.)", data.otherDeductions],
-  ];
-
-  let hasDeductions = false;
-  deductionItems.forEach(([label, val], i) => {
-    if (val > 0) {
-      hasDeductions = true;
-      addPageIfNeeded(20);
-      y = drawKVRow(page, label, formatINR(val), y, fontRegular, fontBold, i % 2 === 1);
-    }
+  y = drawSectionHeader(page, "4. Old Regime Slab Breakdown", y, fontBold);
+  oldRegime.breakdown.forEach((row, i) => {
+    addPageIfNeeded(18);
+    y = drawKVRow(page, row.slab, formatINR(row.tax), y, fontRegular, fontBold, i % 2 === 1);
   });
+  y -= 10;
 
-  if (!hasDeductions) {
-    y = drawKVRow(page, "No optional Chapter VI-A deductions claimed", formatINR(0), y, fontRegular, fontBold);
+  // Section 5: Deductions Applied (Old Regime)
+  const activeOldDeds = result.deductionBreakdownOld.filter((d) => d.allowed > 0);
+  if (activeOldDeds.length > 0) {
+    addPageIfNeeded(90);
+    y = drawSectionHeader(page, "5. Claimed Deductions (Old Regime)", y, fontBold);
+    activeOldDeds.forEach((d, i) => {
+      addPageIfNeeded(18);
+      y = drawKVRow(page, `${d.label} (${d.section})`, formatINR(d.allowed), y, fontRegular, fontBold, i % 2 === 1);
+    });
+    y -= 10;
   }
 
-  // Total Deductions Bar
-  addPageIfNeeded(24);
-  drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, 20, C.bgCard, C.border);
-  page.drawText("Total Deductions (Old Regime)", {
-    x: MARGIN_L + 8,
-    y: y + 2,
-    size: 8,
-    font: fontBold,
-    color: C.primary,
-  });
-  const tdStr = formatINR(data.results.totalDeductions);
-  tw = fontBold.widthOfTextAtSize(tdStr, 8.5);
-  page.drawText(tdStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 8.5, font: fontBold, color: C.primary });
-  y -= 28;
-
-  // ─────────────────────────────────────────────────────────────────
-  // SECTION 3: REGIME COMPARISON TABLE
-  // ─────────────────────────────────────────────────────────────────
-  addPageIfNeeded(150);
-  y = drawSectionHeader(page, "Tax Computation - Regime Comparison", y, fontBold);
-
-  // Table header
-  y = drawTableRow(page, "Particulars", "Old Regime", "New Regime", y, fontRegular, fontBold, true);
-
-  // Base rows
-  const stdDedNew = data.financialYear === "2024-25" ? 75000 : 75000;
-  const compRows: [string, string, string, boolean][] = [
-    ["Gross Total Income", formatINR(data.results.grossTotalIncome), formatINR(data.results.grossTotalIncome), false],
-    ["Less: Total Deductions", `(${formatINR(data.results.totalDeductions)})`, `(${formatINR(stdDedNew)} Std Ded)`, true],
-    ["Net Taxable Income", formatINR(data.results.taxableOld), formatINR(data.results.taxableNew), false],
-  ];
-
-  compRows.forEach(([label, v1, v2, striped]) => {
-    addPageIfNeeded(20);
-    y = drawTableRow(page, label, v1, v2, y, fontRegular, fontBold, false, false, striped);
-  });
-
-  // Slab Breakdown Subtitle
-  y -= 4;
-  page.drawText("Slab-wise Tax Computation:", { x: MARGIN_L + 8, y: y + 2, size: 7, font: fontItalic, color: C.textMuted });
-  y -= 14;
-
-  const maxSlabs = Math.max(data.results.breakdownOld?.length || 0, data.results.breakdownNew?.length || 0);
-  for (let i = 0; i < maxSlabs; i++) {
-    addPageIfNeeded(20);
-    const oldSlab = data.results.breakdownOld?.[i];
-    const newSlab = data.results.breakdownNew?.[i];
-    y = drawTableRow(
-      page,
-      oldSlab?.slab || newSlab?.slab || "",
-      oldSlab ? formatINR(oldSlab.tax) : "Rs. 0",
-      newSlab ? formatINR(newSlab.tax) : "Rs. 0",
-      y,
-      fontRegular,
-      fontBold,
-      false,
-      false,
-      i % 2 === 1
-    );
+  // Section 6: Prepaid Tax, Interest & Final Balance / Refund
+  addPageIfNeeded(110);
+  y = drawSectionHeader(page, `6. Net Tax Payable / Refund (${result.betterRegime})`, y, fontBold);
+  y = drawKVRow(page, `Assessed Tax Liability (${result.betterRegime})`, formatINR(result.activeTax), y, fontRegular, fontBold, false);
+  if (result.interest234A > 0) {
+    y = drawKVRow(page, `Late Return Interest (${config.sections.interest234A} @ 1%/mo)`, formatINR(result.interest234A), y, fontRegular, fontBold, true, C.danger);
+  }
+  if (result.interest234B > 0) {
+    y = drawKVRow(page, `Advance Tax Shortfall Interest (${config.sections.interest234B} @ 1%/mo)`, formatINR(result.interest234B), y, fontRegular, fontBold, false, C.danger);
+  }
+  if (result.lateFee234F > 0) {
+    y = drawKVRow(page, `Late Filing Fee (${config.sections.lateFee234F})`, formatINR(result.lateFee234F), y, fontRegular, fontBold, true, C.danger);
+  }
+  if (result.taxPaid > 0) {
+    y = drawKVRow(page, "Less: TDS / Advance Tax Already Paid", `(${formatINR(result.taxPaid)})`, y, fontRegular, fontBold, false, C.success);
   }
 
-  // Cess & Surcharge Rows
-  addPageIfNeeded(40);
-  y = drawTableRow(page, "Health & Education Cess (4%)", formatINR(data.results.oldTax - data.results.oldTax / 1.04), formatINR(data.results.newTax - data.results.newTax / 1.04), y, fontRegular, fontBold, false, false, false);
-
-  if (data.results.surchargeOld > 0 || data.results.surchargeNew > 0) {
-    addPageIfNeeded(20);
-    y = drawTableRow(page, "Surcharge", formatINR(data.results.surchargeOld), formatINR(data.results.surchargeNew), y, fontRegular, fontBold, false, false, true);
-  }
-
-  if (data.results.capitalGainsTax > 0) {
-    addPageIfNeeded(20);
-    y = drawTableRow(page, "Capital Gains Tax (incl. in above)", formatINR(data.results.capitalGainsTax), formatINR(data.results.capitalGainsTax), y, fontRegular, fontBold, false, false, true);
-  }
-
-  // Total Tax Liability Row
   addPageIfNeeded(26);
-  y -= 2;
-  y = drawTableRow(page, "Total Tax Liability (incl. Cess)", formatINR(data.results.oldTax), formatINR(data.results.newTax), y, fontRegular, fontBold, false, true);
+  const isRefund = result.refundDue > 0;
+  drawBorderedBox(page, MARGIN_L, y - 6, CONTENT_W, 22, isRefund ? C.successBg : C.bgCard, isRefund ? C.successBorder : C.borderStrong);
+  const finalLabel = isRefund ? "Income Tax Refund Due" : "Final Self-Assessment Tax Payable";
+  const finalVal = formatINR(isRefund ? result.refundDue : result.netPayable);
+  page.drawText(finalLabel, { x: MARGIN_L + 8, y: y + 1, size: 8.5, font: fontBold, color: isRefund ? C.success : C.primary });
+  page.drawText(finalVal, {
+    x: PAGE_W - MARGIN_R - 8 - fontBold.widthOfTextAtSize(finalVal, 9),
+    y: y + 1,
+    size: 9,
+    font: fontBold,
+    color: isRefund ? C.success : C.primary,
+  });
+  y -= 30;
 
-  // Recommendation & Savings Box (Clean Light Emerald Card)
-  addPageIfNeeded(46);
-  y -= 6;
-  const savH = 34;
-  drawBorderedBox(page, MARGIN_L, y - savH + 16, CONTENT_W, savH, C.successBg, C.successBorder);
-
-  const recText = `${data.results.better} saves you ${formatINR(data.results.savings)}`;
-  const recW = fontBold.widthOfTextAtSize(clean(recText), 10.5);
-  page.drawText(clean(recText), { x: (PAGE_W - recW) / 2, y: y - 3, size: 10.5, font: fontBold, color: C.success });
-
-  const subRecText = "Recommended optimal regime based on your declared deductions profile";
-  const subRecW = fontRegular.widthOfTextAtSize(clean(subRecText), 7);
-  page.drawText(clean(subRecText), { x: (PAGE_W - subRecW) / 2, y: y - 15, size: 7, font: fontRegular, color: C.textBody });
-  y -= savH + 16;
-
-  // ─────────────────────────────────────────────────────────────────
-  // SECTION 4: ADVANCE TAX SCHEDULE
-  // ─────────────────────────────────────────────────────────────────
-  if (data.results.advanceTax) {
-    addPageIfNeeded(110);
-    y = drawSectionHeader(page, "Advance Tax Installment Schedule", y, fontBold);
-
-    const advTax = data.results.advanceTax;
-    const installments: [string, string, number][] = [
-      ["15th June", "15% of Cumulative Tax Liability", advTax.june],
-      ["15th September", "45% of Cumulative Tax Liability", advTax.sept],
-      ["15th December", "75% of Cumulative Tax Liability", advTax.dec],
-      ["15th March", "100% of Cumulative Tax Liability", advTax.march],
-    ];
-
-    drawBorderedBox(page, MARGIN_L, y - 4, CONTENT_W, 18, C.bgLight, C.border);
-    page.drawText("Due Date", { x: MARGIN_L + 8, y: y + 2, size: 7, font: fontBold, color: C.primary });
-    page.drawText("Description", { x: MARGIN_L + 120, y: y + 2, size: 7, font: fontBold, color: C.primary });
-    const amtLbl = "Amount";
-    tw = fontBold.widthOfTextAtSize(amtLbl, 7);
-    page.drawText(amtLbl, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 7, font: fontBold, color: C.primary });
-    y -= 20;
-
-    installments.forEach(([date, desc, amt], i) => {
-      addPageIfNeeded(20);
-      if (i % 2 === 1) drawRect(page, MARGIN_L, y - 4, CONTENT_W, 18, C.stripeBg);
-      page.drawText(clean(date), { x: MARGIN_L + 8, y: y + 2, size: 7.8, font: fontBold, color: C.textDark });
-      page.drawText(clean(desc), { x: MARGIN_L + 120, y: y + 2, size: 7.5, font: fontRegular, color: C.textMuted });
-      const amtStr = formatINR(amt);
-      tw = fontBold.widthOfTextAtSize(amtStr, 7.8);
-      page.drawText(amtStr, { x: PAGE_W - MARGIN_R - 8 - tw, y: y + 2, size: 7.8, font: fontBold, color: C.textDark });
-      y -= 18;
+  // Section 7: Advance Tax Schedule
+  addPageIfNeeded(100);
+  y = drawSectionHeader(page, "7. Advance Tax Installment Schedule", y, fontBold);
+  if (!result.advanceTax.applicable) {
+    page.drawText(clean(result.advanceTax.exemptReason || "Advance Tax Not Applicable."), {
+      x: MARGIN_L + 8,
+      y,
+      size: 7.8,
+      font: fontItalic,
+      color: C.textBody,
+    });
+  } else {
+    result.advanceTax.installments.forEach((inst, i) => {
+      addPageIfNeeded(18);
+      y = drawKVRow(
+        page,
+        `${inst.dueDate} (${inst.percentageLabel})`,
+        formatINR(inst.cumulativeAmount),
+        y,
+        fontRegular,
+        fontBold,
+        i % 2 === 1
+      );
     });
   }
 
-  // Stamp all pages with page footers
   const pages = doc.getPages();
-  const totalPages = pages.length;
-  pages.forEach((p, idx) => {
-    drawPageFooter(p, idx + 1, totalPages);
-  });
+  pages.forEach((p, idx) => drawPageFooter(p, idx + 1, pages.length));
 
   return await doc.save();
 }

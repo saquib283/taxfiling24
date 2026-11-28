@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useId } from "react";
 import {
   Search,
   Receipt,
@@ -8,438 +8,300 @@ import {
   FileText,
   ShieldCheck,
   Plus,
+  Minus,
   Trash2,
   ArrowRight,
-  Printer,
-  Sparkles,
+  RotateCcw,
+  AlertCircle,
+  Info,
+  X,
 } from "lucide-react";
 import Link from "next/link";
-import type { GstReportData } from "@/lib/generateGstPdf";
+import PageHero from "@/components/layout/PageHero";
+import {
+  ALL_GST_RATES,
+  COMPOSITION_CATEGORIES,
+  GST_2_ACTIVE_SLABS,
+  GST_2_HSN_PRESETS,
+  GST_2_SAC_PRESETS,
+  GST_LEGACY_SLABS,
+  type CompositionCategory,
+  type GstCalcMode,
+  type GstPlaceOfSupply,
+  type GstTaxScheme,
+} from "@/lib/calculators/gst-rules";
+import {
+  computeGstInvoice,
+  computeQuickGst,
+  round2,
+  type GstInvoiceInput,
+  type GstLineItemInput,
+  type ItcCreditInput,
+} from "@/lib/calculators/gst-engine";
 
-const GST_RATES = [0, 3, 5, 12, 18, 28, 40] as const;
-
-const HSN_PRESETS = [
-  { hsn: "0101", desc: "Live Horses & Farm Animals", rate: 0, category: "Agriculture" },
-  { hsn: "1001", desc: "Wheat & Food Grains", rate: 0, category: "Agriculture" },
-  { hsn: "2106", desc: "Food Preparations & Edibles", rate: 18, category: "Food" },
-  { hsn: "2201", desc: "Packaged Drinking Water", rate: 18, category: "Beverages" },
-  { hsn: "2202", desc: "Aerated / Soft Drinks", rate: 40, category: "Beverages" },
-  { hsn: "2401", desc: "Tobacco & Related Products", rate: 40, category: "Tobacco" },
-  { hsn: "3004", desc: "Medicaments / Pharma Medicines", rate: 5, category: "Pharma" },
-  { hsn: "3401", desc: "Soap & Hygiene Detergents", rate: 5, category: "FMCG" },
-  { hsn: "3808", desc: "Pesticides & Fertilizers", rate: 5, category: "Agri Inputs" },
-  { hsn: "4901", desc: "Books & Educational Material", rate: 0, category: "Education" },
-  { hsn: "6101", desc: "Readymade Garments & Apparel", rate: 5, category: "Textiles" },
-  { hsn: "7108", desc: "Gold / Silver Bullion & Jewellery", rate: 3, category: "Precious Metals" },
-  { hsn: "8471", desc: "Laptops & Computing Equipment", rate: 18, category: "Electronics" },
-  { hsn: "8517", desc: "Mobile Phones & Hardware", rate: 18, category: "Electronics" },
-  { hsn: "8703", desc: "Automobiles & Motor Cars", rate: 28, category: "Automobiles" },
-  { hsn: "8711", desc: "Motorcycles & Two-Wheelers", rate: 18, category: "Automobiles" },
-  { hsn: "2523", desc: "Portland Cement", rate: 28, category: "Construction" },
-  { hsn: "9503", desc: "Educational Toys & Games", rate: 5, category: "Toys" },
-  { hsn: "9619", desc: "Sanitary & Health Hygiene Goods", rate: 5, category: "Health" },
-];
-
-const SAC_PRESETS = [
-  { hsn: "9954", desc: "Construction & Commercial Works", rate: 18, category: "Construction" },
-  { hsn: "9963", desc: "Hotel Accommodation < ₹7,500/day", rate: 5, category: "Hospitality" },
-  { hsn: "9963", desc: "Luxury Hotel & Fine Dining", rate: 18, category: "Hospitality" },
-  { hsn: "9964", desc: "Passenger Transport Services", rate: 5, category: "Transport" },
-  { hsn: "9983", desc: "Fitness, Salon & Wellness", rate: 5, category: "Leisure" },
-  { hsn: "9983", desc: "Software, Cloud & IT Services", rate: 18, category: "IT" },
-  { hsn: "9971", desc: "Banking & Financial Services", rate: 18, category: "Finance" },
-  { hsn: "9993", desc: "CA, Legal & Advisory Services", rate: 18, category: "Professional" },
-];
-
-type CalcMode = "exclusive" | "inclusive";
-
-interface BillItem {
-  id: string;
-  name: string;
-  unitPrice: number;
-  quantity: number;
-  gstRate: number;
-  cessRate: number;
-  discount: number;
+function fmtPaise(v: number): string {
+  const sign = v < 0 ? "-" : "";
+  const f = new Intl.NumberFormat("en-IN", {
+    currency: "INR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    style: "currency",
+  }).format(Math.abs(v));
+  return `${sign}${f}`;
 }
+
+function fmtSec170(v: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    currency: "INR",
+    maximumFractionDigits: 0,
+    style: "currency",
+  }).format(Math.round(Math.abs(v)));
+}
+
+function parseNonNeg(raw: string): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+const DEFAULT_INVOICE_ITEM: GstLineItemInput = {
+  id: "1",
+  name: "CA, Legal & Advisory Services (SAC 9982)",
+  unitPrice: 15000,
+  quantity: 1,
+  gstRate: 18,
+  cessRate: 0,
+  discount: 0,
+};
 
 export default function GSTCalculator({
   content,
 }: {
   content?: {
-    hero?: {
-      titlePrefix?: string;
-      titleHighlight?: string;
-      description?: string;
-    };
-    controls?: {
-      exclusiveLabel?: string;
-      inclusiveLabel?: string;
-      marginLabel?: string;
-      regularLabel?: string;
-      compositionLabel?: string;
-    };
-    entry?: {
-      panelTitle?: string;
-      panelSubtitle?: string;
-      goodsLabel?: string;
-      servicesLabel?: string;
-      searchPlaceholderGoods?: string;
-      searchPlaceholderServices?: string;
-      noPresetResultsText?: string;
-      unitPriceLabel?: string;
-      quantityLabel?: string;
-      gstRateLabel?: string;
-      discountLabel?: string;
-      cessLabel?: string;
-      addItemLabel?: string;
-      messagePlaceholder?: string;
-    };
-    compliance?: {
-      placeOfSupplyTitle?: string;
-      intraLabel?: string;
-      interLabel?: string;
-      reverseChargeTitle?: string;
-      reverseChargeDescription?: string;
-      itcTitle?: string;
-      itcSubtitle?: string;
-      totalPurchasesLabel?: string;
-      inputGstLabel?: string;
-    };
-    entries?: {
-      title?: string;
-      itemCountSuffix?: string;
-      emptyStateText?: string;
-      descriptionColumn?: string;
-      quantityColumn?: string;
-      totalColumn?: string;
-    };
-    summary?: {
-      panelTitle?: string;
-      panelSubtitle?: string;
-      totalPayableLabel?: string;
-      totalPayableDescription?: string;
-      taxableBaseLabel?: string;
-      discountsLabel?: string;
-      cgstLabel?: string;
-      sgstLabel?: string;
-      igstLabel?: string;
-      cessBreakdownLabel?: string;
-      itcOffsetLabel?: string;
-      netGstLabel?: string;
-      standardDescription?: string;
-      creditDescription?: string;
-      compositionDescription?: string;
-      exportLabel?: string;
-      printLabel?: string;
-      marginAnalysisTitle?: string;
-      expectedMarginLabel?: string;
-      estimatedProfitLabel?: string;
-    };
+    hero?: { titlePrefix?: string; titleHighlight?: string; description?: string };
+    controls?: Record<string, string | undefined>;
+    entry?: Record<string, string | undefined>;
+    compliance?: Record<string, string | undefined>;
+    entries?: Record<string, string | undefined>;
+    summary?: Record<string, string | undefined>;
     goodsPresets?: Array<{ hsn?: string; desc?: string; rate?: string; category?: string; isVisible?: boolean }>;
     servicePresets?: Array<{ hsn?: string; desc?: string; rate?: string; category?: string; isVisible?: boolean }>;
   };
 }) {
-  // Navigation: Quick Calculator vs Invoice Builder
-  const [calculatorView, setCalculatorView] = useState<"quick" | "invoice">("quick");
+  const uid = useId();
+  const hsnBoxRef = useRef<HTMLDivElement>(null);
 
-  // --- QUICK CALCULATOR STATE ---
+  // Navigation: Instant Quick Calculator vs Multi-Item Invoice Builder
+  const [view, setView] = useState<"quick" | "invoice">("quick");
+  const [showLegacyRates, setShowLegacyRates] = useState(false);
+
+  // Quick Calculator State
   const [quickAmount, setQuickAmount] = useState<number>(10000);
   const [quickRate, setQuickRate] = useState<number>(18);
-  const [quickMode, setQuickMode] = useState<CalcMode>("exclusive");
-  const [quickSupply, setQuickSupply] = useState<"intra" | "inter">("intra");
+  const [quickMode, setQuickMode] = useState<GstCalcMode>("exclusive");
+  const [quickSupply, setQuickSupply] = useState<GstPlaceOfSupply>("intra");
 
-  // --- INVOICE BUILDER STATE ---
-  const [calcMode, setCalcMode] = useState<CalcMode>("exclusive");
-  const [showMarginMode, setShowMarginMode] = useState(false);
-  const [margin, setMargin] = useState<number>(20);
-  const [hsnSearch, setHsnSearch] = useState("");
-  const [showHsnPanel, setShowHsnPanel] = useState(false);
-  const [activeTab, setActiveTab] = useState<"goods" | "services">("goods");
-  const [placeOfSupply, setPlaceOfSupply] = useState<"intra" | "inter">("intra");
+  // Invoice Builder State
+  const [calcMode, setCalcMode] = useState<GstCalcMode>("exclusive");
+  const [placeOfSupply, setPlaceOfSupply] = useState<GstPlaceOfSupply>("intra");
+  const [taxScheme, setTaxScheme] = useState<GstTaxScheme>("regular");
+  const [compositionCategory, setCompositionCategory] = useState<CompositionCategory>("trader_manufacturer");
   const [isRcm, setIsRcm] = useState(false);
-  const [taxScheme, setTaxScheme] = useState<"regular" | "composition">("regular");
+  const [showMarginMode, setShowMarginMode] = useState(false);
+  const [marginPct, setMarginPct] = useState<number>(20);
+
+  // Rule 88A ITC Ledger State
+  const [itcMode, setItcMode] = useState<"simple" | "ledger">("simple");
   const [inputPurchases, setInputPurchases] = useState<number>(0);
   const [inputGstRate, setInputGstRate] = useState<number>(18);
-  const [items, setItems] = useState<BillItem[]>([]);
+  const [purchaseSupplyType, setPurchaseSupplyType] = useState<GstPlaceOfSupply>("intra");
+  const [manualItc, setManualItc] = useState<ItcCreditInput>({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
 
-  // Exports
+  // HSN / SAC Autocomplete State
+  const [activePresetTab, setActivePresetTab] = useState<"goods" | "services">("goods");
+  const [hsnSearch, setHsnSearch] = useState("");
+  const [showHsnPanel, setShowHsnPanel] = useState(false);
+
+  const [items, setItems] = useState<GstLineItemInput[]>([DEFAULT_INVOICE_ITEM]);
+  const [newItem, setNewItem] = useState<GstLineItemInput>({
+    id: "",
+    name: "",
+    unitPrice: 0,
+    quantity: 1,
+    gstRate: 18,
+    cessRate: 0,
+    discount: 0,
+  });
+
+  // Export states
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
+  // Load saved invoice items from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("gst_items");
+    const saved = localStorage.getItem("gst_items_v2");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setItems(parsed);
-          return;
         }
-      } catch (e) {
-        console.error("Failed to load saved GST items", e);
+      } catch {
+        // Ignore invalid persisted JSON
       }
     }
-    setItems([
-      {
-        cessRate: 0,
-        discount: 0,
-        gstRate: 18,
-        id: "1",
-        name: "Professional Financial Advisory",
-        quantity: 1,
-        unitPrice: 15000,
-      },
-    ]);
   }, []);
 
   useEffect(() => {
-    if (items.length > 0) {
-      localStorage.setItem("gst_items", JSON.stringify(items));
-    }
+    localStorage.setItem("gst_items_v2", JSON.stringify(items));
   }, [items]);
 
-  const [newItem, setNewItem] = useState<BillItem>({
-    cessRate: 0,
-    discount: 0,
-    gstRate: 18,
-    id: "",
-    name: "",
-    quantity: 1,
-    unitPrice: 0,
-  });
+  // Dismiss HSN dropdown on outside click or Escape key
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent) => {
+      if (hsnBoxRef.current && !hsnBoxRef.current.contains(e.target as Node)) {
+        setShowHsnPanel(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowHsnPanel(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
-  const addItem = () => {
-    if (newItem.unitPrice <= 0) return;
-    setItems([
-      ...items,
-      {
-        ...newItem,
-        id: Date.now().toString(),
-        name: newItem.name || `Line Item ${items.length + 1}`,
-      },
-    ]);
-    setNewItem({
-      cessRate: 0,
-      discount: 0,
-      gstRate: 18,
-      id: "",
-      name: "",
-      quantity: 1,
-      unitPrice: 0,
-    });
-    setHsnSearch("");
-  };
-
-  const removeItem = (id: string) => {
-    setItems(items.filter((i) => i.id !== id));
-  };
-
-  // Preset Lookups
-  const goodsPresets =
-    content?.goodsPresets
-      ?.filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
+  const goodsPresets = useMemo(() => {
+    const cms = (content?.goodsPresets || [])
+      .filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
       .map((item) => ({
-        category: item.category || "",
-        desc: item.desc || "",
         hsn: item.hsn || "",
+        desc: item.desc || "",
         rate: Number(item.rate || 0),
-      })) || HSN_PRESETS;
+        category: item.category || "",
+      }));
+    if (cms.length === 0) return GST_2_HSN_PRESETS;
+    const seen = new Set(cms.map((c) => `${c.hsn}:${c.desc.toLowerCase()}`));
+    return [...cms, ...GST_2_HSN_PRESETS.filter((p) => !seen.has(`${p.hsn}:${p.desc.toLowerCase()}`))];
+  }, [content?.goodsPresets]);
 
-  const servicePresets =
-    content?.servicePresets
-      ?.filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
+  const servicePresets = useMemo(() => {
+    const cms = (content?.servicePresets || [])
+      .filter((item) => item.isVisible !== false && item.hsn && item.desc && item.category)
       .map((item) => ({
-        category: item.category || "",
-        desc: item.desc || "",
         hsn: item.hsn || "",
+        desc: item.desc || "",
         rate: Number(item.rate || 0),
-      })) || SAC_PRESETS;
+        category: item.category || "",
+      }));
+    if (cms.length === 0) return GST_2_SAC_PRESETS;
+    const seen = new Set(cms.map((c) => `${c.hsn}:${c.desc.toLowerCase()}`));
+    return [...cms, ...GST_2_SAC_PRESETS.filter((p) => !seen.has(`${p.hsn}:${p.desc.toLowerCase()}`))];
+  }, [content?.servicePresets]);
 
-  const presets = activeTab === "goods" ? goodsPresets : servicePresets;
+  const presets = activePresetTab === "goods" ? goodsPresets : servicePresets;
+  const filteredPresets = useMemo(() => {
+    const q = hsnSearch.trim().toLowerCase();
+    if (!q) return presets;
+    const rateQ = q.endsWith("%") ? q.slice(0, -1) : q;
+    return presets.filter(
+      (h) =>
+        h.desc.toLowerCase().includes(q) ||
+        h.hsn.toLowerCase().includes(q) ||
+        h.category.toLowerCase().includes(q) ||
+        String(h.rate) === rateQ
+    );
+  }, [hsnSearch, presets]);
 
-  const filteredPresets = useMemo(
+  // Quick Mode Result
+  const quickResult = useMemo(
     () =>
-      presets.filter(
-        (h) =>
-          h.desc.toLowerCase().includes(hsnSearch.toLowerCase()) ||
-          h.hsn.includes(hsnSearch) ||
-          h.category.toLowerCase().includes(hsnSearch.toLowerCase())
-      ),
-    [hsnSearch, presets]
+      computeQuickGst({
+        amount: quickAmount,
+        gstRate: quickRate,
+        mode: quickMode,
+        placeOfSupply: quickSupply,
+      }),
+    [quickAmount, quickMode, quickRate, quickSupply]
   );
 
-  // Quick Computation
-  const quickResults = useMemo(() => {
-    const rateDecimal = quickRate / 100;
-    let base = 0;
-    let tax = 0;
-    let total = 0;
-
-    if (quickMode === "exclusive") {
-      base = quickAmount;
-      tax = base * rateDecimal;
-      total = base + tax;
-    } else {
-      total = quickAmount;
-      base = total / (1 + rateDecimal);
-      tax = total - base;
+  // Effective ITC Credits
+  const effectiveItc = useMemo<ItcCreditInput>(() => {
+    if (itcMode === "ledger") return manualItc;
+    const totalPurchaseTax = round2(inputPurchases * (inputGstRate / 100));
+    if (purchaseSupplyType === "inter") {
+      return { igst: totalPurchaseTax, cgst: 0, sgst: 0, cess: 0 };
     }
+    const half = round2(totalPurchaseTax / 2);
+    return { igst: 0, cgst: half, sgst: round2(totalPurchaseTax - half), cess: 0 };
+  }, [inputGstRate, inputPurchases, itcMode, manualItc, purchaseSupplyType]);
 
-    const cgst = quickSupply === "intra" ? tax / 2 : 0;
-    const sgst = quickSupply === "intra" ? tax / 2 : 0;
-    const igst = quickSupply === "inter" ? tax : 0;
+  const invoiceInput = useMemo<GstInvoiceInput>(
+    () => ({
+      items,
+      calcMode,
+      placeOfSupply,
+      taxScheme,
+      compositionCategory,
+      isRcm,
+      showMarginMode,
+      marginPct,
+      itc: effectiveItc,
+    }),
+    [calcMode, compositionCategory, effectiveItc, isRcm, items, marginPct, placeOfSupply, showMarginMode, taxScheme]
+  );
 
-    return { base, cgst, igst, sgst, tax, total };
-  }, [quickAmount, quickMode, quickRate, quickSupply]);
+  const invoiceResult = useMemo(() => computeGstInvoice(invoiceInput), [invoiceInput]);
 
-  // Invoice Computation
-  const results = useMemo(() => {
-    let subTotal = 0;
-    let totalGst = 0;
-    let totalCess = 0;
-    let totalDiscount = 0;
-
-    const itemBreakdown = items.map((item) => {
-      let price = item.unitPrice * item.quantity;
-      if (showMarginMode) {
-        price = price * (1 + margin / 100);
-      }
-      const discountVal = price * (item.discount / 100);
-      const discountedPrice = price - discountVal;
-      totalDiscount += discountVal;
-
-      let basePrice = 0;
-      let gst = 0;
-      let cess = 0;
-
-      if (calcMode === "exclusive") {
-        basePrice = discountedPrice;
-        gst = basePrice * (item.gstRate / 100);
-        cess = basePrice * (item.cessRate / 100);
-      } else {
-        const combinedRate = (item.gstRate + item.cessRate) / 100;
-        basePrice = discountedPrice / (1 + combinedRate);
-        gst = basePrice * (item.gstRate / 100);
-        cess = basePrice * (item.cessRate / 100);
-      }
-
-      subTotal += basePrice;
-      totalGst += gst;
-      totalCess += cess;
-
-      return { ...item, basePrice, cess, discountVal, gst, total: basePrice + gst + cess };
-    });
-
-    const grandTotal = subTotal + totalGst + totalCess;
-    const itcAmount = inputPurchases * (inputGstRate / 100);
-    const netGstPayable = Math.max(0, totalGst - itcAmount);
-    const compositionRate = activeTab === "goods" ? 1 : 6;
-    const compositionTax = grandTotal * (compositionRate / 100);
-
-    return {
-      cgst: totalGst / 2,
-      compositionRate,
-      compositionTax,
-      grandTotal,
-      igst: totalGst,
-      itcAmount,
-      items: itemBreakdown,
-      netGstPayable,
-      sgst: totalGst / 2,
-      subTotal,
-      totalCess,
-      totalDiscount,
-      totalGst,
-    };
-  }, [items, calcMode, showMarginMode, margin, inputPurchases, inputGstRate, activeTab]);
-
-  const getExportData = (): GstReportData => {
-    // If in quick view or no line items, synthesize single calculation row
-    if (calculatorView === "quick" || items.length === 0) {
-      return {
-        calcMode: quickMode,
-        cgst: quickResults.cgst,
-        compositionRate: 0,
-        compositionTax: 0,
-        grandTotal: quickResults.total,
-        igst: quickResults.igst,
-        inputGstRate: 0,
-        inputPurchases: 0,
-        isRcm: false,
-        itcAmount: 0,
+  const getExportPayload = () => {
+    if (view === "quick" || items.length === 0) {
+      const quickSynthInput: GstInvoiceInput = {
         items: [
           {
-            basePrice: quickResults.base,
-            cess: 0,
+            id: "quick-1",
+            name: `Taxable Supply (${quickRate}% GST)`,
+            unitPrice: quickMode === "exclusive" ? quickAmount : quickResult.grossTotal,
+            quantity: 1,
+            gstRate: quickRate,
             cessRate: 0,
             discount: 0,
-            discountVal: 0,
-            gst: quickResults.tax,
-            gstRate: quickRate,
-            name: `Taxable Supply (${quickRate}% GST)`,
-            quantity: 1,
-            total: quickResults.total,
-            unitPrice: quickMode === "exclusive" ? quickAmount : quickResults.base,
           },
         ],
-        margin: 0,
-        netGstPayable: quickResults.tax,
+        calcMode: quickMode,
         placeOfSupply: quickSupply,
-        sgst: quickResults.sgst,
-        showMarginMode: false,
-        subTotal: quickResults.base,
         taxScheme: "regular",
-        totalCess: 0,
-        totalDiscount: 0,
-        totalGst: quickResults.tax,
+        compositionCategory: "trader_manufacturer",
+        isRcm: false,
+        showMarginMode: false,
+        marginPct: 0,
+        itc: { igst: 0, cgst: 0, sgst: 0, cess: 0 },
       };
+      return { input: quickSynthInput, result: computeGstInvoice(quickSynthInput) };
     }
-
-    return {
-      calcMode,
-      cgst: results.cgst,
-      compositionRate: results.compositionRate,
-      compositionTax: results.compositionTax,
-      grandTotal: results.grandTotal,
-      igst: results.igst,
-      inputGstRate,
-      inputPurchases,
-      isRcm,
-      itcAmount: results.itcAmount,
-      items: results.items,
-      margin,
-      netGstPayable: results.netGstPayable,
-      placeOfSupply,
-      sgst: results.sgst,
-      showMarginMode,
-      subTotal: results.subTotal,
-      taxScheme,
-      totalCess: results.totalCess,
-      totalDiscount: results.totalDiscount,
-      totalGst: results.totalGst,
-    };
+    return { input: invoiceInput, result: invoiceResult };
   };
 
   const downloadPdf = async () => {
     setIsGeneratingPdf(true);
+    setExportError(null);
     try {
       const { generateGstReportPdf } = await import("@/lib/generateGstPdf");
-      const pdfBytes = await generateGstReportPdf(getExportData());
+      const pdfBytes = await generateGstReportPdf(getExportPayload());
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `TaxFiling24_GST_Invoice_${Date.now()}.pdf`;
+      link.download = `TaxFiling24_GST_${invoiceResult.documentType}_${Date.now()}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      // Defer revoking so browser streams the file reliably
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 4000);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
     } catch (err) {
       console.error("GST PDF generation failed:", err);
+      setExportError("Unable to generate GST PDF. Please try again.");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -447,9 +309,10 @@ export default function GSTCalculator({
 
   const downloadExcel = async () => {
     setIsGeneratingExcel(true);
+    setExportError(null);
     try {
       const { generateGstExcel } = await import("@/lib/generateGstExcel");
-      const buffer = await generateGstExcel(getExportData());
+      const buffer = await generateGstExcel(getExportPayload());
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
@@ -460,809 +323,1325 @@ export default function GSTCalculator({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 4000);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
     } catch (err) {
       console.error("GST Excel generation failed:", err);
+      setExportError("Unable to export GST Excel workbook. Please try again.");
     } finally {
       setIsGeneratingExcel(false);
     }
   };
 
-  const fmt = (v: number) =>
-    new Intl.NumberFormat("en-IN", {
-      currency: "INR",
-      maximumFractionDigits: 0,
-      style: "currency",
-    }).format(v);
+  const addItem = () => {
+    if (newItem.unitPrice <= 0) return;
+    setItems((prev) => [
+      ...prev,
+      {
+        ...newItem,
+        id: Date.now().toString(),
+        name: newItem.name.trim() || `Line Item ${prev.length + 1}`,
+        quantity: Math.max(1, Math.floor(newItem.quantity || 1)),
+        discount: Math.min(100, Math.max(0, newItem.discount)),
+        cessRate: Math.max(0, newItem.cessRate),
+      },
+    ]);
+    setNewItem({ id: "", name: "", unitPrice: 0, quantity: 1, gstRate: 18, cessRate: 0, discount: 0 });
+    setHsnSearch("");
+    setShowHsnPanel(false);
+  };
+
+  const updateItemQty = (id: string, delta: number) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
+      )
+    );
+  };
+
+  const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
+
+  const resetAll = () => {
+    if (view === "quick") {
+      setQuickAmount(10000);
+      setQuickRate(18);
+      setQuickMode("exclusive");
+      setQuickSupply("intra");
+    } else {
+      setItems([DEFAULT_INVOICE_ITEM]);
+      setCalcMode("exclusive");
+      setPlaceOfSupply("intra");
+      setTaxScheme("regular");
+      setCompositionCategory("trader_manufacturer");
+      setIsRcm(false);
+      setShowMarginMode(false);
+      setInputPurchases(0);
+      setManualItc({ igst: 0, cgst: 0, sgst: 0, cess: 0 });
+    }
+    setExportError(null);
+  };
+
+  const visibleSlabs = showLegacyRates
+    ? [...GST_2_ACTIVE_SLABS, ...GST_LEGACY_SLABS].sort((a, b) => a.rate - b.rate)
+    : GST_2_ACTIVE_SLABS;
 
   const heroCopy = content?.hero || {};
+  const isComposition = invoiceResult.documentType === "BILL_OF_SUPPLY";
+  const isRcmActive = invoiceResult.documentType === "RCM_INVOICE";
 
   return (
-    <section className="py-8 sm:py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-6">
-        <Link href="/" className="hover:text-slate-800 transition">
-          Home
-        </Link>
-        <span>/</span>
-        <Link href="/tools" className="hover:text-slate-800 transition">
-          Tools
-        </Link>
-        <span>/</span>
-        <span className="text-slate-900 font-semibold">GST Calculator</span>
-      </nav>
-
-      {/* Hero Header (Light, Clean, CA Authority) */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-slate-200">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/70 mb-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-            Indian GST Act &amp; HSN Slabs Compliant
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--fg)]">
+    <div className="pb-24 lg:pb-12">
+      {/* ─── Unified Editorial Navy Hero ─── */}
+      <PageHero
+        compact
+        align="left"
+        title={
+          <>
             {heroCopy.titlePrefix || "GST &"}{" "}
-            <span className="text-[var(--primary)]">{heroCopy.titleHighlight || "Invoicing Calculator"}</span>
-          </h1>
-          <p className="mt-2 text-sm text-slate-600 max-w-2xl leading-relaxed">
-            {heroCopy.description ||
-              "Calculate GST liability in inclusive and exclusive modes, divide CGST/SGST/IGST, search HSN/SAC codes, and build multi-item tax invoices with Input Tax Credit (ITC) offset."}
-          </p>
-        </div>
-
-        {/* Mode Switcher */}
-        <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setCalculatorView("quick")}
-            className={`px-4 py-2 rounded-lg transition cursor-pointer ${
-              calculatorView === "quick"
-                ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/60"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Instant Calculator
-          </button>
-          <button
-            type="button"
-            onClick={() => setCalculatorView("invoice")}
-            className={`px-4 py-2 rounded-lg transition cursor-pointer ${
-              calculatorView === "invoice"
-                ? "bg-white text-slate-900 font-bold shadow-xs border border-slate-200/60"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Invoice &amp; Itemized Builder
-          </button>
-        </div>
-      </div>
-
-      {/* VIEW 1: INSTANT QUICK GST CALCULATOR (Light, Clean, Crisp) */}
-      {calculatorView === "quick" && (
-        <div className="pt-8 max-w-4xl mx-auto space-y-8">
-          {/* Main Quick Box */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
-            {/* Amount input */}
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  Enter Base or Total Amount (₹)
-                </label>
-                <div className="flex items-center gap-1.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setQuickMode("exclusive")}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer border ${
-                      quickMode === "exclusive"
-                        ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-xs"
-                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    Add GST (Exclusive)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuickMode("inclusive")}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer border ${
-                      quickMode === "inclusive"
-                        ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-xs"
-                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    Remove GST (Inclusive)
-                  </button>
-                </div>
-              </div>
-
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400">
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  value={quickAmount || ""}
-                  onChange={(e) => setQuickAmount(Number(e.target.value))}
-                  placeholder="10,000"
-                  className="w-full rounded-xl border border-slate-200 pl-11 pr-4 py-3.5 text-2xl sm:text-3xl font-extrabold text-slate-900 outline-none focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 transition"
-                />
-              </div>
-
-              {/* Amount Presets */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-3">
-                <span className="text-xs text-slate-500 font-medium mr-1">Presets:</span>
-                {[1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setQuickAmount(amt)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer ${
-                      quickAmount === amt
-                        ? "bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary-border)] shadow-2xs font-bold"
-                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                    }`}
-                  >
-                    ₹{amt.toLocaleString("en-IN")}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* GST Rate Selectors */}
-            <div className="space-y-2.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
-                Select Applicable GST Tax Slab
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                {GST_RATES.map((rate) => {
-                  const labels: Record<number, string> = {
-                    0: "Exempt",
-                    3: "Gold/Silver",
-                    5: "Essentials",
-                    12: "Standard",
-                    18: "General",
-                    28: "Luxury",
-                    40: "Sin Goods",
-                  };
-                  const isSelected = quickRate === rate;
-                  return (
-                    <button
-                      key={rate}
-                      type="button"
-                      onClick={() => setQuickRate(rate)}
-                      className={`p-3 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center ${
-                        isSelected
-                          ? "bg-[var(--primary-soft)] border-[var(--primary)] ring-2 ring-[var(--primary)]/20"
-                          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
-                      }`}
-                    >
-                      <span
-                        className={`text-lg font-black tracking-tight ${
-                          isSelected ? "text-[var(--primary)]" : "text-slate-900"
-                        }`}
-                      >
-                        {rate}%
-                      </span>
-                      <span
-                        className={`text-[10px] truncate max-w-[85px] mt-0.5 font-medium ${
-                          isSelected ? "text-[var(--primary)] font-semibold" : "text-slate-500"
-                        }`}
-                      >
-                        {labels[rate] || "GST"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Supply Location */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <div>
-                <span className="font-bold text-slate-900 block">Supply Transaction Type</span>
-                <span className="text-slate-600">
-                  Determines whether CGST + SGST (Intra-state) or IGST (Inter-state) applies
-                </span>
-              </div>
-              <div className="inline-flex p-1 rounded-xl bg-white border border-slate-200 font-semibold shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setQuickSupply("intra")}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                    quickSupply === "intra"
-                      ? "bg-[var(--primary)] text-white shadow-2xs"
-                      : "text-slate-700 hover:text-slate-900"
-                  }`}
-                >
-                  Intra-State (CGST + SGST)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickSupply("inter")}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                    quickSupply === "inter"
-                      ? "bg-[var(--primary)] text-white shadow-2xs"
-                      : "text-slate-700 hover:text-slate-900"
-                  }`}
-                >
-                  Inter-State (IGST)
-                </button>
-              </div>
-            </div>
+            <span className="text-[var(--accent)]">{heroCopy.titleHighlight || "Invoicing Calculator"}</span>
+          </>
+        }
+        description={
+          heroCopy.description ||
+          "Compute GST 2.0 (0%, 3%, 5%, 18%, 40%) in inclusive or exclusive mode with exact paise precision, Section 10 Composition Bill of Supply, Reverse Charge (RCM), and Rule 88A ITC utilization."
+        }
+        bottomSlot={
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-white/75">
+              <Link href="/" className="hover:text-white transition">
+                Home
+              </Link>
+              <span aria-hidden="true">/</span>
+              <Link href="/tools" className="hover:text-white transition">
+                Tools
+              </Link>
+              <span aria-hidden="true">/</span>
+              <span className="text-white font-semibold">GST Calculator</span>
+            </nav>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 font-semibold text-[var(--accent)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              GST 2.0 (56th Council • Eff. 22 Sept 2025)
+            </span>
           </div>
-
-          {/* Quick Result Highlight Card (Clean Light Studio Card) */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-200 text-center sm:text-left">
-              <div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                  {quickMode === "exclusive" ? "Grand Total (Post-GST)" : "Net Base Amount (Pre-GST)"}
-                </span>
-                <div className="text-4xl sm:text-5xl font-extrabold text-slate-900 mt-1 tracking-tight">
-                  {fmt(quickMode === "exclusive" ? quickResults.total : quickResults.base)}
-                </div>
-              </div>
-
-              <div className="sm:text-right">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                  Total Tax Component ({quickRate}%)
-                </span>
-                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-1">
-                  +{fmt(quickResults.tax)}
-                </div>
-              </div>
-            </div>
-
-            {/* Split Details */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-xs text-slate-600 font-medium block">Net Base Price</span>
-                <span className="text-base font-bold text-slate-900 mt-1 block">
-                  {fmt(quickResults.base)}
-                </span>
-              </div>
-
-              {quickSupply === "intra" ? (
-                <>
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-xs text-slate-600 font-medium block">
-                      CGST ({quickRate / 2}%)
-                    </span>
-                    <span className="text-base font-bold text-[var(--primary)] mt-1 block">
-                      {fmt(quickResults.cgst)}
-                    </span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <span className="text-xs text-slate-600 font-medium block">
-                      SGST ({quickRate / 2}%)
-                    </span>
-                    <span className="text-base font-bold text-[var(--primary)] mt-1 block">
-                      {fmt(quickResults.sgst)}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 col-span-2">
-                  <span className="text-xs text-slate-600 font-medium block">
-                    IGST ({quickRate}%)
-                  </span>
-                  <span className="text-base font-bold text-[var(--primary)] mt-1 block">
-                    {fmt(quickResults.igst)}
-                  </span>
-                </div>
-              )}
-
-              <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200">
-                <span className="text-xs text-emerald-800 font-medium block">Total Payable</span>
-                <span className="text-base font-bold text-emerald-900 mt-1 block">
-                  {fmt(quickResults.total)}
-                </span>
-              </div>
-            </div>
-
-            {/* Quick Actions & PDF Download */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs border-t border-slate-100">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={downloadPdf}
-                  disabled={isGeneratingPdf}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-xs font-bold text-white transition shadow-xs cursor-pointer disabled:opacity-50"
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  {isGeneratingPdf ? "Generating PDF..." : "Download Calculation (PDF)"}
-                </button>
-                <button
-                  type="button"
-                  onClick={downloadExcel}
-                  disabled={isGeneratingExcel}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer disabled:opacity-50"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  {isGeneratingExcel ? "Exporting..." : "Excel"}
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setNewItem({
-                    cessRate: 0,
-                    discount: 0,
-                    gstRate: quickRate,
-                    id: Date.now().toString(),
-                    name: `Item (${quickRate}% GST)`,
-                    quantity: 1,
-                    unitPrice: Math.round(quickResults.base),
-                  });
-                  setCalculatorView("invoice");
-                }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-hover)] cursor-pointer"
-              >
-                <span>Add to Multi-Item Invoice Builder</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
+        }
+        rightSlot={
+          <div
+            role="tablist"
+            aria-label="GST Calculator Mode"
+            className="inline-flex flex-wrap p-1 rounded-[var(--radius)] bg-white/10 border border-white/15 text-xs font-semibold backdrop-blur-xs"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === "quick"}
+              onClick={() => setView("quick")}
+              className={`px-4 py-2 rounded-[var(--radius-sm)] transition cursor-pointer ${
+                view === "quick"
+                  ? "bg-white text-[var(--primary)] font-bold shadow-xs"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              Instant Calculator
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === "invoice"}
+              onClick={() => setView("invoice")}
+              className={`px-4 py-2 rounded-[var(--radius-sm)] transition cursor-pointer ${
+                view === "invoice"
+                  ? "bg-white text-[var(--primary)] font-bold shadow-xs"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              Invoice &amp; ITC Builder
+            </button>
           </div>
-        </div>
-      )}
+        }
+      />
 
-      {/* VIEW 2: MULTI-ITEM INVOICE & HSN BUILDER (Clean Light Studio) */}
-      {calculatorView === "invoice" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-6">
-          {/* Left Column: Invoice Form & Items */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Item Entry Form */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {/* ─── VIEW 1: INSTANT GST CALCULATOR (12-Col Desktop Split!) ─── */}
+        {view === "quick" && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Controls */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)] space-y-6">
+                {/* Amount + Pricing Mode */}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Add Invoice Line Item</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Lookup official HSN/SAC codes or key in manual products
-                  </p>
-                </div>
-                <div className="inline-flex p-1 rounded-lg bg-slate-100 text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("goods")}
-                    className={`px-3 py-1 rounded-md transition cursor-pointer ${
-                      activeTab === "goods"
-                        ? "bg-white text-slate-900 shadow-2xs font-bold"
-                        : "text-slate-600"
-                    }`}
-                  >
-                    Goods (HSN)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("services")}
-                    className={`px-3 py-1 rounded-md transition cursor-pointer ${
-                      activeTab === "services"
-                        ? "bg-white text-slate-900 shadow-2xs font-bold"
-                        : "text-slate-600"
-                    }`}
-                  >
-                    Services (SAC)
-                  </button>
-                </div>
-              </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label
+                      htmlFor={`${uid}-quick-amt`}
+                      className="text-xs font-bold text-[var(--fg)] uppercase tracking-wide"
+                    >
+                      {quickMode === "exclusive" ? "Base Taxable Amount (₹)" : "GST-Inclusive Total Amount (₹)"}
+                    </label>
+                    <div
+                      role="radiogroup"
+                      aria-label="GST Pricing Mode"
+                      className="inline-flex flex-wrap gap-1.5 text-xs"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={quickMode === "exclusive"}
+                        onClick={() => setQuickMode("exclusive")}
+                        className={`px-3 py-1.5 rounded-[var(--radius-sm)] font-semibold transition cursor-pointer border ${
+                          quickMode === "exclusive"
+                            ? "bg-[var(--primary)] text-white border-[var(--primary)]"
+                            : "bg-[var(--bg)] text-[var(--fg-soft)] border-[var(--border)] hover:bg-[var(--bg-muted)]"
+                        }`}
+                      >
+                        Add GST (Exclusive)
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={quickMode === "inclusive"}
+                        onClick={() => setQuickMode("inclusive")}
+                        className={`px-3 py-1.5 rounded-[var(--radius-sm)] font-semibold transition cursor-pointer border ${
+                          quickMode === "inclusive"
+                            ? "bg-[var(--primary)] text-white border-[var(--primary)]"
+                            : "bg-[var(--bg)] text-[var(--fg-soft)] border-[var(--border)] hover:bg-[var(--bg-muted)]"
+                        }`}
+                      >
+                        Remove GST (Inclusive)
+                      </button>
+                    </div>
+                  </div>
 
-              {/* HSN Auto-complete search */}
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={
-                    activeTab === "goods"
-                      ? "Search goods HSN code or description (e.g. 8471, Mobile, Cement)..."
-                      : "Search services SAC code or category (e.g. 9983, Software, CA, Hotel)..."
-                  }
-                  value={hsnSearch}
-                  onChange={(e) => {
-                    setHsnSearch(e.target.value);
-                    setShowHsnPanel(true);
-                  }}
-                  onFocus={() => setShowHsnPanel(true)}
-                  className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/15"
-                />
+                  <div className="relative">
+                    <span aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-[var(--fg-muted)]">
+                      ₹
+                    </span>
+                    <input
+                      id={`${uid}-quick-amt`}
+                      type="number"
+                      min={0}
+                      inputMode="decimal"
+                      value={quickAmount === 0 ? "" : quickAmount}
+                      onChange={(e) => setQuickAmount(parseNonNeg(e.target.value))}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      placeholder="10,000"
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] pl-11 pr-4 py-3.5 text-2xl sm:text-3xl font-extrabold tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/15 transition"
+                    />
+                  </div>
 
-                {showHsnPanel && hsnSearch && (
-                  <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                    {filteredPresets.length === 0 ? (
-                      <div className="p-3 text-xs text-slate-500 text-center">
-                        No presets found matching &quot;{hsnSearch}&quot;
-                      </div>
-                    ) : (
-                      filteredPresets.map((item) => (
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs text-[var(--fg-muted)] font-medium mr-1">Presets:</span>
+                      {[1000, 5000, 10000, 25000, 50000, 100000, 500000].map((amt) => (
                         <button
-                          key={`${item.hsn}-${item.desc}`}
+                          key={amt}
                           type="button"
-                          onClick={() => {
-                            setNewItem({
-                              ...newItem,
-                              gstRate: item.rate,
-                              name: `${item.desc} (HSN ${item.hsn})`,
-                            });
-                            setHsnSearch(item.desc);
-                            setShowHsnPanel(false);
-                          }}
-                          className="w-full p-2.5 rounded-lg text-left hover:bg-slate-50 transition flex items-center justify-between text-xs cursor-pointer"
+                          onClick={() => setQuickAmount(amt)}
+                          className={`px-2.5 py-1 rounded-[var(--radius-sm)] text-xs font-semibold tabular-nums border transition cursor-pointer ${
+                            quickAmount === amt
+                              ? "bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary-border)] font-bold"
+                              : "bg-[var(--bg-card)] text-[var(--fg-soft)] border-[var(--border)] hover:bg-[var(--bg)]"
+                          }`}
                         >
-                          <div>
-                            <span className="font-semibold text-slate-900">{item.desc}</span>
-                            <span className="ml-2 font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                              {item.hsn}
-                            </span>
-                          </div>
-                          <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded text-[11px] border border-emerald-200/60">
-                            {item.rate}% GST
+                          ₹{amt.toLocaleString("en-IN")}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={resetAll}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)] cursor-pointer"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reset
+                    </button>
+                  </div>
+                </div>
+
+                {/* GST 2.0 Slab Selector */}
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[var(--fg)] uppercase tracking-wide">
+                      Select Applicable GST 2.0 Tax Slab
+                    </span>
+                    <label className="inline-flex items-center gap-2 text-xs text-[var(--fg-muted)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showLegacyRates}
+                        onChange={(e) => setShowLegacyRates(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded accent-[var(--primary)]"
+                      />
+                      <span>Show Legacy / Special Slabs (0.25%, 12%, 28%)</span>
+                    </label>
+                  </div>
+
+                  <div
+                    role="radiogroup"
+                    aria-label="GST Tax Slab"
+                    className={`grid gap-2.5 ${
+                      showLegacyRates ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-5"
+                    }`}
+                  >
+                    {visibleSlabs.map((slab) => {
+                      const selected = quickRate === slab.rate;
+                      return (
+                        <button
+                          key={slab.rate}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setQuickRate(slab.rate)}
+                          className={`p-3 rounded-[var(--radius)] border text-center transition cursor-pointer flex flex-col items-center justify-center ${
+                            selected
+                              ? "bg-[var(--primary-soft)] border-[var(--primary)] ring-2 ring-[var(--primary)]/20"
+                              : "bg-[var(--bg-card)] border-[var(--border)] hover:border-[var(--primary-border)] hover:bg-[var(--bg)]"
+                          }`}
+                        >
+                          <span
+                            className={`text-lg font-black tabular-nums tracking-tight ${
+                              selected ? "text-[var(--primary)]" : "text-[var(--fg)]"
+                            }`}
+                          >
+                            {slab.label}
+                          </span>
+                          <span
+                            className={`text-[11px] mt-0.5 leading-tight ${
+                              selected ? "text-[var(--primary)] font-semibold" : "text-[var(--fg-muted)]"
+                            }`}
+                          >
+                            {slab.sublabel}
                           </span>
                         </button>
-                      ))
-                    )}
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-
-              {/* Line item inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    Item Description / Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={newItem.name}
-                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                    placeholder="e.g. IT Consultation Services"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm outline-none focus:border-[var(--primary)]"
-                  />
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    Unit Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    value={newItem.unitPrice || ""}
-                    onChange={(e) => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })}
-                    placeholder="1,000"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm font-semibold outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Quantity</label>
-                  <input
-                    type="number"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">GST Rate</label>
-                  <select
-                    value={newItem.gstRate}
-                    onChange={(e) => setNewItem({ ...newItem, gstRate: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-200 px-2.5 py-2 outline-none focus:border-[var(--primary)] bg-white font-semibold"
+                {/* Place of Supply */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)] text-xs">
+                  <div>
+                    <span className="font-bold text-[var(--fg)] block">Place of Supply</span>
+                    <span className="text-[var(--fg-muted)]">
+                      Intra-State splits 50/50 into CGST + SGST; Inter-State levies 100% IGST
+                    </span>
+                  </div>
+                  <div
+                    role="radiogroup"
+                    aria-label="Place of Supply"
+                    className="inline-flex flex-wrap p-1 rounded-[var(--radius)] bg-[var(--bg-card)] border border-[var(--border)] font-semibold shrink-0"
                   >
-                    {GST_RATES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}%
-                      </option>
-                    ))}
-                  </select>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={quickSupply === "intra"}
+                      onClick={() => setQuickSupply("intra")}
+                      className={`px-3 py-1.5 rounded-[var(--radius-sm)] transition cursor-pointer ${
+                        quickSupply === "intra"
+                          ? "bg-[var(--primary)] text-white shadow-xs"
+                          : "text-[var(--fg-soft)] hover:text-[var(--fg)]"
+                      }`}
+                    >
+                      Intra-State (CGST+SGST)
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={quickSupply === "inter"}
+                      onClick={() => setQuickSupply("inter")}
+                      className={`px-3 py-1.5 rounded-[var(--radius-sm)] transition cursor-pointer ${
+                        quickSupply === "inter"
+                          ? "bg-[var(--primary)] text-white shadow-xs"
+                          : "text-[var(--fg-soft)] hover:text-[var(--fg)]"
+                      }`}
+                    >
+                      Inter-State (IGST)
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Discount %</label>
-                  <input
-                    type="number"
-                    value={newItem.discount || ""}
-                    onChange={(e) => setNewItem({ ...newItem, discount: Number(e.target.value) })}
-                    placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Cess %</label>
-                  <input
-                    type="number"
-                    value={newItem.cessRate || ""}
-                    onChange={(e) => setNewItem({ ...newItem, cessRate: Number(e.target.value) })}
-                    placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={addItem}
-                  disabled={newItem.unitPrice <= 0}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-5 py-2.5 text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-xs"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add to Invoice
-                </button>
               </div>
             </div>
 
-            {/* Invoice Line Items Table */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900">
-                  Invoice Entries ({items.length})
-                </h3>
-                {items.length > 0 && (
+            {/* Right Sticky Live Breakdown Studio (lg:top-28!) */}
+            <div id="gst-summary-studio" className="lg:col-span-5 lg:sticky lg:top-28 space-y-5">
+              <div
+                aria-live="polite"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-md)] space-y-5 tabular-nums"
+              >
+                <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
+                  <div>
+                    <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block">
+                      {quickMode === "exclusive" ? "Grand Total (Post-GST)" : "Net Base Value (Pre-GST)"}
+                    </span>
+                    <div className="text-3xl sm:text-4xl font-extrabold text-[var(--fg)] mt-1 tracking-tight">
+                      {fmtPaise(quickMode === "exclusive" ? quickResult.grossTotal : quickResult.baseAmount)}
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--primary-soft)] border border-[var(--primary-border)] px-3 py-1 text-xs font-bold text-[var(--primary)]">
+                    {quickRate}% GST
+                  </span>
+                </div>
+
+                {/* Split Tiles (Exact 2-Decimal Paise Precision!) */}
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3.5 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)]">
+                    <span className="text-xs text-[var(--fg-muted)] font-medium block">Taxable Base</span>
+                    <span className="text-base font-bold text-[var(--fg)] mt-1 block">
+                      {fmtPaise(quickResult.baseAmount)}
+                    </span>
+                  </div>
+                  <div className="p-3.5 rounded-[var(--radius)] bg-emerald-50 border border-emerald-200">
+                    <span className="text-xs text-emerald-800 font-medium block">Total GST ({quickRate}%)</span>
+                    <span className="text-base font-bold text-emerald-900 mt-1 block">
+                      +{fmtPaise(quickResult.totalGst)}
+                    </span>
+                  </div>
+
+                  {quickSupply === "intra" ? (
+                    <>
+                      <div className="p-3.5 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)]">
+                        <span className="text-xs text-[var(--fg-muted)] font-medium block">
+                          CGST ({quickRate / 2}%)
+                        </span>
+                        <span className="text-base font-bold text-[var(--primary)] mt-1 block">
+                          {fmtPaise(quickResult.cgst)}
+                        </span>
+                      </div>
+                      <div className="p-3.5 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)]">
+                        <span className="text-xs text-[var(--fg-muted)] font-medium block">
+                          SGST / UTGST ({quickRate / 2}%)
+                        </span>
+                        <span className="text-base font-bold text-[var(--primary)] mt-1 block">
+                          {fmtPaise(quickResult.sgst)}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-span-2 p-3.5 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)]">
+                      <span className="text-xs text-[var(--fg-muted)] font-medium block">
+                        Integrated GST — IGST ({quickRate}%)
+                      </span>
+                      <span className="text-base font-bold text-[var(--primary)] mt-1 block">
+                        {fmtPaise(quickResult.igst)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sec 170 Rounded Total Strip */}
+                <div className="p-3.5 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)] flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[var(--fg)] block">Invoice Payable (Sec 170 Rounded)</span>
+                    <span className="text-[11px] text-[var(--fg-muted)]">
+                      Exact: {fmtPaise(quickResult.grossTotal)}
+                      {quickResult.roundingDiff !== 0
+                        ? ` • Round-off: ${quickResult.roundingDiff > 0 ? "+" : ""}${quickResult.roundingDiff.toFixed(2)}`
+                        : ""}
+                    </span>
+                  </div>
+                  <span className="text-xl font-black text-[var(--primary)]">
+                    {fmtSec170(quickResult.roundedTotalSec170)}
+                  </span>
+                </div>
+
+                {exportError ? (
+                  <div className="rounded-[var(--radius)] bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{exportError}</span>
+                  </div>
+                ) : null}
+
+                {/* Exports + Lossless Transfer */}
+                <div className="space-y-2.5 pt-1">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={downloadExcel}
+                      disabled={isGeneratingExcel}
+                      className="inline-flex items-center justify-center gap-1.5 min-h-[42px] px-3 py-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--bg)] text-xs font-semibold text-[var(--fg)] transition cursor-pointer disabled:opacity-50"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {isGeneratingExcel ? "Exporting..." : "Export Excel"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadPdf}
+                      disabled={isGeneratingPdf}
+                      className="inline-flex items-center justify-center gap-1.5 min-h-[42px] px-3 py-2 rounded-[var(--radius)] bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-xs font-bold text-white transition cursor-pointer disabled:opacity-50"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      {isGeneratingPdf ? "Generating..." : "Download PDF"}
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setItems([])}
-                    className="text-xs text-rose-600 hover:text-rose-800 font-medium cursor-pointer"
+                    onClick={() => {
+                      setNewItem({
+                        id: Date.now().toString(),
+                        name: `Taxable Supply (${quickRate}% GST)`,
+                        unitPrice: quickResult.baseAmount,
+                        quantity: 1,
+                        gstRate: quickRate,
+                        cessRate: 0,
+                        discount: 0,
+                      });
+                      setCalcMode("exclusive");
+                      setPlaceOfSupply(quickSupply);
+                      setView("invoice");
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-hover)] cursor-pointer"
                   >
-                    Clear All
+                    <span>Transfer Exact Base ({fmtPaise(quickResult.baseAmount)}) to Invoice Builder</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── VIEW 2: MULTI-ITEM INVOICE, COMPOSITION, RCM & RULE 88A ITC BUILDER ─── */}
+        {view === "invoice" && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Item Entry Card */}
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-5 sm:p-6 shadow-[var(--shadow-sm)] space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+                  <div>
+                    <h2 className="text-sm font-bold text-[var(--fg)]">Add Line Item (GST 2.0 HSN / SAC Lookup)</h2>
+                    <p className="text-xs text-[var(--fg-muted)] mt-0.5">
+                      Updated post-56th Council rates (Cement 18%, Small Cars 18%, Luxury 40%, Insurance 0%)
+                    </p>
+                  </div>
+                  <div
+                    role="tablist"
+                    aria-label="HSN or SAC Lookup"
+                    className="inline-flex p-1 rounded-[var(--radius)] bg-[var(--bg-muted)] border border-[var(--border)] text-xs font-semibold"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activePresetTab === "goods"}
+                      onClick={() => setActivePresetTab("goods")}
+                      className={`px-3 py-1 rounded-[var(--radius-sm)] transition cursor-pointer ${
+                        activePresetTab === "goods"
+                          ? "bg-[var(--bg-card)] text-[var(--primary)] shadow-xs font-bold"
+                          : "text-[var(--fg-muted)]"
+                      }`}
+                    >
+                      Goods (HSN)
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activePresetTab === "services"}
+                      onClick={() => setActivePresetTab("services")}
+                      className={`px-3 py-1 rounded-[var(--radius-sm)] transition cursor-pointer ${
+                        activePresetTab === "services"
+                          ? "bg-[var(--bg-card)] text-[var(--primary)] shadow-xs font-bold"
+                          : "text-[var(--fg-muted)]"
+                      }`}
+                    >
+                      Services (SAC)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Accessible HSN / SAC Autocomplete (Escape + Outside-click dismiss!) */}
+                <div ref={hsnBoxRef} className="relative">
+                  <label htmlFor={`${uid}-hsn`} className="sr-only">
+                    Search HSN or SAC code
+                  </label>
+                  <Search aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--fg-muted)]" />
+                  <input
+                    id={`${uid}-hsn`}
+                    type="text"
+                    role="combobox"
+                    aria-expanded={showHsnPanel}
+                    aria-controls={`${uid}-hsn-list`}
+                    placeholder={
+                      activePresetTab === "goods"
+                        ? "Search GST 2.0 goods HSN (e.g. 2523 Cement 18%, 8703 Car, 8471 Laptop)..."
+                        : "Search GST 2.0 services SAC (e.g. 9971 Insurance 0%, 9983 SaaS, 9982 CA)..."
+                    }
+                    value={hsnSearch}
+                    onChange={(e) => {
+                      setHsnSearch(e.target.value);
+                      setShowHsnPanel(true);
+                    }}
+                    onFocus={() => setShowHsnPanel(true)}
+                    className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] pl-10 pr-9 py-2.5 text-xs sm:text-sm text-[var(--fg)] placeholder:text-[var(--fg-muted)] outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/15"
+                  />
+                  {(hsnSearch || showHsnPanel) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHsnSearch("");
+                        setShowHsnPanel(false);
+                      }}
+                      aria-label="Close HSN suggestions"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[var(--fg-muted)] hover:text-[var(--fg)] cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+
+                  {showHsnPanel && (
+                    <div
+                      id={`${uid}-hsn-list`}
+                      role="listbox"
+                      className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] p-1.5 shadow-[var(--shadow-xl)]"
+                    >
+                      {filteredPresets.length === 0 ? (
+                        <div className="p-3 text-xs text-[var(--fg-muted)] text-center">
+                          No presets found matching &quot;{hsnSearch}&quot;
+                        </div>
+                      ) : (
+                        filteredPresets.map((item) => (
+                          <button
+                            key={`${item.hsn}-${item.desc}`}
+                            type="button"
+                            role="option"
+                            aria-selected={false}
+                            onClick={() => {
+                              setNewItem((prev) => ({
+                                ...prev,
+                                gstRate: item.rate,
+                                name: `${item.desc} (${activePresetTab === "goods" ? "HSN" : "SAC"} ${item.hsn})`,
+                              }));
+                              setHsnSearch(item.desc);
+                              setShowHsnPanel(false);
+                            }}
+                            className="w-full p-2.5 rounded-[var(--radius-sm)] text-left hover:bg-[var(--bg)] transition flex items-center justify-between gap-2 text-xs cursor-pointer"
+                          >
+                            <div>
+                              <span className="font-semibold text-[var(--fg)]">{item.desc}</span>
+                              <span className="ml-2 font-mono text-[10px] text-[var(--fg-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">
+                                {item.hsn}
+                              </span>
+                              <span className="ml-1.5 text-[10px] text-[var(--fg-muted)]">
+                                {item.category}
+                              </span>
+                            </div>
+                            <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded text-[11px] border border-emerald-200 shrink-0 tabular-nums">
+                              {item.rate}% GST
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Line Item Form Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label htmlFor={`${uid}-item-name`} className="text-xs font-semibold text-[var(--fg)] block mb-1">
+                      Item Description / HSN *
+                    </label>
+                    <input
+                      id={`${uid}-item-name`}
+                      type="text"
+                      value={newItem.name}
+                      onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                      placeholder="e.g. Cloud Advisory Services (SAC 9983)"
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs sm:text-sm text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`${uid}-item-price`} className="text-xs font-semibold text-[var(--fg)] block mb-1">
+                      Unit Price (₹) *
+                    </label>
+                    <input
+                      id={`${uid}-item-price`}
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={newItem.unitPrice === 0 ? "" : newItem.unitPrice}
+                      onChange={(e) => setNewItem({ ...newItem, unitPrice: parseNonNeg(e.target.value) })}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      placeholder="10,000"
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs sm:text-sm font-semibold tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <label htmlFor={`${uid}-item-qty`} className="font-semibold text-[var(--fg)] block mb-1">
+                      Qty
+                    </label>
+                    <input
+                      id={`${uid}-item-qty`}
+                      type="number"
+                      min={1}
+                      value={newItem.quantity}
+                      onChange={(e) => setNewItem({ ...newItem, quantity: Math.max(1, Math.floor(parseNonNeg(e.target.value) || 1)) })}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`${uid}-item-rate`} className="font-semibold text-[var(--fg)] block mb-1">
+                      GST Rate
+                    </label>
+                    <select
+                      id={`${uid}-item-rate`}
+                      value={newItem.gstRate}
+                      disabled={isComposition}
+                      onChange={(e) => setNewItem({ ...newItem, gstRate: Number(e.target.value) })}
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-2 font-semibold tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)] disabled:opacity-50"
+                    >
+                      {ALL_GST_RATES.map((r) => (
+                        <option key={r} value={r}>
+                          {r}%{r === 12 || r === 28 ? " (Legacy)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor={`${uid}-item-disc`} className="font-semibold text-[var(--fg)] block mb-1">
+                      Discount %
+                    </label>
+                    <input
+                      id={`${uid}-item-disc`}
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={newItem.discount === 0 ? "" : newItem.discount}
+                      onChange={(e) => setNewItem({ ...newItem, discount: Math.min(100, parseNonNeg(e.target.value)) })}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      placeholder="0"
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`${uid}-item-cess`} className="font-semibold text-[var(--fg)] block mb-1">
+                      Cess %
+                    </label>
+                    <input
+                      id={`${uid}-item-cess`}
+                      type="number"
+                      min={0}
+                      max={200}
+                      disabled={isComposition}
+                      value={newItem.cessRate === 0 ? "" : newItem.cessRate}
+                      onChange={(e) => setNewItem({ ...newItem, cessRate: Math.min(200, parseNonNeg(e.target.value)) })}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      placeholder="0"
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)] disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addItem}
+                    disabled={newItem.unitPrice <= 0}
+                    className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-5 py-2.5 text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add to {isComposition ? "Bill of Supply" : "Invoice"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Invoice Entries Table */}
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-sm)] overflow-hidden">
+                <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-[var(--fg)]">
+                    {isComposition ? "Bill of Supply Entries" : "Invoice Line Items"} ({items.length})
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={resetAll}
+                      className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] font-semibold cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                    {items.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setItems([])}
+                        className="text-xs text-rose-700 hover:text-rose-900 font-semibold cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {items.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-[var(--fg-muted)]">
+                    No line items yet. Add goods or services using the form above.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs tabular-nums">
+                      <thead>
+                        <tr className="bg-[var(--bg)] border-b border-[var(--border)] text-[var(--fg-muted)] font-semibold">
+                          <th className="py-2.5 px-4">Item</th>
+                          <th className="py-2.5 px-2 text-center">Qty</th>
+                          <th className="py-2.5 px-3 text-right">Unit Price</th>
+                          <th className="py-2.5 px-2 text-right">Disc</th>
+                          <th className="py-2.5 px-2 text-right">Tax</th>
+                          <th className="py-2.5 px-4 text-right">Total</th>
+                          <th className="py-2.5 px-2 text-center">Remove</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border)]">
+                        {invoiceResult.items.map((item) => (
+                          <tr key={item.id} className="hover:bg-[var(--bg)]/60">
+                            <td className="py-3 px-4 font-semibold text-[var(--fg)] max-w-[190px] truncate" title={item.name}>
+                              {item.name}
+                            </td>
+                            <td className="py-2 px-2">
+                              <div className="inline-flex items-center justify-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg)]">
+                                <button
+                                  type="button"
+                                  onClick={() => updateItemQty(item.id, -1)}
+                                  aria-label={`Decrease quantity for ${item.name}`}
+                                  className="h-7 w-7 inline-flex items-center justify-center text-[var(--fg-muted)] hover:text-[var(--fg)] cursor-pointer"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="min-w-[20px] text-center font-bold text-[var(--fg)]">{item.quantity}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateItemQty(item.id, 1)}
+                                  aria-label={`Increase quantity for ${item.name}`}
+                                  className="h-7 w-7 inline-flex items-center justify-center text-[var(--fg-muted)] hover:text-[var(--fg)] cursor-pointer"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-right text-[var(--fg-muted)]">{fmtPaise(item.unitPrice)}</td>
+                            <td className="py-3 px-2 text-right text-[var(--fg-muted)]">
+                              {item.discount > 0 ? `${item.discount}%` : "—"}
+                            </td>
+                            <td className="py-3 px-2 text-right font-semibold text-emerald-800 whitespace-nowrap">
+                              {isComposition ? "0% (BoS)" : `${item.gstRate}%${item.cessRate > 0 ? `+${item.cessRate}%` : ""}`}
+                            </td>
+                            <td className="py-3 px-4 text-right font-bold text-[var(--fg)]">{fmtPaise(item.total)}</td>
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.id)}
+                                aria-label={`Remove ${item.name}`}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] text-[var(--fg-muted)] hover:bg-rose-50 hover:text-rose-700 cursor-pointer transition"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 
-              {items.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-500">
-                  No items added yet. Use the form above to add goods or services.
+              {/* Tax Scheme, Pricing Mode, RCM & Rule 88A ITC Controls */}
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)] space-y-5 text-xs">
+                <h2 className="text-sm font-bold text-[var(--fg)] pb-2 border-b border-[var(--border)]">
+                  Statutory Scheme, RCM &amp; Rule 88A Input Tax Credit (ITC)
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor={`${uid}-scheme`} className="font-semibold text-[var(--fg)] block mb-1.5">
+                      GST Registration Scheme
+                    </label>
+                    <select
+                      id={`${uid}-scheme`}
+                      value={taxScheme}
+                      onChange={(e) => setTaxScheme(e.target.value as GstTaxScheme)}
+                      className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-[var(--fg)] font-semibold outline-none focus:border-[var(--primary)]"
+                    >
+                      <option value="regular">Regular Scheme (Tax Invoice + ITC)</option>
+                      <option value="composition">Composition Scheme — Sec 10 (Bill of Supply)</option>
+                    </select>
+                  </div>
+
+                  {isComposition ? (
+                    <div>
+                      <label htmlFor={`${uid}-comp-cat`} className="font-semibold text-[var(--fg)] block mb-1.5">
+                        Composition Taxpayer Category
+                      </label>
+                      <select
+                        id={`${uid}-comp-cat`}
+                        value={compositionCategory}
+                        onChange={(e) => setCompositionCategory(e.target.value as CompositionCategory)}
+                        className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-[var(--fg)] font-semibold outline-none focus:border-[var(--primary)]"
+                      >
+                        {Object.values(COMPOSITION_CATEGORIES).map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
+                        {COMPOSITION_CATEGORIES[compositionCategory].section} • {COMPOSITION_CATEGORIES[compositionCategory].turnoverCap}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label htmlFor={`${uid}-pos`} className="font-semibold text-[var(--fg)] block mb-1.5">
+                        Place of Supply
+                      </label>
+                      <select
+                        id={`${uid}-pos`}
+                        value={placeOfSupply}
+                        onChange={(e) => setPlaceOfSupply(e.target.value as GstPlaceOfSupply)}
+                        className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-[var(--fg)] font-semibold outline-none focus:border-[var(--primary)]"
+                      >
+                        <option value="intra">Intra-State (CGST 50% + SGST 50%)</option>
+                        <option value="inter">Inter-State (IGST 100%)</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                        <th className="py-2.5 px-4">Item</th>
-                        <th className="py-2.5 px-3 text-right">Qty</th>
-                        <th className="py-2.5 px-3 text-right">Unit Price</th>
-                        <th className="py-2.5 px-3 text-right">GST %</th>
-                        <th className="py-2.5 px-4 text-right">Total</th>
-                        <th className="py-2.5 px-3 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {results.items.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/60">
-                          <td className="py-3 px-4 font-semibold text-slate-900 truncate max-w-[200px]">
-                            {item.name}
-                          </td>
-                          <td className="py-3 px-3 text-right text-slate-600">{item.quantity}</td>
-                          <td className="py-3 px-3 text-right text-slate-600">
-                            {fmt(item.unitPrice)}
-                          </td>
-                          <td className="py-3 px-3 text-right font-medium text-emerald-800">
-                            {item.gstRate}%
-                          </td>
-                          <td className="py-3 px-4 text-right font-bold text-slate-900">
-                            {fmt(item.total)}
-                          </td>
-                          <td className="py-3 px-3 text-center">
+
+                {isComposition ? (
+                  <div className="rounded-[var(--radius)] bg-amber-50 border border-amber-200 p-3 text-amber-950 flex items-start gap-2">
+                    <Info className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      <strong>Section 10 Composition Rules Applied:</strong> You issue a <strong>Bill of Supply</strong> (₹0 GST collected from buyer), cannot make Inter-State outward supplies (Sec 10(2)(c)), cannot claim ITC (Sec 10(4)), and pay <strong>{invoiceResult.compositionRate}%</strong> out of pocket on taxable turnover.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Wired Pricing Mode & RCM & Margin Toggles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-[var(--border)]">
+                      <div>
+                        <span className="font-semibold text-[var(--fg)] block mb-1.5">Unit Price Mode</span>
+                        <div className="inline-flex w-full p-1 rounded-[var(--radius)] bg-[var(--bg-muted)] border border-[var(--border)]">
+                          <button
+                            type="button"
+                            onClick={() => setCalcMode("exclusive")}
+                            className={`flex-1 py-1 rounded-[var(--radius-sm)] font-semibold cursor-pointer ${
+                              calcMode === "exclusive" ? "bg-[var(--bg-card)] text-[var(--primary)] shadow-xs" : "text-[var(--fg-muted)]"
+                            }`}
+                          >
+                            Exclusive
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCalcMode("inclusive")}
+                            className={`flex-1 py-1 rounded-[var(--radius-sm)] font-semibold cursor-pointer ${
+                              calcMode === "inclusive" ? "bg-[var(--bg-card)] text-[var(--primary)] shadow-xs" : "text-[var(--fg-muted)]"
+                            }`}
+                          >
+                            Inclusive
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)]">
+                        <div>
+                          <span className="font-semibold text-[var(--fg)] block">Reverse Charge (RCM)</span>
+                          <span className="text-[10px] text-[var(--fg-muted)]">Sec 9(3) / 49(4) Cash</span>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isRcm}
+                          onClick={() => setIsRcm((v) => !v)}
+                          className={`px-2.5 py-1 rounded-[var(--radius-sm)] font-bold cursor-pointer ${
+                            isRcm ? "bg-amber-600 text-white" : "bg-[var(--bg-muted)] text-[var(--fg)]"
+                          }`}
+                        >
+                          {isRcm ? "ON" : "OFF"}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)]">
+                        <div>
+                          <span className="font-semibold text-[var(--fg)] block">Profit Markup</span>
+                          <span className="text-[10px] text-[var(--fg-muted)]">Add % over cost</span>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={showMarginMode}
+                          onClick={() => setShowMarginMode((v) => !v)}
+                          className={`px-2.5 py-1 rounded-[var(--radius-sm)] font-bold cursor-pointer ${
+                            showMarginMode ? "bg-[var(--primary)] text-white" : "bg-[var(--bg-muted)] text-[var(--fg)]"
+                          }`}
+                        >
+                          {showMarginMode ? `${marginPct}%` : "OFF"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {showMarginMode ? (
+                      <div className="flex items-center gap-3 p-3 rounded-[var(--radius)] bg-[var(--bg)] border border-[var(--border)]">
+                        <label htmlFor={`${uid}-margin-pct`} className="font-semibold text-[var(--fg)] shrink-0">
+                          Markup % on Unit Cost:
+                        </label>
+                        <input
+                          id={`${uid}-margin-pct`}
+                          type="number"
+                          min={0}
+                          max={500}
+                          value={marginPct}
+                          onChange={(e) => setMarginPct(Math.min(500, parseNonNeg(e.target.value)))}
+                          onWheel={(e) => e.currentTarget.blur()}
+                          className="w-24 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 font-bold tabular-nums text-[var(--fg)]"
+                        />
+                        <span className="text-[var(--fg-muted)]">
+                          Estimated Profit: <strong className="text-emerald-700">{fmtPaise(invoiceResult.estimatedMarginProfit)}</strong>
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {/* Rule 88A ITC Ledger Section (Disabled under RCM u/s 49(4)) */}
+                    {isRcm ? (
+                      <div className="rounded-[var(--radius)] bg-amber-50 border border-amber-200 p-3 text-amber-950 flex items-start gap-2">
+                        <Info className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+                        <p>
+                          <strong>Reverse Charge Mechanism (Sec 9(3) &amp; Sec 49(4)):</strong> Output tax liability shifts to the recipient, who must pay <strong>100% strictly via Electronic Cash Ledger</strong> (ITC cannot discharge RCM output tax).
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="pt-3 border-t border-[var(--border)] space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-bold text-[var(--fg)]">Input Tax Credit (Rule 88A Order)</span>
+                          <div className="inline-flex p-0.5 rounded-[var(--radius-sm)] bg-[var(--bg-muted)] border border-[var(--border)] text-[11px] font-semibold">
                             <button
                               type="button"
-                              onClick={() => removeItem(item.id)}
-                              className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition"
-                              title="Remove item"
+                              onClick={() => setItcMode("simple")}
+                              className={`px-2.5 py-1 rounded-[var(--radius-sm)] cursor-pointer ${
+                                itcMode === "simple" ? "bg-[var(--bg-card)] text-[var(--primary)] shadow-xs" : "text-[var(--fg-muted)]"
+                              }`}
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              By Purchases
                             </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+                            <button
+                              type="button"
+                              onClick={() => setItcMode("ledger")}
+                              className={`px-2.5 py-1 rounded-[var(--radius-sm)] cursor-pointer ${
+                                itcMode === "ledger" ? "bg-[var(--bg-card)] text-[var(--primary)] shadow-xs" : "text-[var(--fg-muted)]"
+                              }`}
+                            >
+                              Exact Credit Ledger
+                            </button>
+                          </div>
+                        </div>
 
-            {/* Compliance Overrides & ITC Offset */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">
-                Tax Scheme &amp; Input Tax Credit (ITC)
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Taxation Regime Scheme
-                  </label>
-                  <select
-                    value={taxScheme}
-                    onChange={(e) => setTaxScheme(e.target.value as "regular" | "composition")}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white text-slate-800"
-                  >
-                    <option value="regular">Regular Scheme (Standard Rates)</option>
-                    <option value="composition">Composition Scheme (1% Goods, 6% Services)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Supply Location
-                  </label>
-                  <select
-                    value={placeOfSupply}
-                    onChange={(e) => setPlaceOfSupply(e.target.value as "intra" | "inter")}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white text-slate-800"
-                  >
-                    <option value="intra">Intra-State (CGST 50% + SGST 50%)</option>
-                    <option value="inter">Inter-State (IGST 100%)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* ITC Purchase offset */}
-              <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Total Purchases (For ITC Claim)
-                  </label>
-                  <input
-                    type="number"
-                    value={inputPurchases || ""}
-                    onChange={(e) => setInputPurchases(Number(e.target.value))}
-                    placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Input Purchase GST Rate %
-                  </label>
-                  <input
-                    type="number"
-                    value={inputGstRate}
-                    onChange={(e) => setInputGstRate(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Invoice Summary Studio (Clean Light Card) */}
-          <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-6">
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div>
-                  <span className="text-xs font-medium text-slate-500 block">Invoice Type</span>
-                  <span className="text-sm font-bold text-slate-900">
-                    {placeOfSupply === "intra" ? "Intra-State (CGST/SGST)" : "Inter-State (IGST)"}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/70">
-                  <Receipt className="h-3.5 w-3.5" />
-                  Tax Invoice
-                </div>
-              </div>
-
-              {/* Total Payable Headline */}
-              <div className="text-center py-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                  Grand Total Invoice Amount
-                </span>
-                <div className="text-4xl font-extrabold text-slate-900 mt-1 tracking-tight">
-                  {fmt(results.grandTotal)}
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Inclusive of all taxes &amp; cess
-                </p>
-              </div>
-
-              {/* Breakdown Grid */}
-              <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
-                <div className="flex justify-between items-center text-slate-600">
-                  <span>Net Taxable Value</span>
-                  <span className="font-semibold text-slate-900">{fmt(results.subTotal)}</span>
-                </div>
-
-                {results.totalDiscount > 0 && (
-                  <div className="flex justify-between items-center text-emerald-700">
-                    <span>Total Discount Allowed</span>
-                    <span className="font-semibold">-{fmt(results.totalDiscount)}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center text-slate-600">
-                  <span>Total GST Levied</span>
-                  <span className="font-semibold text-slate-900">{fmt(results.totalGst)}</span>
-                </div>
-
-                {placeOfSupply === "intra" ? (
-                  <>
-                    <div className="flex justify-between items-center text-slate-500 pl-3">
-                      <span>• Central GST (CGST)</span>
-                      <span>{fmt(results.cgst)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-slate-500 pl-3">
-                      <span>• State GST (SGST)</span>
-                      <span>{fmt(results.sgst)}</span>
-                    </div>
+                        {itcMode === "simple" ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label htmlFor={`${uid}-purch`} className="font-semibold text-[var(--fg)] block mb-1">
+                                Eligible Purchases (₹)
+                              </label>
+                              <input
+                                id={`${uid}-purch`}
+                                type="number"
+                                min={0}
+                                value={inputPurchases === 0 ? "" : inputPurchases}
+                                onChange={(e) => setInputPurchases(parseNonNeg(e.target.value))}
+                                onWheel={(e) => e.currentTarget.blur()}
+                                placeholder="0"
+                                className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor={`${uid}-purch-rate`} className="font-semibold text-[var(--fg)] block mb-1">
+                                Input GST Rate %
+                              </label>
+                              <select
+                                id={`${uid}-purch-rate`}
+                                value={inputGstRate}
+                                onChange={(e) => setInputGstRate(Number(e.target.value))}
+                                className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-2 tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                              >
+                                {ALL_GST_RATES.map((r) => (
+                                  <option key={r} value={r}>
+                                    {r}%
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label htmlFor={`${uid}-purch-pos`} className="font-semibold text-[var(--fg)] block mb-1">
+                                Purchase Supply Type
+                              </label>
+                              <select
+                                id={`${uid}-purch-pos`}
+                                value={purchaseSupplyType}
+                                onChange={(e) => setPurchaseSupplyType(e.target.value as GstPlaceOfSupply)}
+                                className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-2 text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                              >
+                                <option value="intra">Intra-State (CGST+SGST ITC)</option>
+                                <option value="inter">Inter-State (IGST ITC)</option>
+                              </select>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {(
+                              [
+                                { key: "igst", label: "IGST ITC (₹)" },
+                                { key: "cgst", label: "CGST ITC (₹)" },
+                                { key: "sgst", label: "SGST ITC (₹)" },
+                                { key: "cess", label: "Cess ITC (₹)" },
+                              ] as Array<{ key: keyof ItcCreditInput; label: string }>
+                            ).map((field) => (
+                              <div key={field.key}>
+                                <label htmlFor={`${uid}-itc-${field.key}`} className="font-semibold text-[var(--fg)] block mb-1">
+                                  {field.label}
+                                </label>
+                                <input
+                                  id={`${uid}-itc-${field.key}`}
+                                  type="number"
+                                  min={0}
+                                  value={manualItc[field.key] === 0 ? "" : manualItc[field.key]}
+                                  onChange={(e) =>
+                                    setManualItc((prev) => ({ ...prev, [field.key]: parseNonNeg(e.target.value) }))
+                                  }
+                                  onWheel={(e) => e.currentTarget.blur()}
+                                  placeholder="0"
+                                  className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-2 tabular-nums text-[var(--fg)] outline-none focus:border-[var(--primary)]"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[11px] text-[var(--fg-muted)]">
+                          Rule 88A enforced: IGST credit exhausts first; CGST credit never offsets SGST (and vice versa); Cess offsets Cess only.
+                        </p>
+                      </div>
+                    )}
                   </>
-                ) : (
-                  <div className="flex justify-between items-center text-slate-500 pl-3">
-                    <span>• Integrated GST (IGST)</span>
-                    <span>{fmt(results.igst)}</span>
-                  </div>
                 )}
-
-                {results.totalCess > 0 && (
-                  <div className="flex justify-between items-center text-amber-700">
-                    <span>Compensation Cess</span>
-                    <span>{fmt(results.totalCess)}</span>
-                  </div>
-                )}
-
-                {results.itcAmount > 0 && (
-                  <div className="flex justify-between items-center text-emerald-700 pt-1">
-                    <span>ITC Purchase Credit Offset</span>
-                    <span className="font-bold">-{fmt(results.itcAmount)}</span>
-                  </div>
-                )}
-
-                <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 flex justify-between items-center mt-2">
-                  <span className="font-bold text-emerald-900">Net GST Payable (Cash)</span>
-                  <span className="text-xl font-black text-emerald-800">
-                    {fmt(taxScheme === "composition" ? results.compositionTax : (isRcm ? 0 : results.netGstPayable))}
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={downloadExcel}
-                  disabled={isGeneratingExcel}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition disabled:opacity-50 cursor-pointer shadow-2xs"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  {isGeneratingExcel ? "Generating..." : "Export Excel"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={downloadPdf}
-                  disabled={isGeneratingPdf}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-xs font-bold text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  {isGeneratingPdf ? "Generating..." : "Download Invoice"}
-                </button>
               </div>
             </div>
 
-            {/* GST Filing Support Callout */}
-            <div className="rounded-2xl border border-slate-200 bg-emerald-50/60 p-5 space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-4 w-4" />
+            {/* Right Sticky Invoice Summary Studio (lg:top-28!) */}
+            <div id="gst-summary-studio" className="lg:col-span-5 lg:sticky lg:top-28 space-y-5">
+              <div
+                aria-live="polite"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-md)] space-y-5 tabular-nums"
+              >
+                <div className="flex items-center justify-between gap-2 pb-4 border-b border-[var(--border)]">
+                  <div>
+                    <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block">
+                      {invoiceResult.effectivePlaceOfSupply === "intra" ? "Intra-State (CGST/SGST)" : "Inter-State (IGST)"}
+                    </span>
+                    <span className="text-sm font-extrabold text-[var(--fg)]">{invoiceResult.documentLabel}</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                      isComposition || isRcmActive
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                    }`}
+                  >
+                    <Receipt className="h-3.5 w-3.5" />
+                    {isComposition ? "Bill of Supply" : isRcmActive ? "RCM" : "Tax Invoice"}
+                  </span>
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">
-                    Monthly GST Return Filing (GSTR-1 &amp; 3B)
-                  </h4>
-                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                    Avoid late filing penalties u/s Section 47. Get our CA team to reconcile your 2B ITC and submit error-free returns.
+
+                {/* Grand Total */}
+                <div className="text-center py-1">
+                  <span className="text-[11px] font-bold text-[var(--fg-muted)] uppercase tracking-wider block">
+                    {isComposition ? "Bill of Supply Total (Buyer Pays)" : "Grand Total Invoice Value"}
+                  </span>
+                  <div className="text-3xl sm:text-4xl font-extrabold text-[var(--fg)] mt-1 tracking-tight">
+                    {fmtPaise(invoiceResult.grandTotalExact)}
+                  </div>
+                  <p className="text-xs text-[var(--fg-muted)] mt-1">
+                    {isComposition
+                      ? "₹0 GST charged on Bill of Supply (Sec 10(4))"
+                      : `Sec 170 Rounded Total: ${fmtSec170(invoiceResult.grandTotalRoundedSec170)}`}
                   </p>
                 </div>
+
+                {/* Breakdown Lines */}
+                <div className="space-y-2 pt-2 border-t border-[var(--border)] text-xs">
+                  <div className="flex justify-between text-[var(--fg-muted)]">
+                    <span>Net Taxable Turnover</span>
+                    <span className="font-semibold text-[var(--fg)]">{fmtPaise(invoiceResult.subTotal)}</span>
+                  </div>
+                  {invoiceResult.totalDiscount > 0 && (
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Pre-Supply Discount (Sec 15(3))</span>
+                      <span className="font-semibold">-{fmtPaise(invoiceResult.totalDiscount)}</span>
+                    </div>
+                  )}
+
+                  {!isComposition && (
+                    <>
+                      <div className="flex justify-between text-[var(--fg-muted)]">
+                        <span>Total GST Levied</span>
+                        <span className="font-semibold text-[var(--fg)]">{fmtPaise(invoiceResult.totalGst)}</span>
+                      </div>
+                      {invoiceResult.effectivePlaceOfSupply === "intra" ? (
+                        <>
+                          <div className="flex justify-between text-[var(--fg-muted)] pl-3">
+                            <span>• CGST (50%)</span>
+                            <span>{fmtPaise(invoiceResult.cgst)}</span>
+                          </div>
+                          <div className="flex justify-between text-[var(--fg-muted)] pl-3">
+                            <span>• SGST / UTGST (50%)</span>
+                            <span>{fmtPaise(invoiceResult.sgst)}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between text-[var(--fg-muted)] pl-3">
+                          <span>• IGST (100%)</span>
+                          <span>{fmtPaise(invoiceResult.igst)}</span>
+                        </div>
+                      )}
+                      {invoiceResult.totalCess > 0 && (
+                        <div className="flex justify-between text-amber-800">
+                          <span>Compensation Cess (Separate Head)</span>
+                          <span className="font-semibold">{fmtPaise(invoiceResult.totalCess)}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {!isComposition && !isRcmActive && invoiceResult.rule88A.utilized.totalUtilized > 0 && (
+                    <div className="flex justify-between text-emerald-700 pt-1">
+                      <span>Less: Rule 88A ITC Offset</span>
+                      <span className="font-bold">-{fmtPaise(invoiceResult.rule88A.utilized.totalUtilized)}</span>
+                    </div>
+                  )}
+
+                  {!isComposition && !isRcmActive && invoiceResult.rule88A.carryForward.total > 0 && (
+                    <div className="flex justify-between text-[var(--primary)] bg-[var(--primary-soft)] px-2.5 py-1.5 rounded-[var(--radius-sm)]">
+                      <span>Credit Ledger Carry-Forward</span>
+                      <span className="font-bold">{fmtPaise(invoiceResult.rule88A.carryForward.total)}</span>
+                    </div>
+                  )}
+
+                  {isComposition && (
+                    <div className="flex justify-between text-[var(--fg-muted)] pt-1">
+                      <span>Composition Levy ({invoiceResult.compositionRate}% out-of-pocket)</span>
+                      <span className="font-semibold text-[var(--fg)]">
+                        {fmtPaise(invoiceResult.compositionCgst)} CGST + {fmtPaise(invoiceResult.compositionSgst)} SGST
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Net Cash Callout */}
+                  {isRcmActive ? (
+                    <div className="p-3.5 rounded-[var(--radius)] bg-amber-50 border border-amber-200 flex justify-between items-center mt-2">
+                      <div>
+                        <span className="font-bold text-amber-950 block">Recipient RCM Cash Liability</span>
+                        <span className="text-[10px] text-amber-800">Supplier Cash: ₹0.00 • Exact: {fmtPaise(invoiceResult.recipientRcmCashLiabilityExact)}</span>
+                      </div>
+                      <span className="text-xl font-black text-amber-900">
+                        {fmtSec170(invoiceResult.recipientRcmCashLiabilityRounded)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-[var(--radius)] bg-emerald-50 border border-emerald-200 flex justify-between items-center mt-2">
+                      <div>
+                        <span className="font-bold text-emerald-950 block">
+                          {isComposition ? "Composition Cash Tax (Sec 10)" : "Net GST Cash Payable (Sec 170)"}
+                        </span>
+                        <span className="text-[10px] text-emerald-800">
+                          Exact: {fmtPaise(invoiceResult.supplierCashLiabilityExact)}
+                          {!isComposition && invoiceResult.rule88A.cashPayable.cess > 0
+                            ? ` (incl. ${fmtPaise(invoiceResult.rule88A.cashPayable.cess)} Cess)`
+                            : ""}
+                        </span>
+                      </div>
+                      <span className="text-xl font-black text-emerald-900">
+                        {fmtSec170(invoiceResult.supplierCashLiabilityRounded)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {exportError ? (
+                  <div className="rounded-[var(--radius)] bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{exportError}</span>
+                  </div>
+                ) : null}
+
+                {/* Exports */}
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={downloadExcel}
+                    disabled={isGeneratingExcel}
+                    className="inline-flex items-center justify-center gap-1.5 min-h-[42px] px-3 py-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--bg)] text-xs font-semibold text-[var(--fg)] transition cursor-pointer disabled:opacity-50"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {isGeneratingExcel ? "Generating..." : "Export Excel"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadPdf}
+                    disabled={isGeneratingPdf}
+                    className="inline-flex items-center justify-center gap-1.5 min-h-[42px] px-3 py-2 rounded-[var(--radius)] bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-xs font-bold text-white transition cursor-pointer disabled:opacity-50"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    {isGeneratingPdf ? "Generating..." : "Download PDF"}
+                  </button>
+                </div>
               </div>
-              <Link
-                href="/services/taxation-gst-compliance-management"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 pt-1"
-              >
-                <span>Explore GST Management Services</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+
+              {/* GST Filing Advisory Callout */}
+              <div className="rounded-[var(--radius-lg)] border border-[var(--primary-border)] bg-[var(--primary-soft)] p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-[var(--radius)] bg-[var(--primary)] text-white flex items-center justify-center shrink-0">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--fg)]">Monthly GST Filing &amp; GSTR-2B Reconciliation</h3>
+                    <p className="text-xs text-[var(--fg-muted)] mt-0.5 leading-relaxed">
+                      Avoid late fees u/s 47 and Rule 88A mismatch notices. Our CA desk reconciles GSTR-2B ITC and files GSTR-1 / 3B accurately.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/services/taxation-gst-compliance-management"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-hover)]"
+                >
+                  <span>Explore GST Management Services</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
+        )}
+      </section>
+
+      {/* Mobile Sticky Live Summary Bar */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-[var(--border)] bg-[var(--bg-card)]/95 backdrop-blur-md px-4 py-3 shadow-[var(--shadow-lg)]">
+        <div className="flex items-center justify-between gap-3 max-w-lg mx-auto tabular-nums">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--fg-muted)] block">
+              {view === "quick"
+                ? `Total GST (${quickRate}%)`
+                : isRcmActive
+                  ? "Recipient RCM Cash"
+                  : isComposition
+                    ? "Composition Cash Tax"
+                    : "Net GST Cash Payable"}
+            </span>
+            <span className="text-base font-black text-[var(--primary)]">
+              {view === "quick"
+                ? fmtPaise(quickResult.totalGst)
+                : fmtSec170(isRcmActive ? invoiceResult.recipientRcmCashLiabilityRounded : invoiceResult.supplierCashLiabilityRounded)}
+            </span>
+          </div>
+          <a
+            href="#gst-summary-studio"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white"
+          >
+            View Breakdown
+            <ArrowRight className="h-3.5 w-3.5" />
+          </a>
         </div>
-      )}
-    </section>
+      </div>
+    </div>
   );
 }
