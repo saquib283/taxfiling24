@@ -4,6 +4,7 @@ import PreHeaderBar from "@/components/layout/PreHeaderBar";
 import Navbar from "@/components/layout/Navbar";
 import SiteFooter from "@/components/sections/SiteFooter";
 import ChatBot from "@/components/ChatBot";
+import MotionProvider from "@/components/ui/MotionProvider";
 import HtmlInjection from "@/components/seo/HtmlInjection";
 import JsonLd, {
   localBusinessSchema,
@@ -88,11 +89,13 @@ export default async function SiteLayout({
           localBusinessSchema(publicSettings),
         ]}
       />
-      <PreHeaderBar settings={publicSettings} />
-      <Navbar settings={publicSettings} dynamicServices={services} content={navbarContent} />
-      <main id="main">{children}</main>
-      <SiteFooter settings={publicSettings} navbarContent={navbarContent as FooterNavbarContent} content={footerContent} />
-      <ChatBot settings={publicSettings} content={chatbotContent} />
+      <MotionProvider>
+        <PreHeaderBar settings={publicSettings} />
+        <Navbar settings={publicSettings} dynamicServices={services} content={navbarContent} />
+        <main id="main">{children}</main>
+        <SiteFooter settings={publicSettings} navbarContent={navbarContent as FooterNavbarContent} content={footerContent} />
+        <ChatBot settings={publicSettings} content={chatbotContent} />
+      </MotionProvider>
       <HtmlInjection html={injectBody} />
     </>
   );

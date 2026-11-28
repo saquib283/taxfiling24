@@ -63,24 +63,21 @@ export default function ArticlesSection({ articles, settings = {}, content }: Ar
           {articles.map((article) => (
             <AnimatedSection key={article.id}>
               <NextLink href={`/articles/${article.slug}`} className="group block h-full">
-                <div className="relative flex flex-col h-full bg-white/40 backdrop-blur-xl border border-white rounded-[2.5rem] overflow-hidden shadow-2xl transition-all duration-700 hover:-translate-y-3 group-hover:shadow-[0_20px_50px_rgba(var(--primary-rgb),0.1)]">
-                  {/* Glass Card Inner Border Glow */}
-                  <div className="absolute inset-0 rounded-[2.5rem] border border-white/20 pointer-events-none" />
-                  
+                <div className="relative flex flex-col h-full bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow-md)] transition-all duration-500 hover:-translate-y-2 hover:border-[var(--primary-border)] group-hover:shadow-[var(--shadow-xl)]">
                   {/* Thumbnail with Soft Overlay */}
-                  <div className="aspect-[16/11] relative overflow-hidden bg-slate-50">
+                  <div className="aspect-[16/11] relative overflow-hidden bg-[var(--bg-muted)]">
                     <Image
                       src={article.thumbnailUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&q=80"}
                       alt={article.title}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     
                     {/* Category/Tag Floating */}
                     <div className="absolute top-4 left-4">
-                       <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-[var(--primary)] shadow-sm flex items-center gap-1.5">
+                       <div className="bg-[var(--bg-card)]/95 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-[var(--primary)] shadow-sm flex items-center gap-1.5">
                           <Bookmark size={10} />
                           Professional Update
                        </div>
@@ -88,8 +85,8 @@ export default function ArticlesSection({ articles, settings = {}, content }: Ar
                   </div>
 
                   {/* Content with Enhanced Padding & Hierarchy */}
-                  <div className="p-10 flex-1 flex flex-col">
-                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">
+                  <div className="p-8 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.15em] text-[var(--fg-muted)] mb-4">
                       <Calendar className="h-3.5 w-3.5 text-[var(--primary)]" />
                       <time dateTime={new Date(article.createdAt).toISOString()}>
                         {new Date(article.createdAt).toLocaleDateString("en-US", {
@@ -98,22 +95,22 @@ export default function ArticlesSection({ articles, settings = {}, content }: Ar
                       </time>
                     </div>
 
-                    <h3 className="text-xl font-bold text-slate-900 mb-5 group-hover:text-[var(--primary)] transition-colors duration-300 line-clamp-2 leading-tight tracking-tight">
+                    <h3 className="text-xl font-bold text-[var(--fg)] mb-4 group-hover:text-[var(--primary)] transition-colors duration-300 line-clamp-2 leading-tight tracking-tight">
                       {article.title}
                     </h3>
 
                     {article.excerpt && (
-                      <p className="text-slate-500 text-sm leading-relaxed mb-10 flex-1 line-clamp-3">
+                      <p className="text-[var(--fg-muted)] text-sm leading-relaxed mb-8 flex-1 line-clamp-3">
                         {article.excerpt}
                       </p>
                     )}
 
                     {/* Bottom Link Style */}
-                    <div className="pt-6 border-t border-slate-100 flex items-center justify-between group/link">
-                      <span className="text-sm font-extrabold text-slate-900 group-hover/link:text-[var(--primary)] transition-colors tracking-tight">
+                    <div className="pt-5 border-t border-[var(--border)] flex items-center justify-between group/link">
+                      <span className="text-sm font-extrabold text-[var(--fg)] group-hover/link:text-[var(--primary)] transition-colors tracking-tight">
                         Explore Full Insight
                       </span>
-                      <div className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover/link:bg-[var(--primary)] group-hover/link:text-white group-hover/link:scale-110 transition-all duration-500">
+                      <div className="h-10 w-10 rounded-full bg-[var(--bg-muted)] flex items-center justify-center text-[var(--fg-muted)] group-hover/link:bg-[var(--primary)] group-hover/link:text-white group-hover/link:scale-105 transition-all duration-300">
                         <ArrowRight className="h-5 w-5 transition-transform group-hover/link:translate-x-1" />
                       </div>
                     </div>
@@ -125,13 +122,13 @@ export default function ArticlesSection({ articles, settings = {}, content }: Ar
         </div>
 
         {/* Centered Explore All Link */}
-        <AnimatedSection className="mt-20 text-center">
+        <AnimatedSection className="mt-16 text-center">
           <NextLink 
             href="/articles" 
-            className="inline-flex items-center gap-3 rounded-full bg-white border border-slate-200 px-8 py-4 text-sm font-bold text-slate-900 shadow-xl hover:shadow-2xl transition-all duration-500 group hover:border-[var(--primary)]/30 hover:-translate-y-1"
+            className="inline-flex items-center gap-3 rounded-full bg-[var(--bg-card)] border border-[var(--border)] px-8 py-4 text-sm font-bold text-[var(--fg)] shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all duration-300 group hover:border-[var(--primary-border)] hover:-translate-y-0.5"
           >
             <span>{buttonLabel}</span>
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-400 group-hover:bg-[var(--primary)] group-hover:text-white transition-all duration-500">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--bg-muted)] text-[var(--fg-muted)] group-hover:bg-[var(--primary)] group-hover:text-white transition-all duration-300">
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </div>
           </NextLink>

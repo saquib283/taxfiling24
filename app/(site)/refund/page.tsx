@@ -2,6 +2,7 @@ import { getSetting, getSettings } from "@/lib/settings";
 import type { Metadata } from "next";
 import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 import JsonLd, { breadcrumbSchema } from "@/components/seo/JsonLd";
+import PageHero from "@/components/layout/PageHero";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,7 +41,7 @@ export default async function RefundPage() {
   const isHtmlContent = /<[a-z][\s\S]*>/i.test(displayContent);
 
   return (
-    <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8 max-w-4xl">
+    <div className="min-h-screen bg-[var(--bg)] pb-20">
       <JsonLd
         data={[
           breadcrumbSchema([
@@ -49,17 +50,25 @@ export default async function RefundPage() {
           ]),
         ]}
       />
-      <h1 className="text-3xl font-bold text-[var(--fg)] mb-8">{title}</h1>
-      {isHtmlContent ? (
-        <div
-          className="tiptap prose prose-lg max-w-none text-[var(--fg-muted)] leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayContent) }}
-        />
-      ) : (
-        <div className="prose prose-lg max-w-none text-[var(--fg-muted)] leading-relaxed whitespace-pre-wrap">
-          {displayContent}
+      <PageHero
+        compact
+        title={title}
+        description="Transparent cancellation, rescheduling, and refund terms for TaxFiling24 advisory and statutory filings."
+      />
+      <div className="container mx-auto px-4 pt-10 sm:px-6 lg:px-8 max-w-4xl">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 sm:p-10 shadow-[var(--shadow-sm)]">
+          {isHtmlContent ? (
+            <div
+              className="tiptap prose prose-slate max-w-none text-[var(--fg-muted)] leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayContent) }}
+            />
+          ) : (
+            <div className="prose prose-slate max-w-none text-[var(--fg-muted)] leading-relaxed whitespace-pre-wrap">
+              {displayContent}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

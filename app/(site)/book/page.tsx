@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import ConsultationBookingClient from "@/components/sections/ConsultationBookingClient";
+import PageHero from "@/components/layout/PageHero";
 import JsonLd, { breadcrumbSchema, faqSchema, webPageSchema } from "@/components/seo/JsonLd";
 import { absoluteUrl, buildPageMetadataFromSettings } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
-import { CalendarClock, HelpCircle } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
@@ -47,7 +47,7 @@ const FAQS = [
 
 export default async function BookPage() {
   return (
-    <div className="min-h-screen bg-slate-50/50 pt-24 pb-20">
+    <div className="min-h-screen bg-[var(--bg)] pb-20">
       <JsonLd
         data={[
           breadcrumbSchema([
@@ -63,38 +63,26 @@ export default async function BookPage() {
         ]}
       />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Hero Header */}
-        <div className="mx-auto max-w-3xl text-center mb-12 sm:mb-16">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-indigo-700 shadow-sm">
-            <CalendarClock className="h-4 w-4" />
-            Advisory Desk
-          </span>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            Book a Professional{" "}
-            <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
-              Consultation
-            </span>
-          </h1>
-          <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed">
-            Connect directly with verified Chartered Accountants and legal specialists for your Income Tax, GST, startup incorporation, and ROC compliance needs.
-          </p>
-        </div>
+      <PageHero
+        title={
+          <>
+            Book a Professional <span className="text-[var(--accent)]">Consultation</span>
+          </>
+        }
+        description="Connect directly with verified Chartered Accountants and legal specialists for your Income Tax, GST, startup incorporation, and ROC compliance needs."
+      />
 
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-10 lg:pt-14">
         {/* Core Interactive Booking Client */}
         <div className="mx-auto max-w-6xl">
           <ConsultationBookingClient />
         </div>
 
         {/* FAQ Section */}
-        <div className="mx-auto max-w-4xl mt-20 pt-16 border-t border-slate-200">
+        <div className="mx-auto max-w-4xl mt-16 pt-14 border-t border-[var(--border)]">
           <div className="text-center mb-10">
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              <HelpCircle className="h-4 w-4" />
-              Frequently Asked Questions
-            </span>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Appointment Guidelines & FAQs
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--fg)] sm:text-3xl">
+              Appointment Guidelines &amp; FAQs
             </h2>
           </div>
 
@@ -102,10 +90,10 @@ export default async function BookPage() {
             {FAQS.map((faq, index) => (
               <div
                 key={index}
-                className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm hover:border-slate-300 transition"
+                className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)] hover:border-[var(--primary-border)] transition"
               >
-                <h3 className="text-sm font-bold text-slate-900 mb-2">{faq.question}</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">{faq.answer}</p>
+                <h3 className="text-sm font-bold text-[var(--fg)] mb-2">{faq.question}</h3>
+                <p className="text-xs text-[var(--fg-muted)] leading-relaxed">{faq.answer}</p>
               </div>
             ))}
           </div>
@@ -114,4 +102,3 @@ export default async function BookPage() {
     </div>
   );
 }
-

@@ -267,7 +267,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
                 <Link
                   href="/contact"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 px-4 py-2.5 text-xs sm:text-sm font-medium text-white/70 transition-all hover:bg-white/5 hover:text-white"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/20 px-4 py-2.5 text-xs sm:text-sm font-medium text-white/85 transition-all hover:bg-white/10 hover:text-white"
                 >
                   <span>Request Quote</span>
                 </Link>
@@ -277,14 +277,14 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             {/* Right: Integrated Performance Metrics Card */}
             {heroStats.length > 0 && (
               <div className="lg:col-span-5 xl:col-span-4">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:p-6 backdrop-blur-xs shadow-sm">
+                <div className="rounded-[var(--radius-lg)] border border-white/15 bg-white/[0.06] p-5 sm:p-6 backdrop-blur-xs shadow-sm">
                   <div className="grid grid-cols-2 gap-5">
                     {heroStats.map((stat, idx) => (
                       <div key={idx} className="flex flex-col">
                         <div className="text-xl sm:text-2xl font-bold tracking-tight text-white">
                           {stat.value}
                         </div>
-                        <div className="text-[11px] font-medium uppercase tracking-wider text-white/50 mt-0.5">
+                        <div className="text-[11px] font-medium uppercase tracking-wider text-white/75 mt-0.5">
                           {stat.label}
                         </div>
                       </div>
@@ -457,9 +457,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           {/* ── Right Column: Sticky Advisory & Booking Desk ── */}
           <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-5">
             {/* Direct Consultation Card */}
-            <div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-3">
-                <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--accent-ink)] mb-3">
+                <Sparkles className="h-3.5 w-3.5 text-[var(--accent-ink)]" />
                 <span>Certified Advisory</span>
               </div>
 
@@ -553,22 +553,22 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 <Link
                   key={rel.slug}
                   href={`/services/${rel.slug}`}
-                  className="group flex flex-col justify-between rounded-2xl border border-slate-200/60 bg-white p-6 transition-all duration-300 hover:border-[var(--primary)]/20 hover:shadow-[0_8px_30px_-12px_rgba(10,37,64,0.12)]"
+                  className="group flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:border-[var(--primary-border)] hover:shadow-[var(--shadow-md)]"
                 >
                   <div>
                     {rel.category && (
-                      <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                      <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-[var(--fg-muted)] mb-2">
                         {rel.category}
                       </span>
                     )}
-                    <h3 className="font-semibold text-slate-900 text-base group-hover:text-[var(--primary)] transition-colors leading-snug line-clamp-2">
+                    <h3 className="font-semibold text-[var(--fg)] text-base group-hover:text-[var(--primary)] transition-colors leading-snug line-clamp-2">
                       {rel.title}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-[var(--fg-muted)] mt-2 line-clamp-2 leading-relaxed">
                       {rel.description}
                     </p>
                   </div>
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-900 group-hover:text-[var(--primary)]">
+                  <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between text-xs font-semibold text-[var(--fg)] group-hover:text-[var(--primary)]">
                     <span>Explore details</span>
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </div>

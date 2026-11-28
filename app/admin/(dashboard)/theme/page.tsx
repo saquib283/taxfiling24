@@ -86,7 +86,7 @@ const SHADOW_STYLES = [
 const DEFAULTS = {
   theme_primary: "#0A2540",
   theme_accent: "#D4AF37",
-  theme_radius: "0.75",
+  theme_radius: "0.5",
   theme_font: "Outfit",
   theme_font_size: "15",
   theme_shadow: "subtle",
@@ -397,31 +397,15 @@ export default function ThemePage() {
                     </div>
                   </div>
 
-                  {/* Mode Toggle */}
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-1">
-                      Appearance Mode
-                    </h3>
-                    <p className="text-xs text-gray-400 mb-3">
-                      Light mode is default. Dark mode support is coming soon.
-                    </p>
-                    <div className="flex gap-2">
-                      {["light", "dark"].map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => handleChange("theme_mode", mode)}
-                          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            settings.theme_mode === mode
-                              ? "border-blue-500 bg-blue-50/30 text-gray-900"
-                              : "border-gray-100 text-gray-500 hover:border-gray-200"
-                          }`}
-                        >
-                          <SunMoon className="h-4 w-4" />
-                          {mode === "light" ? "Light" : "Dark"}
-                        </button>
-                      ))}
+                  {/* Mode Info */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-900 mb-1">
+                      <SunMoon className="h-4 w-4 text-slate-600" />
+                      <span>Appearance Mode: Editorial Light</span>
                     </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      The public storefront runs on an audited high-contrast light canvas with dark primary hero bands. Derived hover, soft tint, gradient, and border-radius tokens update automatically from your Primary, Accent, and Corner Radius selections.
+                    </p>
                   </div>
                 </div>
               )}
@@ -505,10 +489,10 @@ export default function ThemePage() {
                       <div className="flex gap-2 flex-1">
                         {[
                           { val: "0", label: "Sharp", preview: "rounded-none" },
-                          { val: "0.375", label: "Slight", preview: "rounded-sm" },
-                          { val: "0.75", label: "Default", preview: "rounded-xl" },
+                          { val: "0.25", label: "Subtle", preview: "rounded-sm" },
+                          { val: "0.5", label: "Default", preview: "rounded-lg" },
+                          { val: "0.75", label: "Soft", preview: "rounded-xl" },
                           { val: "1", label: "Rounded", preview: "rounded-2xl" },
-                          { val: "1.5", label: "Pill", preview: "rounded-3xl" },
                         ].map((opt) => (
                           <button
                             key={opt.val}

@@ -226,13 +226,13 @@ export default function ChatBot({
             {/* Header */}
             <div className="flex items-center justify-between bg-[var(--primary)] p-4 text-white">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                 <h3 className="font-semibold">{headerTitle}</h3>
               </div>
               <button 
                 type="button"
                 onClick={() => setIsOpen(false)} 
-                className="text-white hover:text-gray-200 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/40"
+                className="text-white hover:text-white/80 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/40"
                 aria-label="Close assistant"
               >
                 <X className="h-5 w-5" />
@@ -240,12 +240,12 @@ export default function ChatBot({
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[var(--bg)]">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                      msg.role === "user" ? "bg-[var(--primary)] text-white rounded-br-none" : "bg-white text-gray-800 border border-[var(--border)] rounded-bl-none shadow-sm"
+                      msg.role === "user" ? "bg-[var(--primary)] text-white rounded-br-none" : "bg-[var(--bg-card)] text-[var(--fg)] border border-[var(--border)] rounded-bl-none shadow-sm"
                     }`}
                   >
                     <ReactMarkdown
@@ -267,9 +267,9 @@ export default function ChatBot({
               ))}
               {isLoading ? (
                 <div className="flex justify-start">
-                  <div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-4 py-2 text-sm bg-white text-gray-800 border border-[var(--border)] rounded-bl-none shadow-sm">
+                  <div className="flex items-center gap-2 max-w-[80%] rounded-2xl px-4 py-2 text-sm bg-[var(--bg-card)] text-[var(--fg)] border border-[var(--border)] rounded-bl-none shadow-sm">
                     <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
-                    <span className="text-gray-400">{typingLabel}</span>
+                    <span className="text-[var(--fg-muted)]">{typingLabel}</span>
                   </div>
                 </div>
               ) : null}
@@ -277,14 +277,14 @@ export default function ChatBot({
             </div>
 
             {/* Input Form */}
-            <form onSubmit={handleSend} className="p-4 border-t border-gray-100 flex items-center gap-2 bg-white">
+            <form onSubmit={handleSend} className="p-4 border-t border-[var(--border)] flex items-center gap-2 bg-[var(--bg-card)]">
               <input
                 type="text"
                 placeholder={inputPlaceholder}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading}
-                className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:bg-gray-50 bg-white text-gray-800"
+                className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:bg-[var(--bg-muted)] bg-[var(--bg-card)] text-[var(--fg)]"
               />
               <button
                 type="submit"

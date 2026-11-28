@@ -93,9 +93,9 @@ export default async function RootLayout({
     : "#D4AF37";
   const parsedRadius = Number(theme.theme_radius);
   const radius =
-    Number.isFinite(parsedRadius) && parsedRadius >= 0 && parsedRadius <= 3
+    Number.isFinite(parsedRadius) && parsedRadius >= 0 && parsedRadius <= 1.5
       ? `${parsedRadius}rem`
-      : "0.75rem";
+      : "0.5rem";
   const fontFamily = (theme.theme_font || "Outfit").replace(/[^A-Za-z0-9 -]/g, "").trim() || "Outfit";
   const parsedFontSize = Number(theme.theme_font_size);
   const fontSize =
@@ -105,26 +105,30 @@ export default async function RootLayout({
   const shadowStyle = theme.theme_shadow || "subtle";
 
   // Map shadow style to actual CSS values
-  const shadowMap: Record<string, { sm: string; md: string; lg: string }> = {
+  const shadowMap: Record<string, { sm: string; md: string; lg: string; xl: string }> = {
     none: {
       sm: "none",
       md: "none",
       lg: "none",
+      xl: "none",
     },
     subtle: {
       sm: "0 2px 4px rgba(10, 37, 64, 0.04)",
       md: "0 4px 12px rgba(10, 37, 64, 0.06), 0 1px 2px rgba(10, 37, 64, 0.04)",
       lg: "0 12px 24px -4px rgba(10, 37, 64, 0.08), 0 4px 8px -2px rgba(10, 37, 64, 0.04)",
+      xl: "0 24px 48px -12px rgba(10, 37, 64, 0.14), 0 10px 20px -6px rgba(10, 37, 64, 0.06)",
     },
     medium: {
-      sm: "0 2px 6px rgba(0, 0, 0, 0.06)",
-      md: "0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)",
-      lg: "0 16px 32px -4px rgba(0, 0, 0, 0.1), 0 6px 12px -2px rgba(0, 0, 0, 0.06)",
+      sm: "0 2px 6px rgba(10, 37, 64, 0.06)",
+      md: "0 6px 16px rgba(10, 37, 64, 0.08), 0 2px 4px rgba(10, 37, 64, 0.04)",
+      lg: "0 16px 32px -4px rgba(10, 37, 64, 0.1), 0 6px 12px -2px rgba(10, 37, 64, 0.06)",
+      xl: "0 28px 56px -12px rgba(10, 37, 64, 0.16), 0 12px 24px -6px rgba(10, 37, 64, 0.08)",
     },
     elevated: {
-      sm: "0 4px 8px rgba(0, 0, 0, 0.08)",
-      md: "0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.06)",
-      lg: "0 20px 48px -4px rgba(0, 0, 0, 0.14), 0 8px 16px -4px rgba(0, 0, 0, 0.08)",
+      sm: "0 4px 8px rgba(10, 37, 64, 0.08)",
+      md: "0 8px 24px rgba(10, 37, 64, 0.1), 0 4px 8px rgba(10, 37, 64, 0.06)",
+      lg: "0 20px 48px -4px rgba(10, 37, 64, 0.14), 0 8px 16px -4px rgba(10, 37, 64, 0.08)",
+      xl: "0 32px 64px -12px rgba(10, 37, 64, 0.2), 0 14px 28px -8px rgba(10, 37, 64, 0.1)",
     },
   };
 
@@ -132,7 +136,7 @@ export default async function RootLayout({
   const googleFontUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, "+")}:wght@300;400;500;600;700;800;900&display=swap`;
 
   return (
-    <html lang="en-IN" className={outfit.variable}>
+    <html lang="en-IN" className={outfit.variable} data-scroll-behavior="smooth">
       <head>
         <link rel="preconnect" href="https://images.unsplash.com" />
         {fontFamily !== "Outfit" ? (
@@ -145,14 +149,27 @@ export default async function RootLayout({
         <style>{`
           :root {
             --primary: ${primary};
+            --primary-hover: color-mix(in srgb, ${primary} 86%, white);
+            --primary-soft: color-mix(in srgb, ${primary} 8%, white);
+            --primary-border: color-mix(in srgb, ${primary} 18%, transparent);
             --accent: ${accent};
+            --accent-ink: color-mix(in srgb, ${accent} 60%, black);
+            --accent-light: color-mix(in srgb, ${accent} 72%, white);
+            --accent-soft: color-mix(in srgb, ${accent} 11%, white);
             --radius: ${radius};
+            --radius-sm: calc(${radius} * 0.5);
+            --radius-md: calc(${radius} * 0.75);
+            --radius-lg: ${radius};
+            --radius-xl: calc(${radius} * 1.25);
+            --radius-2xl: calc(${radius} * 1.5);
+            --radius-3xl: calc(${radius} * 2);
             --font-body: '${fontFamily}', var(--font-outfit), system-ui, sans-serif;
             --font-size-base: ${fontSize};
             --shadow-sm: ${shadows.sm};
             --shadow: ${shadows.md};
             --shadow-md: ${shadows.md};
             --shadow-lg: ${shadows.lg};
+            --shadow-xl: ${shadows.xl};
           }
           body {
             font-family: var(--font-body);
@@ -160,18 +177,10 @@ export default async function RootLayout({
           }
         `}</style>
       </head>
-      <body className={`${outfit.variable} ${outfit.className} antialiased selection:bg-[var(--accent)] selection:text-white`}>
-        {/* Ambient Background Glows */}
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-          <div className="absolute top-[10%] left-[5%] h-80 w-80 rounded-full bg-blue-400 opacity-[0.07] blur-[100px]" />
-          <div className="absolute top-[40%] right-[10%] h-96 w-96 rounded-full bg-cyan-400 opacity-[0.08] blur-[120px]" />
-          <div className="absolute bottom-[20%] left-[10%] h-64 w-64 rounded-full bg-indigo-400 opacity-[0.05] blur-[80px]" />
-          <div className="absolute top-[70%] right-[15%] h-80 w-80 rounded-full bg-blue-300 opacity-[0.06] blur-[110px]" />
-        </div>
-
+      <body className={`${outfit.variable} antialiased selection:bg-[var(--primary)] selection:text-white`}>
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[var(--primary)] focus:px-4 focus:py-2 focus:text-white focus:outline-none focus:ring-2 focus:ring-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-[var(--primary)] focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         >
           Skip to main content
         </a>

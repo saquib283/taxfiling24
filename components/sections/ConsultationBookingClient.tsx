@@ -210,40 +210,40 @@ export default function ConsultationBookingClient() {
 
   if (success && confirmedBooking) {
     return (
-      <div className="rounded-3xl border border-emerald-100 bg-white p-8 md:p-12 shadow-xl shadow-slate-100 text-center max-w-2xl mx-auto">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600">
+      <div className="rounded-[var(--radius-xl)] border border-emerald-200/80 bg-[var(--bg-card)] p-8 md:p-12 shadow-[var(--shadow-lg)] text-center max-w-2xl mx-auto">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700">
           <CheckCircle2 className="h-10 w-10" />
         </div>
         <span className="inline-block rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700">
           Booking Confirmed
         </span>
-        <h2 className="mt-3 text-2xl font-black text-slate-900 md:text-3xl">
+        <h2 className="mt-3 text-2xl font-black text-[var(--fg)] md:text-3xl">
           Your Consultation is Reserved!
         </h2>
-        <p className="mt-2 text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+        <p className="mt-2 text-sm text-[var(--fg-muted)] leading-relaxed max-w-md mx-auto">
           We have registered your session. Our advisory desk has sent a confirmation email with calendar and joining details.
         </p>
 
-        <div className="mt-8 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-6 text-left space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Reference ID</span>
+        <div className="mt-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg)] p-6 text-left space-y-3">
+          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">Reference ID</span>
             <button
               type="button"
               onClick={copyRef}
-              className="inline-flex items-center gap-1.5 font-mono text-sm font-bold text-indigo-600 hover:text-indigo-700"
+              className="inline-flex items-center gap-1.5 font-mono text-sm font-bold text-[var(--primary)] hover:text-[var(--primary-hover)]"
             >
               <span>{confirmedBooking.reference}</span>
               <Copy className="h-3.5 w-3.5" />
-              {copied && <span className="text-xs font-normal text-emerald-600">Copied!</span>}
+              {copied && <span className="text-xs font-normal text-emerald-700">Copied!</span>}
             </button>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Service:</span>
-            <span className="font-semibold text-slate-900">{confirmedBooking.service}</span>
+            <span className="text-[var(--fg-muted)]">Service:</span>
+            <span className="font-semibold text-[var(--fg)]">{confirmedBooking.service}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Date & Slot:</span>
-            <span className="font-semibold text-slate-900">
+            <span className="text-[var(--fg-muted)]">Date & Slot:</span>
+            <span className="font-semibold text-[var(--fg)]">
               {confirmedBooking.date} at {confirmedBooking.time}
             </span>
           </div>
@@ -253,13 +253,13 @@ export default function ConsultationBookingClient() {
           <button
             type="button"
             onClick={() => setSuccess(false)}
-            className="rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+            className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-3.5 text-sm font-semibold text-[var(--fg-soft)] hover:bg-[var(--bg)] transition shadow-sm"
           >
             Book Another Session
           </button>
           <a
             href="/"
-            className="rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 transition shadow-sm text-center"
+            className="rounded-[var(--radius)] bg-[var(--primary)] px-6 py-3.5 text-sm font-semibold text-white hover:bg-[var(--primary-hover)] transition shadow-sm text-center"
           >
             Return to Homepage
           </a>
@@ -271,18 +271,18 @@ export default function ConsultationBookingClient() {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr] items-start">
       {/* Left Column: Interactive Booking Form */}
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-10 shadow-xl shadow-slate-100">
+      <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 sm:p-10 shadow-[var(--shadow-lg)]">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--fg)] sm:text-3xl">
             Select Your Consultation Slot
           </h2>
-          <p className="mt-1.5 text-sm text-slate-500">
+          <p className="mt-1.5 text-sm text-[var(--fg-muted)]">
             Choose your service and an available time slot. Our advisory team will connect directly with you.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700">
+          <div className="mb-6 flex items-center gap-3 rounded-[var(--radius)] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -291,7 +291,7 @@ export default function ConsultationBookingClient() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Service Picker */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)] mb-2">
               1. Choose Service
             </label>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -306,20 +306,20 @@ export default function ConsultationBookingClient() {
                       setSelectedSlot(null);
                       if (error) setError(null);
                     }}
-                    className={`rounded-2xl border p-4 text-left transition-all cursor-pointer ${
+                    className={`rounded-[var(--radius)] border p-4 text-left transition-all cursor-pointer ${
                       isSelected
-                        ? "border-indigo-600 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-600"
-                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60"
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)] shadow-sm ring-1 ring-[var(--primary)]"
+                        : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--primary-border)] hover:bg-[var(--bg)]"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-900">{service.name}</span>
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-bold text-[var(--fg)]">{service.name}</span>
+                      <span className="text-[11px] font-bold text-[var(--fg-muted)] bg-[var(--bg-muted)] px-2 py-0.5 rounded-full shrink-0">
                         {service.durationMinutes}m
                       </span>
                     </div>
                     {service.description && (
-                      <p className="mt-1 text-xs text-slate-500 line-clamp-2">{service.description}</p>
+                      <p className="mt-1 text-xs text-[var(--fg-muted)] line-clamp-2">{service.description}</p>
                     )}
                   </button>
                 );
@@ -329,11 +329,11 @@ export default function ConsultationBookingClient() {
 
           {/* Date Picker */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)] mb-2">
               2. Select Date
             </label>
             <div className="relative">
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 z-[1] pointer-events-none" />
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--fg-muted)] z-[1] pointer-events-none" />
               <DatePicker
                 selected={selectedDate}
                 onChange={(date: Date | null) => {
@@ -343,7 +343,7 @@ export default function ConsultationBookingClient() {
                 }}
                 minDate={new Date()}
                 placeholderText="Select Date"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-12 pr-4 py-3.5 text-sm font-medium text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 transition"
+                className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] pl-12 pr-4 py-3.5 text-sm font-medium text-[var(--fg)] outline-none focus:border-[var(--primary)] focus:bg-[var(--bg-card)] focus:ring-4 focus:ring-[var(--primary)]/10 transition"
                 dateFormat="EEEE, MMMM d, yyyy"
               />
             </div>
@@ -352,20 +352,20 @@ export default function ConsultationBookingClient() {
           {/* Slot Grid */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
                 3. Choose Time Slot
               </label>
               {loadingAvailability && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+                <div className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)] font-medium">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   Updating slots...
                 </div>
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/60 p-4">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg)] p-4">
               {slots.length === 0 ? (
-                <div className="p-4 text-center text-sm text-slate-500">
+                <div className="p-4 text-center text-sm text-[var(--fg-muted)]">
                   {loadingAvailability
                     ? "Checking consultant availability..."
                     : "No slots available on this date. Please select another day."}
@@ -382,10 +382,10 @@ export default function ConsultationBookingClient() {
                           setSelectedSlot(slot);
                           if (error) setError(null);
                         }}
-                        className={`rounded-xl px-3.5 py-3 text-sm font-bold transition-all cursor-pointer ${
+                        className={`rounded-[var(--radius)] px-3.5 py-3 text-sm font-bold transition-all cursor-pointer ${
                           isSelected
-                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-100 scale-[1.02]"
-                            : "bg-white text-slate-700 border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50"
+                            ? "bg-[var(--primary)] text-white shadow-[var(--shadow-md)] scale-[1.02]"
+                            : "bg-[var(--bg-card)] text-[var(--fg-soft)] border border-[var(--border)] hover:border-[var(--primary-border)] hover:bg-[var(--bg)]"
                         }`}
                       >
                         {slot.label}
@@ -399,56 +399,56 @@ export default function ConsultationBookingClient() {
 
           {/* Contact Details */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)] mb-2">
               4. Your Contact Details
             </label>
             <div className="space-y-3">
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--fg-muted)]" />
                 <input
                   required
                   type="text"
                   placeholder="Full Name *"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 py-3.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 transition"
+                  className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] pl-11 pr-4 py-3.5 text-sm text-[var(--fg)] outline-none focus:border-[var(--primary)] focus:bg-[var(--bg-card)] focus:ring-4 focus:ring-[var(--primary)]/10 transition"
                 />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--fg-muted)]" />
                   <input
                     required
                     type="email"
                     placeholder="Email Address *"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 py-3.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 transition"
+                    className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] pl-11 pr-4 py-3.5 text-sm text-[var(--fg)] outline-none focus:border-[var(--primary)] focus:bg-[var(--bg-card)] focus:ring-4 focus:ring-[var(--primary)]/10 transition"
                   />
                 </div>
 
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--fg-muted)]" />
                   <input
                     required
                     type="tel"
                     placeholder="Phone Number (10 digits) *"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 py-3.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 transition"
+                    className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] pl-11 pr-4 py-3.5 text-sm text-[var(--fg)] outline-none focus:border-[var(--primary)] focus:bg-[var(--bg-card)] focus:ring-4 focus:ring-[var(--primary)]/10 transition"
                   />
                 </div>
               </div>
 
               <div className="relative">
-                <MessageSquare className="absolute left-4 top-4 h-4 w-4 text-slate-400" />
+                <MessageSquare className="absolute left-4 top-4 h-4 w-4 text-[var(--fg-muted)]" />
                 <textarea
                   placeholder="Briefly describe what you would like to discuss (optional)..."
                   rows={3}
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 py-3 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 transition resize-none"
+                  className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] pl-11 pr-4 py-3 text-sm text-[var(--fg)] outline-none focus:border-[var(--primary)] focus:bg-[var(--bg-card)] focus:ring-4 focus:ring-[var(--primary)]/10 transition resize-none"
                 />
               </div>
             </div>
@@ -458,7 +458,7 @@ export default function ConsultationBookingClient() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 text-sm transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer active:scale-98"
+            className="w-full rounded-[var(--radius)] bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-bold py-4 text-sm transition-all shadow-[var(--shadow-md)] flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer active:scale-[0.99]"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -475,40 +475,40 @@ export default function ConsultationBookingClient() {
       {/* Right Column: Advisory Highlights & Reassurance */}
       <div className="space-y-6">
         {/* Selected Booking Summary Card */}
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-md shadow-slate-100">
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-indigo-600" />
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-card)] p-6 sm:p-8 shadow-[var(--shadow-md)]">
+          <h3 className="text-base font-bold text-[var(--fg)] flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[var(--primary)]" />
             Booking Summary
           </h3>
           <div className="mt-4 space-y-3 text-sm">
-            <div className="flex justify-between py-2 border-b border-slate-100">
-              <span className="text-slate-500">Service:</span>
-              <span className="font-semibold text-slate-900">
+            <div className="flex justify-between py-2 border-b border-[var(--border)]">
+              <span className="text-[var(--fg-muted)]">Service:</span>
+              <span className="font-semibold text-[var(--fg)]">
                 {selectedService?.name || "Please choose a service"}
               </span>
             </div>
-            <div className="flex justify-between py-2 border-b border-slate-100">
-              <span className="text-slate-500">Meeting Format:</span>
-              <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                <Video className="h-3.5 w-3.5 text-indigo-600" />
+            <div className="flex justify-between py-2 border-b border-[var(--border)]">
+              <span className="text-[var(--fg-muted)]">Meeting Format:</span>
+              <span className="font-semibold text-[var(--fg)] flex items-center gap-1.5">
+                <Video className="h-3.5 w-3.5 text-[var(--primary)]" />
                 {selectedService ? getMeetingTypeLabel(selectedService.meetingType) : "Video Conference"}
               </span>
             </div>
-            <div className="flex justify-between py-2 border-b border-slate-100">
-              <span className="text-slate-500">Date:</span>
-              <span className="font-semibold text-slate-900">
+            <div className="flex justify-between py-2 border-b border-[var(--border)]">
+              <span className="text-[var(--fg-muted)]">Date:</span>
+              <span className="font-semibold text-[var(--fg)]">
                 {selectedDateKey || "Not chosen"}
               </span>
             </div>
-            <div className="flex justify-between py-2 border-b border-slate-100">
-              <span className="text-slate-500">Time:</span>
-              <span className="font-semibold text-slate-900">
+            <div className="flex justify-between py-2 border-b border-[var(--border)]">
+              <span className="text-[var(--fg-muted)]">Time:</span>
+              <span className="font-semibold text-[var(--fg)]">
                 {selectedSlot?.label || "Select an available slot"}
               </span>
             </div>
             {selectedService?.locationLabel && (
-              <div className="py-2 text-xs text-slate-500 flex items-start gap-1.5">
-                <Link2 className="h-3.5 w-3.5 shrink-0 text-slate-400 mt-0.5" />
+              <div className="py-2 text-xs text-[var(--fg-muted)] flex items-start gap-1.5">
+                <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--fg-muted)] mt-0.5" />
                 <span>{selectedService.locationLabel}</span>
               </div>
             )}
@@ -516,27 +516,27 @@ export default function ConsultationBookingClient() {
         </div>
 
         {/* Guarantees Box */}
-        <div className="rounded-3xl border border-slate-200/80 bg-slate-900 text-white p-6 sm:p-8 shadow-md">
+        <div className="rounded-[var(--radius-xl)] border border-white/10 bg-[var(--primary)] text-white p-6 sm:p-8 shadow-[var(--shadow-md)]">
           <h3 className="text-base font-bold tracking-tight text-white mb-4">
             Why Consult With TaxFiling24?
           </h3>
-          <ul className="space-y-4 text-sm text-slate-300">
+          <ul className="space-y-4 text-sm text-white/80">
             <li className="flex items-start gap-3">
-              <Award className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+              <Award className="h-5 w-5 text-[var(--accent)] shrink-0 mt-0.5" />
               <div>
                 <strong className="text-white block">Certified Professionals</strong>
                 Direct 1-on-1 access to qualified CAs, CSs, and tax advocates with deep corporate and individual filing expertise.
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <ShieldCheck className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+              <ShieldCheck className="h-5 w-5 text-[var(--accent)] shrink-0 mt-0.5" />
               <div>
                 <strong className="text-white block">100% Strict Confidentiality</strong>
                 All financial details, PAN records, and corporate data are protected with end-to-end security.
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+              <CheckCircle2 className="h-5 w-5 text-[var(--accent)] shrink-0 mt-0.5" />
               <div>
                 <strong className="text-white block">Actionable Roadmaps</strong>
                 Get instant clarity on tax savings, compliance deadlines, GST filings, and business legal structures.

@@ -27,12 +27,12 @@ interface ContactMapProps {
 
 export default function ContactMap({ address }: ContactMapProps) {
   return (
-    <div className="relative w-full rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white p-2 bg-white/50 backdrop-blur-xl group">
+    <div className="relative w-full rounded-[var(--radius-2xl)] shadow-[var(--shadow-lg)] border border-[var(--border)] p-2 bg-[var(--bg-card)]/90 backdrop-blur-xl group">
       {/* Decorative background glows */}
-      <div className="absolute -inset-1 rounded-[3rem] bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] opacity-5 blur-xl group-hover:opacity-10 transition-opacity duration-500 -z-10" />
+      <div className="absolute -inset-1 rounded-[var(--radius-2xl)] bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] opacity-5 blur-xl group-hover:opacity-10 transition-opacity duration-500 -z-10" />
       
       {/* Map Inner Container */}
-      <div className="w-full h-full min-h-[500px] bg-slate-50 rounded-[2.2rem] overflow-hidden relative border border-slate-100/50 relative z-10">
+      <div className="w-full h-full min-h-[500px] bg-slate-50 rounded-[var(--radius-xl)] overflow-hidden relative border border-[var(--border)] z-10">
         <DynamicMap address={address} />
         
         {/* Floating Contact Card over Map */}

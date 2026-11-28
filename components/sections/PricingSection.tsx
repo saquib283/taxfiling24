@@ -38,7 +38,7 @@ export default function PricingSection({ plans, ctaHref = "#contact" }: PricingS
               <motion.div
                 className={`relative flex h-full flex-col rounded-[var(--radius-xl)] border p-6 transition-all duration-300 sm:p-8 ${
                   plan.highlighted
-                    ? "z-10 scale-105 border-[var(--accent-light)] bg-white shadow-[var(--shadow-lg)]"
+                    ? "z-10 lg:scale-105 border-[var(--accent-light)] bg-[var(--bg-card)] shadow-[var(--shadow-lg)]"
                     : "border-[var(--border)] bg-[var(--bg-card)] hover:-translate-y-1 hover:border-[var(--accent-light)] hover:shadow-[var(--shadow-md)]"
                 }`}
                 whileHover={{ y: -2 }}

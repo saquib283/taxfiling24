@@ -14,8 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { generateGstReportPdf, GstReportData } from "@/lib/generateGstPdf";
-import { generateGstExcel } from "@/lib/generateGstExcel";
+import type { GstReportData } from "@/lib/generateGstPdf";
 
 const GST_RATES = [0, 3, 5, 12, 18, 28, 40] as const;
 
@@ -425,6 +424,7 @@ export default function GSTCalculator({
   const downloadPdf = async () => {
     setIsGeneratingPdf(true);
     try {
+      const { generateGstReportPdf } = await import("@/lib/generateGstPdf");
       const pdfBytes = await generateGstReportPdf(getExportData());
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
@@ -448,6 +448,7 @@ export default function GSTCalculator({
   const downloadExcel = async () => {
     setIsGeneratingExcel(true);
     try {
+      const { generateGstExcel } = await import("@/lib/generateGstExcel");
       const buffer = await generateGstExcel(getExportData());
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -500,9 +501,9 @@ export default function GSTCalculator({
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
             Indian GST Act &amp; HSN Slabs Compliant
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--fg)]">
             {heroCopy.titlePrefix || "GST &"}{" "}
-            <span className="text-indigo-600">{heroCopy.titleHighlight || "Invoicing Calculator"}</span>
+            <span className="text-[var(--primary)]">{heroCopy.titleHighlight || "Invoicing Calculator"}</span>
           </h1>
           <p className="mt-2 text-sm text-slate-600 max-w-2xl leading-relaxed">
             {heroCopy.description ||
@@ -554,7 +555,7 @@ export default function GSTCalculator({
                     onClick={() => setQuickMode("exclusive")}
                     className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer border ${
                       quickMode === "exclusive"
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-xs"
                         : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -565,7 +566,7 @@ export default function GSTCalculator({
                     onClick={() => setQuickMode("inclusive")}
                     className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer border ${
                       quickMode === "inclusive"
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-xs"
                         : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -583,7 +584,7 @@ export default function GSTCalculator({
                   value={quickAmount || ""}
                   onChange={(e) => setQuickAmount(Number(e.target.value))}
                   placeholder="10,000"
-                  className="w-full rounded-xl border border-slate-200 pl-11 pr-4 py-3.5 text-2xl sm:text-3xl font-extrabold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition"
+                  className="w-full rounded-xl border border-slate-200 pl-11 pr-4 py-3.5 text-2xl sm:text-3xl font-extrabold text-slate-900 outline-none focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 transition"
                 />
               </div>
 
@@ -597,7 +598,7 @@ export default function GSTCalculator({
                     onClick={() => setQuickAmount(amt)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer ${
                       quickAmount === amt
-                        ? "bg-indigo-50 text-indigo-700 border-indigo-300 shadow-2xs font-bold"
+                        ? "bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary-border)] shadow-2xs font-bold"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
@@ -631,20 +632,20 @@ export default function GSTCalculator({
                       onClick={() => setQuickRate(rate)}
                       className={`p-3 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center ${
                         isSelected
-                          ? "bg-indigo-50/70 border-indigo-500 ring-2 ring-indigo-500/30"
+                          ? "bg-[var(--primary-soft)] border-[var(--primary)] ring-2 ring-[var(--primary)]/20"
                           : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
                       }`}
                     >
                       <span
                         className={`text-lg font-black tracking-tight ${
-                          isSelected ? "text-indigo-900" : "text-slate-900"
+                          isSelected ? "text-[var(--primary)]" : "text-slate-900"
                         }`}
                       >
                         {rate}%
                       </span>
                       <span
                         className={`text-[10px] truncate max-w-[85px] mt-0.5 font-medium ${
-                          isSelected ? "text-indigo-700 font-semibold" : "text-slate-500"
+                          isSelected ? "text-[var(--primary)] font-semibold" : "text-slate-500"
                         }`}
                       >
                         {labels[rate] || "GST"}
@@ -669,7 +670,7 @@ export default function GSTCalculator({
                   onClick={() => setQuickSupply("intra")}
                   className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
                     quickSupply === "intra"
-                      ? "bg-indigo-600 text-white shadow-2xs"
+                      ? "bg-[var(--primary)] text-white shadow-2xs"
                       : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
@@ -680,7 +681,7 @@ export default function GSTCalculator({
                   onClick={() => setQuickSupply("inter")}
                   className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
                     quickSupply === "inter"
-                      ? "bg-indigo-600 text-white shadow-2xs"
+                      ? "bg-[var(--primary)] text-white shadow-2xs"
                       : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
@@ -727,7 +728,7 @@ export default function GSTCalculator({
                     <span className="text-xs text-slate-600 font-medium block">
                       CGST ({quickRate / 2}%)
                     </span>
-                    <span className="text-base font-bold text-indigo-700 mt-1 block">
+                    <span className="text-base font-bold text-[var(--primary)] mt-1 block">
                       {fmt(quickResults.cgst)}
                     </span>
                   </div>
@@ -735,7 +736,7 @@ export default function GSTCalculator({
                     <span className="text-xs text-slate-600 font-medium block">
                       SGST ({quickRate / 2}%)
                     </span>
-                    <span className="text-base font-bold text-indigo-700 mt-1 block">
+                    <span className="text-base font-bold text-[var(--primary)] mt-1 block">
                       {fmt(quickResults.sgst)}
                     </span>
                   </div>
@@ -745,7 +746,7 @@ export default function GSTCalculator({
                   <span className="text-xs text-slate-600 font-medium block">
                     IGST ({quickRate}%)
                   </span>
-                  <span className="text-base font-bold text-indigo-700 mt-1 block">
+                  <span className="text-base font-bold text-[var(--primary)] mt-1 block">
                     {fmt(quickResults.igst)}
                   </span>
                 </div>
@@ -766,7 +767,7 @@ export default function GSTCalculator({
                   type="button"
                   onClick={downloadPdf}
                   disabled={isGeneratingPdf}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white transition shadow-xs cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-xs font-bold text-white transition shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   <FileDown className="h-3.5 w-3.5" />
                   {isGeneratingPdf ? "Generating PDF..." : "Download Calculation (PDF)"}
@@ -796,7 +797,7 @@ export default function GSTCalculator({
                   });
                   setCalculatorView("invoice");
                 }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-hover)] cursor-pointer"
               >
                 <span>Add to Multi-Item Invoice Builder</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -862,7 +863,7 @@ export default function GSTCalculator({
                     setShowHsnPanel(true);
                   }}
                   onFocus={() => setShowHsnPanel(true)}
-                  className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50"
+                  className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/15"
                 />
 
                 {showHsnPanel && hsnSearch && (
@@ -914,7 +915,7 @@ export default function GSTCalculator({
                     value={newItem.name}
                     onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                     placeholder="e.g. IT Consultation Services"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm outline-none focus:border-[var(--primary)]"
                   />
                 </div>
 
@@ -927,7 +928,7 @@ export default function GSTCalculator({
                     value={newItem.unitPrice || ""}
                     onChange={(e) => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })}
                     placeholder="1,000"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm font-semibold outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm font-semibold outline-none focus:border-[var(--primary)]"
                   />
                 </div>
               </div>
@@ -939,7 +940,7 @@ export default function GSTCalculator({
                     type="number"
                     value={newItem.quantity}
                     onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
                   />
                 </div>
                 <div>
@@ -947,7 +948,7 @@ export default function GSTCalculator({
                   <select
                     value={newItem.gstRate}
                     onChange={(e) => setNewItem({ ...newItem, gstRate: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-200 px-2.5 py-2 outline-none focus:border-indigo-500 bg-white font-semibold"
+                    className="w-full rounded-xl border border-slate-200 px-2.5 py-2 outline-none focus:border-[var(--primary)] bg-white font-semibold"
                   >
                     {GST_RATES.map((r) => (
                       <option key={r} value={r}>
@@ -963,7 +964,7 @@ export default function GSTCalculator({
                     value={newItem.discount || ""}
                     onChange={(e) => setNewItem({ ...newItem, discount: Number(e.target.value) })}
                     placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
                   />
                 </div>
                 <div>
@@ -973,7 +974,7 @@ export default function GSTCalculator({
                     value={newItem.cessRate || ""}
                     onChange={(e) => setNewItem({ ...newItem, cessRate: Number(e.target.value) })}
                     placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
                   />
                 </div>
               </div>
@@ -983,7 +984,7 @@ export default function GSTCalculator({
                   type="button"
                   onClick={addItem}
                   disabled={newItem.unitPrice <= 0}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-5 py-2.5 text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-xs"
                 >
                   <Plus className="h-4 w-4" />
                   Add to Invoice
@@ -1106,7 +1107,7 @@ export default function GSTCalculator({
                     value={inputPurchases || ""}
                     onChange={(e) => setInputPurchases(Number(e.target.value))}
                     placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
                   />
                 </div>
                 <div>
@@ -1117,7 +1118,7 @@ export default function GSTCalculator({
                     type="number"
                     value={inputGstRate}
                     onChange={(e) => setInputGstRate(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[var(--primary)]"
                   />
                 </div>
               </div>
@@ -1228,7 +1229,7 @@ export default function GSTCalculator({
                   type="button"
                   onClick={downloadPdf}
                   disabled={isGeneratingPdf}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-xs font-bold text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   <FileDown className="h-3.5 w-3.5" />
                   {isGeneratingPdf ? "Generating..." : "Download Invoice"}

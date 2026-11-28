@@ -50,36 +50,36 @@ function ServiceCard({
   return (
     <Link
       href={service.href || `/services/${service.slug || service.id}`}
-      className="group relative flex flex-col bg-white rounded-2xl border border-slate-200/60 transition-all duration-300 hover:border-[var(--primary)]/20 hover:shadow-[0_8px_30px_-12px_rgba(10,37,64,0.15)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:ring-offset-2"
+      className="group relative flex flex-col overflow-hidden bg-[var(--bg-card)] rounded-[var(--radius-lg)] border border-[var(--border)] transition-all duration-300 hover:border-[var(--primary-border)] hover:shadow-[var(--shadow-md)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:ring-offset-2"
     >
       {/* Top color bar */}
-      <div className="h-1 w-0 rounded-t-2xl bg-[var(--primary)] transition-all duration-500 group-hover:w-full" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-[var(--primary)] transition-transform duration-500 group-hover:scale-x-100" />
 
       <div className="flex flex-col flex-1 p-6 sm:p-7">
         {/* Header row */}
         <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-[var(--primary)] transition-colors duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-[var(--primary)]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-muted)] text-[var(--primary)] transition-colors duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-[var(--primary)]">
             <IconComponent className="h-5 w-5" strokeWidth={2} />
           </div>
-          <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+          <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fg-muted)]">
             {service.category || defaultCategoryLabel}
           </span>
         </div>
 
         {/* Content */}
-        <h2 className="text-[1.05rem] font-semibold leading-snug text-slate-900 mb-2.5 transition-colors duration-300 group-hover:text-[var(--primary)]">
+        <h2 className="text-[1.05rem] font-semibold leading-snug text-[var(--fg)] mb-2.5 transition-colors duration-300 group-hover:text-[var(--primary)]">
           {service.title}
         </h2>
-        <p className="text-[0.8rem] leading-relaxed text-slate-500 line-clamp-3 flex-1">
+        <p className="text-[0.8rem] leading-relaxed text-[var(--fg-muted)] line-clamp-3 flex-1">
           {service.description}
         </p>
 
         {/* Footer */}
-        <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-900 group-hover:text-[var(--primary)] transition-colors">
+        <div className="mt-6 pt-5 border-t border-[var(--border)] flex items-center justify-between">
+          <span className="text-xs font-semibold text-[var(--fg)] group-hover:text-[var(--primary)] transition-colors">
             {exploreButtonText}
           </span>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:translate-x-0.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-muted)] text-[var(--fg-muted)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:translate-x-0.5">
             <ArrowRight className="h-3.5 w-3.5" />
           </div>
         </div>
@@ -206,20 +206,20 @@ export default function ServicesDirectoryPage({
                   </span>{" "}
                   Services
                 </h1>
-                <p className="text-sm sm:text-base text-white/60 max-w-xl leading-relaxed">
+                <p className="text-sm sm:text-base text-white/80 max-w-xl leading-relaxed">
                   {heroContent?.description ||
                     "End-to-end solutions for business registration, taxation, audit, and regulatory compliance across India."}
                 </p>
               </div>
 
               {/* Stats pill block */}
-              <div className="flex items-center gap-6 sm:gap-8 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5 backdrop-blur-xs shrink-0">
+              <div className="flex items-center gap-6 sm:gap-8 rounded-[var(--radius-lg)] border border-white/15 bg-white/[0.06] p-4 sm:p-5 backdrop-blur-xs shrink-0">
                 {heroStats.map((item) => (
                   <div key={item.id || item.label}>
                     <div className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                       {item.value}
                     </div>
-                    <div className="text-[10px] text-white/50 font-medium uppercase tracking-wider mt-0.5">
+                    <div className="text-[10px] text-white/75 font-medium uppercase tracking-wider mt-0.5">
                       {item.label}
                     </div>
                   </div>

@@ -147,8 +147,8 @@ export default function SiteFooter({
   return (
     <footer className="relative mt-16 overflow-hidden border-t border-slate-200/80 bg-slate-50/50">
       {/* Decorative blurred background shapes */}
-      <div className="absolute left-1/4 top-0 -z-10 h-72 w-72 rounded-full bg-blue-50/40 blur-[80px]" />
-      <div className="absolute right-1/4 bottom-0 -z-10 h-72 w-72 rounded-full bg-indigo-50/40 blur-[80px]" />
+      <div className="absolute left-1/4 top-0 -z-10 h-72 w-72 rounded-full bg-[var(--primary)]/[0.03] blur-[80px]" />
+      <div className="absolute right-1/4 bottom-0 -z-10 h-72 w-72 rounded-full bg-[var(--accent)]/[0.05] blur-[80px]" />
 
       <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
@@ -176,7 +176,7 @@ export default function SiteFooter({
                       href={sanitizeHref(social.href)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-400 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 hover:text-[var(--primary)] hover:shadow-md"
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-[var(--fg-muted)] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--primary-border)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] hover:shadow-md"
                       aria-label={social.label}
                     >
                       <Icon className="h-5 w-5" />
@@ -303,22 +303,22 @@ export default function SiteFooter({
       </div>
 
       {/* Footer Bottom Bar */}
-      <div className="border-t border-slate-200/60 py-8 bg-transparent">
+      <div className="border-t border-[var(--border)] py-8 bg-transparent">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row text-center sm:text-left">
-            <p className="text-sm font-medium text-slate-400">{copyright}</p>
+            <p className="text-sm font-medium text-[var(--fg-muted)]">{copyright}</p>
             <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2">
               {legalLinks.map((link) => (
                 <Link
                   key={link.id || link.href}
                   href={sanitizeHref(link.href)}
-                  className="text-sm font-medium text-slate-400 transition-colors duration-200 hover:text-[var(--primary)]"
+                  className="text-sm font-medium text-[var(--fg-muted)] transition-colors duration-200 hover:text-[var(--primary)]"
                 >
                   {link.label}
                 </Link>
               ))}
             </div>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-[var(--fg-muted)]">
               {developerPrefix}{" "}
               <a
                 href={developerUrl}

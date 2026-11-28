@@ -24,7 +24,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="rounded-xl bg-[var(--primary)] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-md hover:bg-slate-800 transition-all active:scale-95 cursor-pointer"
+        className="rounded-[var(--radius)] bg-[var(--primary)] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[var(--shadow-md)] hover:bg-[var(--primary-hover)] transition-all active:scale-95 cursor-pointer"
       >
         Go back home
       </Link>

@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
 
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import ContactSection from "@/components/sections/ContactSection";
 import ContactMap from "@/components/ui/ContactMap";
+import PageHero from "@/components/layout/PageHero";
 import prisma from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { getManagedPageSections } from "@/lib/managed-pages";
@@ -70,7 +71,7 @@ export default async function ContactPage() {
   const { phone, phoneRaw, email, address, whatsapp } = getSiteContact(settings);
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pt-24 pb-20">
+    <div className="min-h-screen bg-[var(--bg)] pb-20">
       <JsonLd
         data={[
           breadcrumbSchema([
@@ -93,23 +94,16 @@ export default async function ContactPage() {
           switch (section.type) {
             case "contact.hero":
               return (
-                <section key={section.id} className="container mx-auto px-4 pb-8 sm:px-6 lg:px-8">
-                  <div className="mx-auto max-w-4xl text-center">
-                    <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent-light)]/20 bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--primary)] shadow-sm">
-                      <MessageCircle className="h-3.5 w-3.5" />
-                      {data.eyebrow}
-                    </span>
-                    <h1 className="mb-5 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
-                      {data.title}
-                    </h1>
-                    <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-600">{data.description}</p>
-                  </div>
-                </section>
+                <PageHero
+                  key={section.id}
+                  title={data.title || "Contact TaxFiling24"}
+                  description={data.description}
+                />
               );
 
             case "contact.cards":
               return (
-                <section key={section.id} className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+                <section key={section.id} className="container mx-auto px-4 pt-10 pb-6 sm:px-6 lg:px-8">
                   <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-2">
                     {(Array.isArray(data.items) ? data.items : [])
                       .filter((item) => item.isVisible !== false && item.title)
@@ -118,15 +112,15 @@ export default async function ContactPage() {
                         return (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]"
+                            className="flex items-center justify-between rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)]"
                           >
                             <div className="flex items-center gap-4">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-[var(--primary)]">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-[var(--radius)] bg-[var(--primary-soft)] text-[var(--primary)]">
                                 <Icon className="h-5 w-5" />
                               </div>
                               <div>
-                                <h2 className="text-sm font-bold text-slate-900">{item.title}</h2>
-                                <p className="mt-0.5 text-xs font-medium text-slate-500">{item.value}</p>
+                                <h2 className="text-sm font-bold text-[var(--fg)]">{item.title}</h2>
+                                <p className="mt-0.5 text-xs font-medium text-[var(--fg-muted)]">{item.value}</p>
                               </div>
                             </div>
                             <a href={sanitizeHref(item.href)} className="text-xs font-bold text-[var(--primary)] hover:underline">
@@ -142,19 +136,19 @@ export default async function ContactPage() {
             case "contact.address":
               return (
                 <section key={section.id} className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-                  <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mx-auto max-w-5xl rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
                     <div className="flex gap-4">
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[var(--radius)] bg-[var(--primary-soft)] text-[var(--primary)]">
                         <MapPin className="h-5 w-5" />
                       </div>
                       <div>
-                        <h2 className="text-sm font-bold text-slate-800">{data.title}</h2>
-                        <p className="mt-1 text-sm leading-relaxed text-slate-500">{data.description || address}</p>
+                        <h2 className="text-sm font-bold text-[var(--fg)]">{data.title}</h2>
+                        <p className="mt-1 text-sm leading-relaxed text-[var(--fg-muted)]">{data.description || address}</p>
                         <a
                           href={sanitizeHref(whatsapp)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-3 inline-flex items-center gap-1 rounded-lg border border-emerald-200/50 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600 transition-colors hover:bg-emerald-100/50"
+                          className="mt-3 inline-flex items-center gap-1 rounded-lg border border-emerald-200/70 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100/70"
                         >
                           {data.whatsappLabel}
                         </a>

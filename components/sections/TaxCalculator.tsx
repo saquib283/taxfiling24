@@ -15,8 +15,6 @@ import {
   Info,
 } from "lucide-react";
 import Link from "next/link";
-import { generateTaxReportPdf } from "@/lib/generateTaxPdf";
-import { generateTaxExcel } from "@/lib/generateTaxExcel";
 
 type AgeGroup = "citizen" | "senior" | "super-senior";
 
@@ -349,6 +347,7 @@ export default function TaxCalculator({
   const downloadPdf = async () => {
     setIsGeneratingPdf(true);
     try {
+      const { generateTaxReportPdf } = await import("@/lib/generateTaxPdf");
       const pdfBytes = await generateTaxReportPdf({
         ageGroup,
         assessmentYear: financialYear === "2024-25" ? "2025-26" : "2026-27",
@@ -398,6 +397,7 @@ export default function TaxCalculator({
   const downloadExcel = async () => {
     setIsGeneratingExcel(true);
     try {
+      const { generateTaxExcel } = await import("@/lib/generateTaxExcel");
       const buffer = await generateTaxExcel({
         ageGroup,
         assessmentYear: financialYear === "2024-25" ? "2025-26" : "2026-27",
@@ -485,9 +485,9 @@ export default function TaxCalculator({
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
             Budget FY 2025-26 &amp; AY 2026-27 Compliant
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--fg)]">
             {heroCopy.titlePrefix || "Income Tax"}{" "}
-            <span className="text-indigo-600">{heroCopy.titleHighlight || "Calculator"}</span>
+            <span className="text-[var(--primary)]">{heroCopy.titleHighlight || "Calculator"}</span>
           </h1>
           <p className="mt-2 text-sm text-slate-600 max-w-2xl leading-relaxed">
             {heroCopy.description ||
@@ -563,9 +563,9 @@ export default function TaxCalculator({
       </div>
 
       {/* Quick Presets Strip */}
-      <div className="py-4 flex flex-wrap items-center gap-2 border-b border-slate-100 text-xs">
-        <span className="text-slate-500 font-medium mr-1 flex items-center gap-1">
-          <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+      <div className="py-4 flex flex-wrap items-center gap-2 border-b border-[var(--border)] text-xs">
+        <span className="text-[var(--fg-muted)] font-medium mr-1 flex items-center gap-1">
+          <Sparkles className="h-3.5 w-3.5 text-[var(--primary)]" />
           Quick CTC Presets:
         </span>
         {[600000, 900000, 1200000, 1500000, 2000000, 3000000, 5000000].map((ctc) => (
@@ -579,8 +579,8 @@ export default function TaxCalculator({
             }}
             className={`px-2.5 py-1 rounded-lg border transition cursor-pointer ${
               salary === ctc
-                ? "bg-indigo-50 text-indigo-700 border-indigo-300 font-bold shadow-2xs"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                ? "bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary-border)] font-bold shadow-2xs"
+                : "bg-[var(--bg-card)] text-[var(--fg-soft)] border-[var(--border)] hover:bg-[var(--bg)]"
             }`}
           >
             ₹{ctc / 100000} Lakhs
@@ -593,14 +593,14 @@ export default function TaxCalculator({
         {/* Left Column: Input Studio */}
         <div className="lg:col-span-7 space-y-6">
           {/* Segmented Step Tabs */}
-          <div className="flex border-b border-slate-200 text-xs sm:text-sm font-semibold">
+          <div className="flex border-b border-[var(--border)] text-xs sm:text-sm font-semibold">
             <button
               type="button"
               onClick={() => setActiveInputTab("income")}
               className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition cursor-pointer ${
                 activeInputTab === "income"
-                  ? "border-indigo-600 text-indigo-700 font-bold"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                  ? "border-[var(--primary)] text-[var(--primary)] font-bold"
+                  : "border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]"
               }`}
             >
               <Briefcase className="h-4 w-4" />
@@ -611,8 +611,8 @@ export default function TaxCalculator({
               onClick={() => setActiveInputTab("deductions")}
               className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition cursor-pointer ${
                 activeInputTab === "deductions"
-                  ? "border-indigo-600 text-indigo-700 font-bold"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                  ? "border-[var(--primary)] text-[var(--primary)] font-bold"
+                  : "border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]"
               }`}
             >
               <ShieldCheck className="h-4 w-4" />
@@ -623,8 +623,8 @@ export default function TaxCalculator({
               onClick={() => setActiveInputTab("taxes")}
               className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition cursor-pointer ${
                 activeInputTab === "taxes"
-                  ? "border-indigo-600 text-indigo-700 font-bold"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                  ? "border-[var(--primary)] text-[var(--primary)] font-bold"
+                  : "border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]"
               }`}
             >
               <Target className="h-4 w-4" />
@@ -655,7 +655,7 @@ export default function TaxCalculator({
                       value={salary || ""}
                       onChange={(e) => setSalary(Number(e.target.value))}
                       placeholder="12,00,000"
-                      className="w-full rounded-xl border border-slate-200 pl-8 pr-4 py-2.5 text-base font-bold text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition"
+                      className="w-full rounded-xl border border-slate-200 pl-8 pr-4 py-2.5 text-base font-bold text-slate-900 outline-none focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10 transition"
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-slate-500">
@@ -679,7 +679,7 @@ export default function TaxCalculator({
                         value={rentalIncome || ""}
                         onChange={(e) => setRentalIncome(Number(e.target.value))}
                         placeholder="0"
-                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500 transition"
+                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-[var(--primary)] transition"
                       />
                     </div>
                     <span className="text-[10px] text-slate-500">
@@ -700,7 +700,7 @@ export default function TaxCalculator({
                         value={otherIncome || ""}
                         onChange={(e) => setOtherIncome(Number(e.target.value))}
                         placeholder="0"
-                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500 transition"
+                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-[var(--primary)] transition"
                       />
                     </div>
                     <span className="text-[10px] text-slate-500">
@@ -726,7 +726,7 @@ export default function TaxCalculator({
                     onClick={() =>
                       setProfessionalIncome(professionalIncome === 0 ? 500000 : 0)
                     }
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                    className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] cursor-pointer"
                   >
                     {professionalIncome > 0 ? "Remove" : "+ Add Income"}
                   </button>
@@ -742,7 +742,7 @@ export default function TaxCalculator({
                         type="number"
                         value={professionalIncome || ""}
                         onChange={(e) => setProfessionalIncome(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                     <div>
@@ -753,7 +753,7 @@ export default function TaxCalculator({
                         type="number"
                         value={businessExpenses || ""}
                         onChange={(e) => setBusinessExpenses(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                   </div>
@@ -774,7 +774,7 @@ export default function TaxCalculator({
                   <button
                     type="button"
                     onClick={() => setStcgEquity(stcgEquity === 0 ? 50000 : 0)}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                    className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] cursor-pointer"
                   >
                     {stcgEquity > 0 || ltcgEquity > 0 ? "Reset" : "+ Add Capital Gains"}
                   </button>
@@ -790,7 +790,7 @@ export default function TaxCalculator({
                         type="number"
                         value={stcgEquity || ""}
                         onChange={(e) => setStcgEquity(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                     <div>
@@ -801,7 +801,7 @@ export default function TaxCalculator({
                         type="number"
                         value={ltcgEquity || ""}
                         onChange={(e) => setLtcgEquity(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                       />
                       <span className="text-[10px] text-slate-500">
                         First ₹1.25L exempt automatically
@@ -844,7 +844,7 @@ export default function TaxCalculator({
                         type="number"
                         value={deduction80C || ""}
                         onChange={(e) => setDeduction80C(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500"
+                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                     <span className="text-[10px] text-slate-500">EPF, PPF, ELSS, Term Life</span>
@@ -862,7 +862,7 @@ export default function TaxCalculator({
                         type="number"
                         value={deduction80D || ""}
                         onChange={(e) => setDeduction80D(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-indigo-500"
+                        className="w-full rounded-xl border border-slate-200 pl-7 pr-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 outline-none focus:border-[var(--primary)]"
                       />
                     </div>
                     <span className="text-[10px] text-slate-500">Max ₹25,000 for non-seniors</span>
@@ -879,7 +879,7 @@ export default function TaxCalculator({
                       value={deduction80D_Parents || ""}
                       onChange={(e) => setDeduction80D_Parents(Number(e.target.value))}
                       placeholder="0"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                     />
                     <span className="text-[10px] text-slate-500">Max ₹50,000 for senior parents</span>
                   </div>
@@ -893,7 +893,7 @@ export default function TaxCalculator({
                       value={deductionNPS || ""}
                       onChange={(e) => setDeductionNPS(Number(e.target.value))}
                       placeholder="0"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                     />
                     <span className="text-[10px] text-slate-500">Max ₹50,000 extra deduction</span>
                   </div>
@@ -914,7 +914,7 @@ export default function TaxCalculator({
                   <button
                     type="button"
                     onClick={() => setShowHraAssistant(!showHraAssistant)}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                    className="text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)] cursor-pointer"
                   >
                     {showHraAssistant ? "Close Assistant" : "Calculate HRA"}
                   </button>
@@ -969,7 +969,7 @@ export default function TaxCalculator({
                         onClick={() => setIsMetro(!isMetro)}
                         className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                           isMetro
-                            ? "bg-indigo-600 text-white"
+                            ? "bg-[var(--primary)] text-white"
                             : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                         }`}
                       >
@@ -995,7 +995,7 @@ export default function TaxCalculator({
                       value={homeLoanInterest || ""}
                       onChange={(e) => setHomeLoanInterest(Number(e.target.value))}
                       placeholder="0"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                     />
                     <span className="text-[10px] text-slate-500">Max ₹2,00,000 for self-occupied</span>
                   </div>
@@ -1008,7 +1008,7 @@ export default function TaxCalculator({
                       value={otherDeductions || ""}
                       onChange={(e) => setOtherDeductions(Number(e.target.value))}
                       placeholder="0"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                     />
                     <span className="text-[10px] text-slate-500">Education loan, donations</span>
                   </div>
@@ -1033,7 +1033,7 @@ export default function TaxCalculator({
                     value={taxPaid || ""}
                     onChange={(e) => setTaxPaid(Number(e.target.value))}
                     placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                   />
                   <span className="text-[10px] text-slate-500">As shown in Form 26AS / AIS</span>
                 </div>
@@ -1046,7 +1046,7 @@ export default function TaxCalculator({
                     value={monthsDelay234A || ""}
                     onChange={(e) => setMonthsDelay234A(Number(e.target.value))}
                     placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                   />
                   <span className="text-[10px] text-slate-500">1% per month for late return</span>
                 </div>
@@ -1059,7 +1059,7 @@ export default function TaxCalculator({
                     value={monthsDelay234B || ""}
                     onChange={(e) => setMonthsDelay234B(Number(e.target.value))}
                     placeholder="0"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-800 outline-none focus:border-[var(--primary)]"
                   />
                   <span className="text-[10px] text-slate-500">1% per month for short advance tax</span>
                 </div>
@@ -1085,7 +1085,7 @@ export default function TaxCalculator({
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
                   results.better === "New Regime"
                     ? "bg-emerald-50 text-emerald-800 border-emerald-200/80"
-                    : "bg-indigo-50 text-indigo-800 border-indigo-200/80"
+                    : "bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary-border)]"
                 }`}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -1111,7 +1111,7 @@ export default function TaxCalculator({
               <div
                 className={`p-3 rounded-lg border transition ${
                   results.better === "Old Regime"
-                    ? "bg-white border-indigo-400 ring-2 ring-indigo-500/20 shadow-xs"
+                    ? "bg-white border-[var(--primary)] ring-2 ring-[var(--primary)]/15 shadow-xs"
                     : "bg-white/80 border-slate-200"
                 }`}
               >
@@ -1162,7 +1162,7 @@ export default function TaxCalculator({
               </div>
               <div className="flex justify-between items-center text-slate-600">
                 <span>Estimated Monthly In-Hand</span>
-                <span className="font-bold text-indigo-700">{fmt(results.monthlyTakeHome)} / mo</span>
+                <span className="font-bold text-[var(--primary)]">{fmt(results.monthlyTakeHome)} / mo</span>
               </div>
 
               {(results.interest234A > 0 || results.interest234B > 0) && (
@@ -1224,7 +1224,7 @@ export default function TaxCalculator({
                 type="button"
                 onClick={downloadPdf}
                 disabled={isGeneratingPdf}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-xs font-bold text-white transition shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 <FileDown className="h-3.5 w-3.5" />
                 {isGeneratingPdf ? "Generating..." : "Download PDF"}
@@ -1233,21 +1233,21 @@ export default function TaxCalculator({
           </div>
 
           {/* Expert Consultation Banner */}
-          <div className="rounded-2xl border border-slate-200 bg-indigo-50/60 p-5 space-y-3">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--primary-border)] bg-[var(--primary-soft)] p-5 space-y-3">
             <div className="flex items-start gap-3">
-              <div className="h-9 w-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-xl bg-[var(--primary)] text-white flex items-center justify-center shrink-0">
                 <Landmark className="h-4 w-4" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900">Need Chartered Accountant Assistance?</h4>
-                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                <h4 className="text-sm font-bold text-[var(--fg)]">Need Chartered Accountant Assistance?</h4>
+                <p className="text-xs text-[var(--fg-muted)] mt-0.5 leading-relaxed">
                   Our tax experts help you maximize legal deductions, handle capital gains, and file ITR with 100% compliance.
                 </p>
               </div>
             </div>
             <Link
               href="/book"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:text-indigo-900 pt-1"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-hover)] pt-1"
             >
               <span>Schedule 1-on-1 Consultation</span>
               <ArrowRight className="h-3.5 w-3.5" />

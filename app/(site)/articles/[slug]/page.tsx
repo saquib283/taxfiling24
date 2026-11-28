@@ -175,7 +175,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
         {/* ─── Article Header & Meta ─── */}
         <header className="mb-10 max-w-5xl">
           {article.category && (
-            <span className="inline-block px-3 py-1 rounded-full bg-[var(--primary-soft)] bg-blue-50 text-[var(--primary)] text-xs font-bold mb-4 tracking-wide">
+            <span className="inline-block px-3 py-1 rounded-full bg-[var(--primary-soft)] border border-[var(--primary-border)] text-[var(--primary)] text-xs font-bold mb-4 tracking-wide">
               {article.category.replace(/_/g, " ")}
             </span>
           )}
@@ -223,7 +223,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   decoding="async"
                   loading="eager"
                   fetchPriority="high"
-                  className="rounded-2xl w-full aspect-video object-cover shadow-[var(--shadow-md)] border border-slate-100"
+                  className="rounded-[var(--radius-lg)] w-full aspect-video object-cover shadow-[var(--shadow-md)] border border-[var(--border)]"
                 />
               </div>
             )}
@@ -246,20 +246,20 @@ export default async function ArticleDetailPage({ params }: PageProps) {
           {/* Sticky Resource & Advisory Sidebar */}
           <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
             {/* CA Consultation Booking Card */}
-            <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 p-6 shadow-sm">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold uppercase tracking-wider mb-3">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--primary-border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] text-[11px] font-bold uppercase tracking-wider mb-3">
                 <CalendarClock className="h-3.5 w-3.5" />
                 Chartered Advisory Desk
               </span>
-              <h2 className="text-base font-extrabold text-slate-900 tracking-tight mb-2">
+              <h2 className="text-base font-extrabold text-[var(--fg)] tracking-tight mb-2">
                 Need Expert Statutory Assistance?
               </h2>
-              <p className="text-xs text-slate-600 leading-relaxed mb-5">
+              <p className="text-xs text-[var(--fg-muted)] leading-relaxed mb-5">
                 Connect directly with certified Chartered Accountants and Company Secretaries at TaxFiling24 for specialized guidance on your returns, filings, or incorporation.
               </p>
               <Link
                 href="/book"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-[var(--radius)] bg-[var(--primary)] px-4 py-3 text-xs font-bold text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--primary-hover)] active:scale-95"
               >
                 <span>Book CA Consultation</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -267,19 +267,19 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             </div>
 
             {/* Financial Tools Card */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
               <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
                   <Calculator className="h-4 w-4" />
                 </div>
-                <h2 className="text-sm font-bold text-slate-900">Tax & Financial Tools</h2>
+                <h2 className="text-sm font-bold text-[var(--fg)]">Tax & Financial Tools</h2>
               </div>
-              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              <p className="text-xs text-[var(--fg-muted)] mb-4 leading-relaxed">
                 Calculate your tax liabilities under Old vs New Tax Regime with our free statutory calculator.
               </p>
               <Link
                 href="/tools/tax-calculator"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-hover)] transition"
               >
                 <span>Open Tax Calculator</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -287,36 +287,36 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             </div>
 
             {/* Recommended Statutory Services */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
               <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary-soft)] text-[var(--primary)]">
                   <BookOpen className="h-4 w-4" />
                 </div>
-                <h2 className="text-sm font-bold text-slate-900">Key Statutory Services</h2>
+                <h2 className="text-sm font-bold text-[var(--fg)]">Key Statutory Services</h2>
               </div>
               <ul className="space-y-2.5 text-xs">
                 <li>
-                  <Link href="/services/business-setup-registration-services" className="font-semibold text-slate-700 hover:text-indigo-600 flex items-center justify-between group transition">
+                  <Link href="/services/business-setup-registration-services" className="font-semibold text-[var(--fg-soft)] hover:text-[var(--primary)] flex items-center justify-between group transition">
                     <span>Pvt Ltd & Startup Incorporation</span>
-                    <ArrowRight className="h-3 w-3 text-slate-400 group-hover:translate-x-0.5 group-hover:text-indigo-600 transition" />
+                    <ArrowRight className="h-3 w-3 text-[var(--fg-muted)] group-hover:translate-x-0.5 group-hover:text-[var(--primary)] transition" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="/services/taxation-gst-compliance-management" className="font-semibold text-slate-700 hover:text-indigo-600 flex items-center justify-between group transition">
+                  <Link href="/services/taxation-gst-compliance-management" className="font-semibold text-[var(--fg-soft)] hover:text-[var(--primary)] flex items-center justify-between group transition">
                     <span>Taxation & GST Compliance</span>
-                    <ArrowRight className="h-3 w-3 text-slate-400 group-hover:translate-x-0.5 group-hover:text-indigo-600 transition" />
+                    <ArrowRight className="h-3 w-3 text-[var(--fg-muted)] group-hover:translate-x-0.5 group-hover:text-[var(--primary)] transition" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="/services/corporate-roc-secretarial-filings" className="font-semibold text-slate-700 hover:text-indigo-600 flex items-center justify-between group transition">
+                  <Link href="/services/corporate-roc-secretarial-filings" className="font-semibold text-[var(--fg-soft)] hover:text-[var(--primary)] flex items-center justify-between group transition">
                     <span>Corporate ROC & Secretarial</span>
-                    <ArrowRight className="h-3 w-3 text-slate-400 group-hover:translate-x-0.5 group-hover:text-indigo-600 transition" />
+                    <ArrowRight className="h-3 w-3 text-[var(--fg-muted)] group-hover:translate-x-0.5 group-hover:text-[var(--primary)] transition" />
                   </Link>
                 </li>
                 <li>
-                  <Link href="/services/virtual-cfo-advisory-services" className="font-semibold text-slate-700 hover:text-indigo-600 flex items-center justify-between group transition">
+                  <Link href="/services/virtual-cfo-advisory-services" className="font-semibold text-[var(--fg-soft)] hover:text-[var(--primary)] flex items-center justify-between group transition">
                     <span>Virtual CFO Advisory</span>
-                    <ArrowRight className="h-3 w-3 text-slate-400 group-hover:translate-x-0.5 group-hover:text-indigo-600 transition" />
+                    <ArrowRight className="h-3 w-3 text-[var(--fg-muted)] group-hover:translate-x-0.5 group-hover:text-[var(--primary)] transition" />
                   </Link>
                 </li>
               </ul>
@@ -325,33 +325,33 @@ export default async function ArticleDetailPage({ params }: PageProps) {
         </div>
 
         {/* ─── Contextual Advisory & Deep Linking Box ─── */}
-        <AnimatedSection className="mt-16 rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 p-8 sm:p-10 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <AnimatedSection className="mt-16 rounded-[var(--radius-xl)] bg-[var(--primary)] text-white p-8 sm:p-10 shadow-[var(--shadow-lg)] relative overflow-hidden">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="space-y-2 max-w-xl">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[var(--accent)] text-xs font-bold uppercase tracking-wider">
                 <CalendarClock className="h-3.5 w-3.5" />
                 Chartered Accountancy Advisory
               </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
                 Need Guidance on Statutory Filings or Compliance?
               </h2>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <p className="text-sm text-white/80 leading-relaxed">
                 Connect directly with certified Chartered Accountants and Company Secretaries at TaxFiling24 to review your returns, capital gains, or business structure.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
               <Link
                 href="/book"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95"
+                className="inline-flex items-center justify-center gap-2 rounded-[var(--radius)] bg-white px-6 py-3.5 text-xs font-bold text-[var(--primary)] shadow-sm transition hover:bg-slate-50 active:scale-95"
               >
                 <span>Book CA Consultation</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/tools/tax-calculator"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                className="inline-flex items-center justify-center gap-2 rounded-[var(--radius)] border border-white/25 bg-white/10 px-5 py-3.5 text-xs font-bold text-white transition hover:bg-white/20 active:scale-95"
               >
-                <Calculator className="h-4 w-4 text-indigo-600" />
+                <Calculator className="h-4 w-4 text-[var(--accent)]" />
                 <span>Tax Calculator</span>
               </Link>
             </div>
@@ -363,16 +363,16 @@ export default async function ArticleDetailPage({ params }: PageProps) {
           <AnimatedSection className="mt-16 pt-12 border-t border-[var(--border)]">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--fg)] tracking-tight">
                   Recommended Articles & Guides
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                <p className="text-xs sm:text-sm text-[var(--fg-muted)] mt-1">
                   Explore related regulatory updates, tax planning tips, and compliance procedures.
                 </p>
               </div>
               <Link
                 href="/articles"
-                className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition"
+                className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-hover)] transition"
               >
                 <span>View all articles</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -384,26 +384,26 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <Link
                   key={rel.id}
                   href={`/articles/${rel.slug}`}
-                  className="group flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm hover:shadow-md transition duration-200"
+                  className="group flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition duration-200"
                 >
                   <div>
                     {rel.category && (
-                      <span className="inline-block px-2.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-3">
+                      <span className="inline-block px-2.5 py-0.5 rounded-md bg-[var(--primary-soft)] border border-[var(--primary-border)] text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider mb-3">
                         {rel.category.replace(/_/g, " ")}
                       </span>
                     )}
-                    <h3 className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition line-clamp-2 leading-snug">
+                    <h3 className="font-bold text-[var(--fg)] text-sm group-hover:text-[var(--primary)] transition line-clamp-2 leading-snug">
                       {rel.title}
                     </h3>
                     {rel.excerpt && (
-                      <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-[var(--fg-muted)] mt-2 line-clamp-2 leading-relaxed">
                         {rel.excerpt}
                       </p>
                     )}
                   </div>
-                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+                  <div className="mt-5 pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--fg-muted)] font-medium">
                     <span>{rel.readTime || 4} min read</span>
-                    <span className="inline-flex items-center gap-1 font-bold text-indigo-600 group-hover:translate-x-0.5 transition-transform">
+                    <span className="inline-flex items-center gap-1 font-bold text-[var(--primary)] group-hover:translate-x-0.5 transition-transform">
                       Read <ArrowRight className="h-3 w-3" />
                     </span>
                   </div>

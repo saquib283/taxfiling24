@@ -5,43 +5,51 @@
   --bg: #F8FAFC;
   --bg-card: #FFFFFF;
   --bg-muted: #F1F5F9;
-  
+
   /* Text Colors */
   --fg: #0F172A;
   --fg-muted: #475569;
-  --fg-soft: #94A3B8;
-  
-  /* Brand Colors (Premium CA Aesthetic) */
-  --primary: #0A2540;       /* Deep high-trust Navy */
-  --primary-hover: #11345E;
-  --accent: #D4AF37;        /* Elegant Gold */
-  --accent-light: #FFDF73;
-  --accent-soft: #FCF9EC;
-  
-  /* Semantic Colors */
-  --success: #10B981;
-  --success-bg: #D1FAE5;
-  --error: #EF4444;
-  --star: #D4AF37;
-  --border: #E2E8F0;
-  
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, #11345E 100%);
-  --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #B5952D 100%);
-  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
-  --gradient-glow: linear-gradient(135deg, rgba(10, 37, 64, 0.3) 0%, rgba(212, 175, 55, 0.3) 100%);
+  --fg-soft: #64748B;
 
-  /* Premium Shadows */
+  /* Brand Colors (Premium CA Advisory Aesthetic) */
+  --primary: #0A2540;       /* Deep high-trust Navy */
+  --primary-hover: color-mix(in srgb, var(--primary) 86%, white);
+  --primary-soft: color-mix(in srgb, var(--primary) 8%, white);
+  --primary-border: color-mix(in srgb, var(--primary) 18%, transparent);
+  --accent: #D4AF37;        /* Heritage Gold (use on dark surfaces or decorative accents) */
+  --accent-ink: color-mix(in srgb, var(--accent) 60%, black); /* >=4.6:1 AA on white */
+  --accent-light: color-mix(in srgb, var(--accent) 72%, white);
+  --accent-soft: color-mix(in srgb, var(--accent) 11%, white);
+
+  /* Semantic Colors */
+  --success: #059669;
+  --success-bg: #ECFDF5;
+  --error: #DC2626;
+  --star: var(--accent-ink);
+  --border: #E2E8F0;
+
+  /* Gradients (all derived dynamically from active brand tokens) */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-ink) 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.85) 100%);
+  --gradient-glow: linear-gradient(135deg, color-mix(in srgb, var(--primary) 24%, transparent) 0%, color-mix(in srgb, var(--accent) 24%, transparent) 100%);
+
+  /* Elevation Shadows */
   --shadow-sm: 0 2px 4px rgba(10, 37, 64, 0.04);
   --shadow: 0 4px 12px rgba(10, 37, 64, 0.06), 0 1px 2px rgba(10, 37, 64, 0.04);
   --shadow-md: 0 12px 24px -4px rgba(10, 37, 64, 0.08), 0 4px 8px -2px rgba(10, 37, 64, 0.04);
   --shadow-lg: 0 20px 40px -8px rgba(10, 37, 64, 0.12), 0 8px 16px -4px rgba(10, 37, 64, 0.06);
-  --shadow-glow: 0 0 24px -4px rgba(212, 175, 55, 0.3);
-  
-  /* Radii */
-  --radius: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --shadow-xl: 0 24px 48px -12px rgba(10, 37, 64, 0.16), 0 10px 20px -6px rgba(10, 37, 64, 0.08);
+  --shadow-glow: 0 10px 24px -6px color-mix(in srgb, var(--accent) 30%, transparent);
+
+  /* Radii (crisp scale derived from configurable --radius; aligns with Tailwind v4 --radius-* tokens) */
+  --radius: 0.5rem;
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2);
   --radius-full: 9999px;
 }
 
@@ -56,11 +64,11 @@
   padding-inline: 1rem;
   width: 100%;
   max-width: 80rem; /* 1280px - matching max-w-7xl */
-  
+
   @media (min-width: 640px) {
     padding-inline: 1.5rem;
   }
-  
+
   @media (min-width: 1024px) {
     padding-inline: 2rem;
   }
@@ -70,13 +78,21 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   background: var(--bg);
   color: var(--fg);
-  /* Optional: Background mesh or subtle gradient can be placed here */
-  background-image: radial-gradient(circle at 50% 0%, rgba(0, 136, 204, 0.05) 0%, transparent 70%);
+  caret-color: var(--primary);
+}
 
-  background-attachment: fixed;
+::selection {
+  background: var(--primary);
+  color: #ffffff;
 }
 
 ::-webkit-scrollbar {
@@ -127,7 +143,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(59, 130, 246, 0.08);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
   pointer-events: none;
   z-index: 2;
 }
@@ -150,7 +166,7 @@ body {
 
 .tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
   cursor: pointer;
-  accent-color: #2563eb;
+  accent-color: var(--primary);
 }
 
 .tiptap p.is-editor-empty:first-child::before {

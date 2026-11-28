@@ -11,7 +11,7 @@ export default function PreHeaderBar({ settings = {} }: { settings?: Record<stri
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex items-center justify-center gap-8 border-b border-[var(--border)] bg-gradient-to-r from-[var(--bg-muted)] via-[var(--accent-soft)] to-[var(--bg-muted)] py-2.5 text-sm font-medium text-[var(--primary)]"
+      className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 border-b border-[var(--border)] bg-gradient-to-r from-[var(--bg-muted)] via-[var(--accent-soft)] to-[var(--bg-muted)] px-4 py-2.5 text-sm font-medium text-[var(--primary)]"
     >
       <a
         href={`tel:${phoneRaw}`}

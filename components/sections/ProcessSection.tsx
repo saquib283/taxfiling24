@@ -106,10 +106,10 @@ export default function ProcessSection({ settings = {}, content }: ProcessProps)
                      variants={isEven ? slideInRight : slideInLeft}
                      className="relative w-full max-w-sm group"
                    >
-                      <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] opacity-5 blur-xl group-hover:opacity-15 transition-opacity duration-500" />
-                      <div className="relative rounded-[2rem] border border-white bg-white/40 p-1 backdrop-blur-3xl shadow-2xl transition-transform duration-500 group-hover:-translate-y-2">
+                      <div className="absolute -inset-1 rounded-[var(--radius-2xl)] bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] opacity-5 blur-xl group-hover:opacity-15 transition-opacity duration-500" />
+                      <div className="relative rounded-[var(--radius-2xl)] border border-[var(--border)] bg-[var(--bg-card)]/80 p-1.5 backdrop-blur-xl shadow-[var(--shadow-lg)] transition-transform duration-500 group-hover:-translate-y-2">
                          <div 
-                           className="overflow-hidden rounded-[1.8rem] bg-white flex items-center justify-center aspect-square relative"
+                           className="overflow-hidden rounded-[var(--radius-xl)] bg-white flex items-center justify-center aspect-square relative"
                            style={{ 
                              maskImage: 'radial-gradient(circle, black 60%, transparent 95%)',
                              WebkitMaskImage: 'radial-gradient(circle, black 60%, transparent 95%)'

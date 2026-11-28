@@ -166,7 +166,7 @@ export default function Navbar({
                           placeholder={searchPlaceholder}
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                          className="w-full pl-9 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25 focus-visible:border-[var(--primary)] transition-all"
                           onClick={(e) => e.stopPropagation()}
                         />
                       </div>
@@ -271,17 +271,17 @@ export default function Navbar({
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
-                              className="pl-4 space-y-1 bg-gray-50/50 rounded-lg mt-1 mb-1 overflow-hidden"
+                              className="pl-4 space-y-1 bg-[var(--bg-muted)]/60 rounded-lg mt-1 mb-1 overflow-hidden"
                             >
-                              <div className="p-2 border-b border-gray-100">
+                              <div className="p-2 border-b border-[var(--border)]">
                                 <div className="relative">
-                                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-muted)]" />
                                   <input
                                     type="text"
                                     placeholder={mobileSearchPlaceholder}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs focus:outline-none transition-all"
+                                    className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-md text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25 focus-visible:border-[var(--primary)] transition-all"
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                 </div>

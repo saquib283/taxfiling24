@@ -55,9 +55,9 @@ export default function CTASection({ settings = {}, content }: CTASectionProps) 
             <div className="mb-10 flex flex-wrap justify-center gap-4">
             <Link
               href="/book"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold tracking-wide text-indigo-900 shadow-[var(--shadow-lg)] transition-all hover:-translate-y-1 hover:scale-105 hover:shadow-xl cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 font-bold tracking-wide text-[var(--primary)] shadow-[var(--shadow-lg)] transition-all hover:-translate-y-1 hover:scale-105 hover:shadow-xl cursor-pointer"
             >
-              <CalendarClock className="h-4 w-4 text-indigo-600" />
+              <CalendarClock className="h-4 w-4 text-[var(--primary)]" />
               <span>Book CA Consultation</span>
             </Link>
             <Link

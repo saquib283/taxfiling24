@@ -49,7 +49,7 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
       className="relative overflow-hidden bg-[var(--bg)] pt-6 pb-16 sm:pt-12 sm:pb-20 lg:pt-16 lg:pb-24"
     >
       {/* Hero Background Gradients */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(0,136,204,0.08),transparent_50%),radial-gradient(circle_at_bottom_left,rgba(15,76,129,0.05),transparent_50%)]" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,var(--primary-soft),transparent_55%),radial-gradient(circle_at_bottom_left,var(--accent-soft),transparent_55%)]" />
       <div className="absolute top-20 right-[10%] -z-10 h-72 w-72 rounded-full bg-[var(--accent)]/5 opacity-40 blur-3xl" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -62,10 +62,10 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
               {taxIndex >= 0 ? (
                 <>
                   {beforeTax}<br className="hidden lg:block" />
-                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>{fromTax}</span>
+                  <span className="text-[var(--primary)]">{fromTax}</span>
                 </>
               ) : (
-                <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>{headline}</span>
+                <span className="text-[var(--primary)]">{headline}</span>
               )}
             </h1>
             <p className="mb-8 max-w-lg text-[var(--fg-muted)] leading-relaxed sm:text-lg">
@@ -127,10 +127,9 @@ export default function HeroSection({ settings = {}, content }: HeroProps) {
               <motion.div
                 animate={shouldReduceMotion ? { y: 0 } : { y: [0, 8, 0] }}
                 transition={shouldReduceMotion ? { duration: 0 } : { duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute right-4 top-4 sm:right-5 sm:top-5 rounded-2xl border border-white/20 px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
-                style={{ background: "linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%)" }}
+                className="absolute right-4 top-4 sm:right-5 sm:top-5 rounded-2xl border border-[var(--accent)]/40 bg-[var(--primary)] px-4 py-3 sm:px-6 sm:py-4 text-white shadow-[var(--shadow-lg)] backdrop-blur-md"
               >
-                <p className="text-xl sm:text-2xl font-extrabold tracking-tight">{settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience}</p>
+                <p className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--accent)]">{settings.stats_experience || SITE_CONTENT_DEFAULTS.stats_experience}</p>
                 <p className="text-[10px] sm:text-xs font-medium text-white/90">{experienceLabel}</p>
               </motion.div>
             </div>

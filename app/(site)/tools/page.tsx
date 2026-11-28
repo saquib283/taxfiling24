@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Calculator, ChevronRight, Landmark, ReceiptText } from "lucide-react";
+import { ChevronRight, Landmark, ReceiptText } from "lucide-react";
+import PageHero from "@/components/layout/PageHero";
 import JsonLd, {
   breadcrumbSchema,
   collectionPageSchema,
@@ -39,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function ToolsPage() {
   return (
-    <div className="bg-[var(--bg)] py-16 lg:py-24">
+    <div className="min-h-screen bg-[var(--bg)] pb-20">
       <JsonLd
         data={[
           breadcrumbSchema([
@@ -61,38 +62,33 @@ export default function ToolsPage() {
         ]}
       />
 
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
-            <Calculator className="h-3.5 w-3.5" />
-            Practical Tools
-          </div>
-          <h1 className="mt-6 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
-            Tax and compliance tools built for quick decision making
-          </h1>
-          <p className="mt-4 text-base leading-7 text-slate-600">
-            Use our free calculators to estimate income tax, GST, and invoice-level tax impact
-            before you file or plan the next step.
-          </p>
-        </div>
+      <PageHero
+        title={
+          <>
+            Tax &amp; Compliance <span className="text-[var(--accent)]">Calculators</span>
+          </>
+        }
+        description="Use our free statutory calculators to estimate income tax liabilities, GST breakdowns, and invoice-level tax impact before you file."
+      />
 
-        <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-2">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-16">
+        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2">
           {TOOL_ITEMS.map((tool) => {
             const Icon = tool.icon;
             return (
               <Link
                 key={tool.href}
                 href={tool.href}
-                className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
+                className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] p-8 shadow-[var(--shadow-sm)] transition-all hover:-translate-y-1 hover:border-[var(--primary-border)] hover:shadow-[var(--shadow-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius)] bg-[var(--primary-soft)] text-[var(--primary)] transition-colors group-hover:bg-[var(--primary)] group-hover:text-white">
                   <Icon className="h-7 w-7" />
                 </div>
-                <h2 className="mt-6 text-2xl font-bold tracking-tight text-slate-900 transition-colors group-hover:text-blue-700">
+                <h2 className="mt-6 text-2xl font-bold tracking-tight text-[var(--fg)] transition-colors group-hover:text-[var(--primary)]">
                   {tool.title}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{tool.description}</p>
-                <div className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
+                <p className="mt-3 text-sm leading-6 text-[var(--fg-muted)]">{tool.description}</p>
+                <div className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)]">
                   Open tool
                   <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </div>

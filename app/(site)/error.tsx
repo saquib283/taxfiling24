@@ -32,7 +32,7 @@ export default function ErrorPage({
       </p>
 
       {error.digest && (
-        <p className="mt-2 text-xs font-mono text-slate-400 uppercase tracking-wider">
+        <p className="mt-2 text-xs font-mono text-[var(--fg-muted)] uppercase tracking-wider">
           Error ID: {error.digest}
         </p>
       )}
@@ -40,7 +40,7 @@ export default function ErrorPage({
       <div className="mt-8 flex flex-wrap justify-center gap-4">
         <button
           onClick={() => reset()}
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-md hover:bg-slate-800 transition-all active:scale-95 cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-[var(--primary)] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[var(--shadow-md)] hover:bg-[var(--primary-hover)] transition-all active:scale-95 cursor-pointer"
         >
           <RotateCcw className="h-4 w-4" />
           Try Again
@@ -48,7 +48,7 @@ export default function ErrorPage({
 
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-[var(--fg)] shadow-sm hover:bg-slate-50 transition-all active:scale-95"
+          className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-[var(--fg)] shadow-[var(--shadow-sm)] hover:bg-[var(--bg-muted)] transition-all active:scale-95"
         >
           <Home className="h-4 w-4" />
           Go Back Home

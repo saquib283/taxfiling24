@@ -25,28 +25,28 @@ export default function ServiceCard({
 
   return (
     <motion.div
-      className="group relative flex h-full flex-col rounded-2xl border border-slate-200/60 bg-white transition-all duration-300 hover:border-[var(--primary)]/20 hover:shadow-[0_8px_30px_-12px_rgba(10,37,64,0.15)]"
+      className="group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-card)] transition-all duration-300 hover:border-[var(--primary-border)] hover:shadow-[var(--shadow-md)]"
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4 }}
     >
       {/* Top accent bar */}
-      <div className="h-1 w-0 rounded-t-2xl bg-[var(--primary)] transition-all duration-500 group-hover:w-full" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-[var(--primary)] transition-transform duration-500 group-hover:scale-x-100" />
 
       <div className="flex flex-col flex-1 p-7 sm:p-8">
-        <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-[var(--primary)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-[var(--primary)]">
+        <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-muted)] text-[var(--primary)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-[var(--primary)]">
           <Icon className="h-5 w-5" strokeWidth={2} />
         </div>
 
-        <h3 className="mb-auto text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 group-hover:text-[var(--primary)] transition-colors duration-300">
+        <h3 className="mb-auto text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--fg)] group-hover:text-[var(--primary)] transition-colors duration-300">
           {title}
         </h3>
 
-        <div className="mt-6 flex items-center justify-between gap-4 pt-5 border-t border-slate-100">
+        <div className="mt-6 flex items-center justify-between gap-4 pt-5 border-t border-[var(--border)]">
           <Link
             href={href}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 group-hover:text-[var(--primary)] transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fg)] group-hover:text-[var(--primary)] transition-colors"
           >
             {ctaLabel}
           </Link>
@@ -74,7 +74,7 @@ export default function ServiceCard({
             ) : null}
             <Link
               href={href}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-muted)] text-[var(--fg-muted)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white"
               aria-label={`View ${title}`}
             >
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
